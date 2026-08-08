@@ -1,24 +1,24 @@
-"""Regenerates data.json content (daily and/or weekly scope) via the Anthropic API.
+"""Regenerates data.json content (daily and/or weekly scope) via the Gemini API (free tier).
 
 Usage:
     python scripts/generate_content.py --scope daily
     python scripts/generate_content.py --scope weekly
     python scripts/generate_content.py --scope both
 
-Requires the ANTHROPIC_API_KEY environment variable. Reads the existing
-data.json (if present) so a run that only touches one scope leaves the
-other section untouched.
+Requires the GEMINI_API_KEY environment variable (free key from
+https://aistudio.google.com/apikey). Reads the existing data.json (if
+present) so a run that only touches one scope leaves the other section
+untouched.
 """
 import argparse
 import json
 import os
-import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
 
-API_URL = "https://api.anthropic.com/v1/messages"
-MODEL = "claude-sonnet-5"
+MODEL = "gemini-2.5-flash"
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data.json")
 
 DAILY_SCHEMA = """{
@@ -53,26 +53,28 @@ WEEKLY_SCHEMA = """{
 }"""
 
 
-def call_claude(prompt: str) -> str:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+def call_gemini(prompt: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("ANTHROPIC_API_KEY ist nicht gesetzt.", file=sys.stderr)
+        print("GEMINI_API_KEY ist nicht gesetzt.", file=sys.stderr)
         sys.exit(1)
 
     body = json.dumps({
-        "model": MODEL,
-        "max_tokens": 2000,
-        "messages": [{"role": "user", "content": prompt}],
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.7},
     }).encode("utf-8")
 
     req = urllib.request.Request(API_URL, data=body, method="POST", headers={
         "content-type": "application/json",
-        "x-api-key": api_key,
-        "anthropic-version": "2023-06-01",
+        "x-goog-api-key": api_key,
     })
     with urllib.request.urlopen(req, timeout=60) as resp:
         payload = json.load(resp)
-    return "".join(block.get("text", "") for block in payload.get("content", []))
+    candidates = payload.get("candidates") or []
+    if not candidates:
+        raise ValueError("Keine Antwort von Gemini erhalten:\n" + json.dumps(payload))
+    parts = candidates[0].get("content", {}).get("parts", [])
+    return "".join(part.get("text", "") for part in parts)
 
 
 def extract_json(text: str) -> dict:
@@ -121,7 +123,7 @@ def main():
     for scope in scopes:
         schema = DAILY_SCHEMA if scope == "daily" else WEEKLY_SCHEMA
         prompt = build_prompt(scope, schema)
-        raw = call_claude(prompt)
+        raw = call_gemini(prompt)
         fragment = extract_json(raw)
         data[scope] = fragment
 

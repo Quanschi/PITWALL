@@ -1,32 +1,37 @@
 # Pitwall
 
 LMU GT3 / F1 / Endurance Fahrer-Briefing als installierbare PWA (Windows + Android), Inhalte aus `data.json`,
-automatisch aktualisiert per GitHub Actions + Anthropic API.
+automatisch aktualisiert per GitHub Actions + Google Gemini API (kostenloser Tarif).
 
 ## Struktur
 
 - `index.html` — die App selbst (Design unveraendert, laedt Inhalte aus `data.json`)
 - `data.json` — alle Texte (Daily-Tipp, News, Weekly-Strategie, Deep-Dive). Wird automatisch ueberschrieben.
 - `manifest.json`, `sw.js`, `icons/` — PWA-Grundlagen (installierbar, Offline-Fallback auf den letzten Stand)
-- `scripts/generate_content.py` — ruft die Anthropic API auf und schreibt `data.json` neu
+- `scripts/generate_content.py` — ruft die Gemini API auf und schreibt `data.json` neu
 - `.github/workflows/update-content.yml` — Zeitplan: taeglich (Daily-Tab) + montags (Weekly-Tab)
 
 ## Einmaliges Setup
 
-### 1. API-Key hinterlegen
-Repo auf GitHub -> **Settings -> Secrets and variables -> Actions -> New repository secret**
-- Name: `ANTHROPIC_API_KEY`
-- Value: dein Anthropic-API-Key ([console.anthropic.com](https://console.anthropic.com))
+### 1. Kostenlosen API-Key holen
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) -> mit Google-Konto anmelden -> **Create API key**.
+Der Key ist im kostenlosen Kontingent sofort nutzbar (Gemini 2.5 Flash: 1.500 Requests/Tag Gratis-Limit,
+bei diesem Projekt braucht es 1-2 Requests/Tag — keine Kreditkarte noetig).
 
-### 2. Workflow-Schreibrechte pruefen
+### 2. Key als Secret hinterlegen
+Repo auf GitHub -> **Settings -> Secrets and variables -> Actions -> New repository secret**
+- Name: `GEMINI_API_KEY`
+- Value: der eben erstellte Key
+
+### 3. Workflow-Schreibrechte pruefen
 **Settings -> Actions -> General -> Workflow permissions** -> "Read and write permissions" auswaehlen und speichern.
 (Ohne das kann der Workflow `data.json` nicht zurueck ins Repo committen.)
 
-### 3. GitHub Pages aktivieren
+### 4. GitHub Pages aktivieren
 **Settings -> Pages -> Source** -> "Deploy from a branch" -> Branch `main`, Ordner `/ (root)` -> Save.
 Nach ein bis zwei Minuten ist die Seite erreichbar unter `https://quanschi.github.io/PITWALL/`.
 
-### 4. Als App installieren
+### 5. Als App installieren
 - **Windows (Edge/Chrome):** Seite oeffnen -> Adresszeile -> "App installieren" (oder Menue -> Apps -> Diese Seite installieren)
 - **Android (Chrome):** Seite oeffnen -> Menue (drei Punkte) -> "App installieren" / "Zum Startbildschirm hinzufuegen"
 
@@ -61,7 +66,7 @@ Dann `http://localhost:8000` oeffnen.
 ## Manuell Inhalte aktualisieren (ohne Automatisierung)
 
 ```bash
-set ANTHROPIC_API_KEY=dein-key
+set GEMINI_API_KEY=dein-key
 python scripts/generate_content.py --scope both
 ```
 
