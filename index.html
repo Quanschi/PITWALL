@@ -267,17 +267,16 @@ body{
 .schedule-status a{color:var(--red);}
 .schedule-frame-wrap{
   width:100%;
-  overflow:hidden;
   border:1px solid var(--line);
   border-radius:4px;
   background:var(--panel);
 }
 .schedule-frame{
   display:block;
-  width:1024px;
-  height:720px;
+  width:100%;
+  height:75vh;
+  min-height:480px;
   border:none;
-  transform-origin:top left;
 }
 
 /* ---- Weekly deep dive structure ---- */
@@ -583,23 +582,6 @@ function updateScheduleFrame(){
   document.getElementById('schedule-open-link').href = url;
 }
 
-// lmuschedule.com isn't built for narrow viewports, so we render it at a fixed
-// desktop width and scale the whole iframe down to fit our container instead
-// of letting its layout clip on mobile.
-const SCHEDULE_BASE_WIDTH = 1024;
-const SCHEDULE_BASE_HEIGHT = 720;
-function scaleScheduleFrame(){
-  const wrap = document.getElementById('schedule-frame-wrap');
-  const frame = document.getElementById('schedule-frame');
-  if(!wrap || wrap.clientWidth === 0) return;
-  const scale = wrap.clientWidth / SCHEDULE_BASE_WIDTH;
-  frame.style.transform = `scale(${scale})`;
-  wrap.style.height = Math.round(SCHEDULE_BASE_HEIGHT * scale) + 'px';
-}
-window.addEventListener('resize', () => {
-  if(document.getElementById('panel-schedule').classList.contains('active')) scaleScheduleFrame();
-});
-
 document.getElementById('race-type-filter').addEventListener('click', (e) => {
   const btn = e.target.closest('.filter-pill');
   if(!btn) return;
@@ -626,12 +608,9 @@ function showPanel(name){
   document.getElementById('tab-daily').classList.toggle('active', name==='daily');
   document.getElementById('tab-weekly').classList.toggle('active', name==='weekly');
   document.getElementById('tab-schedule').classList.toggle('active', name==='schedule');
-  if(name === 'schedule'){
-    if(!scheduleFrameLoaded){
-      scheduleFrameLoaded = true;
-      updateScheduleFrame();
-    }
-    scaleScheduleFrame();
+  if(name === 'schedule' && !scheduleFrameLoaded){
+    scheduleFrameLoaded = true;
+    updateScheduleFrame();
   }
 }
 
