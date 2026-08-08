@@ -265,13 +265,19 @@ body{
   margin-bottom:14px;
 }
 .schedule-status a{color:var(--red);}
-.schedule-frame{
+.schedule-frame-wrap{
   width:100%;
-  height:75vh;
-  min-height:480px;
+  overflow:hidden;
   border:1px solid var(--line);
   border-radius:4px;
   background:var(--panel);
+}
+.schedule-frame{
+  display:block;
+  width:1024px;
+  height:720px;
+  border:none;
+  transform-origin:top left;
 }
 
 /* ---- Weekly deep dive structure ---- */
@@ -439,7 +445,9 @@ body{
     Live von lmuschedule.com ·
     <a id="schedule-open-link" href="https://www.lmuschedule.com/daily-races/beginner" target="_blank" rel="noopener">in neuem Tab öffnen</a>
   </div>
-  <iframe id="schedule-frame" class="schedule-frame" src="about:blank" loading="lazy" title="LMU Rennplan"></iframe>
+  <div class="schedule-frame-wrap" id="schedule-frame-wrap">
+    <iframe id="schedule-frame" class="schedule-frame" src="about:blank" loading="lazy" title="LMU Rennplan"></iframe>
+  </div>
 
 </div>
 
@@ -575,6 +583,23 @@ function updateScheduleFrame(){
   document.getElementById('schedule-open-link').href = url;
 }
 
+// lmuschedule.com isn't built for narrow viewports, so we render it at a fixed
+// desktop width and scale the whole iframe down to fit our container instead
+// of letting its layout clip on mobile.
+const SCHEDULE_BASE_WIDTH = 1024;
+const SCHEDULE_BASE_HEIGHT = 720;
+function scaleScheduleFrame(){
+  const wrap = document.getElementById('schedule-frame-wrap');
+  const frame = document.getElementById('schedule-frame');
+  if(!wrap || wrap.clientWidth === 0) return;
+  const scale = wrap.clientWidth / SCHEDULE_BASE_WIDTH;
+  frame.style.transform = `scale(${scale})`;
+  wrap.style.height = Math.round(SCHEDULE_BASE_HEIGHT * scale) + 'px';
+}
+window.addEventListener('resize', () => {
+  if(document.getElementById('panel-schedule').classList.contains('active')) scaleScheduleFrame();
+});
+
 document.getElementById('race-type-filter').addEventListener('click', (e) => {
   const btn = e.target.closest('.filter-pill');
   if(!btn) return;
@@ -601,9 +626,12 @@ function showPanel(name){
   document.getElementById('tab-daily').classList.toggle('active', name==='daily');
   document.getElementById('tab-weekly').classList.toggle('active', name==='weekly');
   document.getElementById('tab-schedule').classList.toggle('active', name==='schedule');
-  if(name === 'schedule' && !scheduleFrameLoaded){
-    scheduleFrameLoaded = true;
-    updateScheduleFrame();
+  if(name === 'schedule'){
+    if(!scheduleFrameLoaded){
+      scheduleFrameLoaded = true;
+      updateScheduleFrame();
+    }
+    scaleScheduleFrame();
   }
 }
 
