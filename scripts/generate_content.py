@@ -62,7 +62,11 @@ def call_gemini(prompt: str) -> str:
 
     body = json.dumps({
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.7},
+        "generationConfig": {
+            "maxOutputTokens": 3000,
+            "temperature": 0.7,
+            "responseMimeType": "application/json",
+        },
     }).encode("utf-8")
 
     # Query-param auth (?key=...) is the well-documented, reliable auth path for
@@ -87,6 +91,10 @@ def call_gemini(prompt: str) -> str:
 
 
 def extract_json(text: str) -> dict:
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
     start = text.find("{")
     end = text.rfind("}")
     if start == -1 or end == -1:
