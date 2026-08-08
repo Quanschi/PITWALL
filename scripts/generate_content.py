@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
@@ -64,12 +65,20 @@ def call_gemini(prompt: str) -> str:
         "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.7},
     }).encode("utf-8")
 
-    req = urllib.request.Request(API_URL, data=body, method="POST", headers={
+    # Query-param auth (?key=...) is the well-documented, reliable auth path for
+    # this API; the x-goog-api-key header variant has been observed to 404.
+    url = f"{API_URL}?key={api_key}"
+    req = urllib.request.Request(url, data=body, method="POST", headers={
         "content-type": "application/json",
-        "x-goog-api-key": api_key,
     })
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        payload = json.load(resp)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            payload = json.load(resp)
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        print(f"Gemini API HTTP {e.code}:\n{detail}", file=sys.stderr)
+        raise
+
     candidates = payload.get("candidates") or []
     if not candidates:
         raise ValueError("Keine Antwort von Gemini erhalten:\n" + json.dumps(payload))
