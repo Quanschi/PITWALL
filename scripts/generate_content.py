@@ -33,7 +33,7 @@ DAILY_SCHEMA = """{
   },
   "news_label": "Racing News",
   "news": [
-    {"tag_class": "tag-f1|tag-gt3|tag-lmu|tag-oval", "tag_label": "kurzer Serien-Name", "text": "1-2 Saetze Meldung, **Namen/Teams fett**"}
+    {"tag_class": "tag-f1|tag-gt3|tag-lmu|tag-oval", "tag_label": "kurzer Serien-Name", "text": "3-4 Saetze Meldung mit Hintergrund/Einordnung (nicht nur eine Zeile), **Namen/Teams fett**"}
   ]
 }"""
 
