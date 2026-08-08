@@ -265,8 +265,11 @@ body{
   margin-bottom:14px;
 }
 .schedule-status a{color:var(--red);}
+.schedule-scroll-hint{display:none;}
 .schedule-frame-wrap{
   width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
   border:1px solid var(--line);
   border-radius:4px;
   background:var(--panel);
@@ -274,9 +277,20 @@ body{
 .schedule-frame{
   display:block;
   width:100%;
+  min-width:1024px;
   height:75vh;
   min-height:480px;
   border:none;
+}
+@media(max-width:1060px){
+  .schedule-scroll-hint{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    text-align:center;
+    margin-bottom:8px;
+  }
 }
 
 /* ---- Weekly deep dive structure ---- */
@@ -444,6 +458,7 @@ body{
     Live von lmuschedule.com ·
     <a id="schedule-open-link" href="https://www.lmuschedule.com/daily-races/beginner" target="_blank" rel="noopener">in neuem Tab öffnen</a>
   </div>
+  <p class="schedule-scroll-hint">← seitlich wischen für mehr →</p>
   <div class="schedule-frame-wrap" id="schedule-frame-wrap">
     <iframe id="schedule-frame" class="schedule-frame" src="about:blank" loading="lazy" title="LMU Rennplan"></iframe>
   </div>
