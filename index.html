@@ -258,55 +258,20 @@ body{
 .filter-pill.active{background:var(--red);border-color:var(--red);color:var(--carbon);}
 .filter-pill:hover:not(.active){color:var(--text);}
 
-.schedule-list{display:flex;flex-direction:column;gap:10px;}
-.schedule-card{
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-left:4px solid var(--red);
-  border-radius:4px;
-  padding:16px 18px;
-}
-.schedule-card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-bottom:6px;
-}
-.schedule-circuit{
-  font-family:'Rajdhani',sans-serif;
-  font-weight:700;
-  font-size:17px;
-  color:var(--text);
-}
-.schedule-difficulty-badge{
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;
-  padding:2px 8px;
-  border-radius:3px;
-  text-transform:uppercase;
-  background:rgba(232,92,74,0.15);
-  color:var(--red);
-  white-space:nowrap;
-}
-.schedule-classes{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
-.schedule-times{display:flex;flex-wrap:wrap;gap:8px;}
-.schedule-time-chip{
-  font-family:'JetBrains Mono',monospace;
-  font-size:12px;
-  background:var(--panel-2);
-  padding:5px 10px;
-  border-radius:3px;
-  color:var(--text);
-}
-.schedule-time-chip.next{border:1px solid var(--red);color:var(--red);}
-.schedule-empty{color:var(--muted);font-size:13px;padding:10px 0;}
 .schedule-status{
   font-family:'JetBrains Mono',monospace;
   font-size:11px;
   color:var(--muted);
   margin-bottom:14px;
+}
+.schedule-status a{color:var(--red);}
+.schedule-frame{
+  width:100%;
+  height:75vh;
+  min-height:480px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--panel);
 }
 
 /* ---- Weekly deep dive structure ---- */
@@ -465,13 +430,16 @@ body{
 
   <p class="section-label">Schwierigkeit</p>
   <div class="filter-row" id="difficulty-filter">
-    <button class="filter-pill" data-difficulty="Beginner" type="button">Beginner</button>
-    <button class="filter-pill" data-difficulty="Intermediate" type="button">Intermediate</button>
-    <button class="filter-pill" data-difficulty="Advanced" type="button">Advanced</button>
+    <button class="filter-pill" data-difficulty="beginner" type="button">Beginner</button>
+    <button class="filter-pill" data-difficulty="intermediate" type="button">Intermediate</button>
+    <button class="filter-pill" data-difficulty="advanced" type="button">Advanced</button>
   </div>
 
-  <div class="schedule-status" id="schedule-status">Lade Rennplan…</div>
-  <div class="schedule-list" id="schedule-list"></div>
+  <div class="schedule-status" id="schedule-status">
+    Live von lmuschedule.com ·
+    <a id="schedule-open-link" href="https://www.lmuschedule.com/daily-races/beginner" target="_blank" rel="noopener">in neuem Tab öffnen</a>
+  </div>
+  <iframe id="schedule-frame" class="schedule-frame" src="about:blank" loading="lazy" title="LMU Rennplan"></iframe>
 
 </div>
 
@@ -590,119 +558,21 @@ async function loadData(force){
 
 document.getElementById('sync-btn').addEventListener('click', () => loadData(true));
 
-// ---- Schedule tab: live data straight from the public lmuschedule.com API ----
-const SCHEDULE_API_URL = 'https://api.lmuschedule.com/racingschedules';
-const SCHEDULE_CACHE_KEY = 'pitwall-schedule-cache';
-let scheduleData = null;
-let scheduleLoaded = false;
-let scheduleFilters = { type: 'daily', difficulty: 'Beginner' };
+// ---- Schedule tab: lmuschedule.com embedded directly (their API is restricted
+// to their own origin server-side, so we frame their live page instead of
+// re-fetching the data ourselves) ----
+const SCHEDULE_ROUTE = { daily: 'daily-races', weekly: 'weekly-races', special: 'special-event' };
+let scheduleFilters = { type: 'daily', difficulty: 'beginner' };
+let scheduleFrameLoaded = false;
 
-function typeMatches(raw, key){
-  const s = (raw || '').toLowerCase();
-  if(key === 'daily') return s.includes('daily');
-  if(key === 'weekly') return s.includes('weekly');
-  if(key === 'special') return s.includes('special');
-  return false;
+function scheduleUrl(){
+  return `https://www.lmuschedule.com/${SCHEDULE_ROUTE[scheduleFilters.type]}/${scheduleFilters.difficulty}`;
 }
 
-function formatLocalTime(iso){
-  const d = new Date(iso);
-  const weekday = d.toLocaleDateString('de-DE', { weekday: 'short' });
-  const date = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-  const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  return `${weekday} ${date}, ${time}`;
-}
-
-function renderSchedule(){
-  const list = document.getElementById('schedule-list');
-  const status = document.getElementById('schedule-status');
-  list.innerHTML = '';
-
-  if(!scheduleData){
-    status.textContent = 'Rennplan konnte nicht geladen werden.';
-    return;
-  }
-
-  const now = Date.now();
-  const entries = scheduleData
-    .filter(e => typeMatches(e.raceType, scheduleFilters.type) && e.difficulty === scheduleFilters.difficulty)
-    .map(e => {
-      const upcoming = (e.times || [])
-        .filter(t => new Date(t).getTime() >= now)
-        .sort()
-        .slice(0, 6);
-      return { entry: e, upcoming };
-    })
-    .filter(x => x.upcoming.length > 0)
-    .sort((a, b) => new Date(a.upcoming[0]) - new Date(b.upcoming[0]));
-
-  if(entries.length === 0){
-    status.textContent = 'Keine anstehenden Termine für diese Auswahl in den aktuell geladenen Daten.';
-    return;
-  }
-
-  status.textContent = `${entries.length} Strecke${entries.length === 1 ? '' : 'n'} · Zeiten in deiner lokalen Zeitzone`;
-
-  entries.forEach(({ entry, upcoming }) => {
-    const card = document.createElement('div');
-    card.className = 'schedule-card';
-
-    const head = document.createElement('div');
-    head.className = 'schedule-card-head';
-    const circuit = document.createElement('span');
-    circuit.className = 'schedule-circuit';
-    circuit.textContent = entry.circuit || '';
-    const badge = document.createElement('span');
-    badge.className = 'schedule-difficulty-badge';
-    badge.textContent = entry.difficulty || '';
-    head.appendChild(circuit);
-    head.appendChild(badge);
-
-    const classes = document.createElement('div');
-    classes.className = 'schedule-classes';
-    classes.textContent = (entry.carClasses || []).join(' · ');
-
-    const times = document.createElement('div');
-    times.className = 'schedule-times';
-    upcoming.forEach((t, i) => {
-      const chip = document.createElement('span');
-      chip.className = 'schedule-time-chip' + (i === 0 ? ' next' : '');
-      chip.textContent = formatLocalTime(t);
-      times.appendChild(chip);
-    });
-
-    card.appendChild(head);
-    card.appendChild(classes);
-    card.appendChild(times);
-    list.appendChild(card);
-  });
-}
-
-async function loadSchedule(force){
-  const status = document.getElementById('schedule-status');
-  if(!force && scheduleLoaded){
-    renderSchedule();
-    return;
-  }
-  try{
-    const res = await fetch(SCHEDULE_API_URL, { headers: { 'Content-Type': 'application/json' } });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const payload = await res.json();
-    scheduleData = payload.body || payload;
-    localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify(scheduleData));
-    scheduleLoaded = true;
-    renderSchedule();
-  }catch(err){
-    const cached = localStorage.getItem(SCHEDULE_CACHE_KEY);
-    if(cached){
-      scheduleData = JSON.parse(cached);
-      scheduleLoaded = true;
-      renderSchedule();
-      status.textContent += ' (evtl. veraltet, Live-Abruf fehlgeschlagen)';
-    }else{
-      status.textContent = 'Rennplan konnte nicht geladen werden (offline?).';
-    }
-  }
+function updateScheduleFrame(){
+  const url = scheduleUrl();
+  document.getElementById('schedule-frame').src = url;
+  document.getElementById('schedule-open-link').href = url;
 }
 
 document.getElementById('race-type-filter').addEventListener('click', (e) => {
@@ -710,7 +580,7 @@ document.getElementById('race-type-filter').addEventListener('click', (e) => {
   if(!btn) return;
   scheduleFilters.type = btn.dataset.type;
   document.querySelectorAll('#race-type-filter .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
-  renderSchedule();
+  updateScheduleFrame();
 });
 
 document.getElementById('difficulty-filter').addEventListener('click', (e) => {
@@ -718,7 +588,7 @@ document.getElementById('difficulty-filter').addEventListener('click', (e) => {
   if(!btn) return;
   scheduleFilters.difficulty = btn.dataset.difficulty;
   document.querySelectorAll('#difficulty-filter .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
-  renderSchedule();
+  updateScheduleFrame();
 });
 
 document.querySelector(`#race-type-filter .filter-pill[data-type="${scheduleFilters.type}"]`).classList.add('active');
@@ -731,7 +601,10 @@ function showPanel(name){
   document.getElementById('tab-daily').classList.toggle('active', name==='daily');
   document.getElementById('tab-weekly').classList.toggle('active', name==='weekly');
   document.getElementById('tab-schedule').classList.toggle('active', name==='schedule');
-  if(name === 'schedule') loadSchedule(false);
+  if(name === 'schedule' && !scheduleFrameLoaded){
+    scheduleFrameLoaded = true;
+    updateScheduleFrame();
+  }
 }
 
 loadData(false);
