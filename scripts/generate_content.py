@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.6-flash"
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data.json")
 
