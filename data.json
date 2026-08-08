@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "generated_at": "2026-08-08T06:00:00Z",
+  "stamp_date": "08.08.2026",
+  "daily": {
+    "section_label": "Tipp des Tages · LMGT3",
+    "tip": {
+      "kicker": "Fahrtechnik · Analyse",
+      "headline": "Nicht deine beste Sektorzeit zeigt dein Limit — deine schlechteste tut es.",
+      "body": "Fahr 10–15 Runden am Stück im GT3 und schau dir danach nicht deine **beste** Sektorzeit an, sondern deine **schwächste**. Die beste Runde ist oft ein Ausreißer — die schwache Sektorzeit zeigt dir, wo du wirklich Zeit liegen lässt (falscher Bremspunkt, zu später Gaseinsatz, unsauberer Kerb). Gerade im GT3, wo du **auf dem Reifen** statt über Aero fährst, ist Konstanz wichtiger als eine einzelne Peak-Runde. Fixiere dir dafür einen festen, sichtbaren Bremspunkt (Bake, Schild, Fahrbahnmarkierung) statt nach Gefühl zu bremsen — das macht deine Referenz Runde für Runde vergleichbar.",
+      "drill_label": "Drill heute:",
+      "drill": "Eine Kurve, 20 Minuten, fixer Bremspunkt. Nicht auf die beste, sondern auf die konstanteste Runde optimieren."
+    },
+    "news_label": "Racing News",
+    "news": [
+      {
+        "tag_class": "tag-f1",
+        "tag_label": "F1",
+        "text": "Nach der Sommerpause gilt **Mercedes** mit Antonelli/Russell weiter als Maßstab, **Ferrari** mit Hamilton als konstantester Verfolger — Red Bull soll laut Team einen Schlüsselvorteil im Kampf um den ersten Saisonsieg 2026 haben."
+      },
+      {
+        "tag_class": "tag-f1",
+        "tag_label": "F1",
+        "text": "Rund um Zandvoort (21.–23.08.) wird über ein mögliches Wiederaufleben des deutschen Grand Prix sowie über technische Diskussionen zwischen McLaren und Ferrari zum Motorenvorteil spekuliert."
+      },
+      {
+        "tag_class": "tag-gt3",
+        "tag_label": "GT3",
+        "text": "GT World Challenge America steuert auf die Runde in Road America (28.–30.08.) zu; in Europa läuft der Sprint Cup nach Magny-Cours Richtung Zandvoort (18.–19.09.) weiter."
+      },
+      {
+        "tag_class": "tag-oval",
+        "tag_label": "IndyCar/DTM",
+        "text": "IndyCar hat nach dem Rennen in Arlington eine nachträgliche Strafe gegen Kyffin Simpson verhängt; die DTM bestätigt laufend weitere Teams und Fahrer für 2026."
+      }
+    ]
+  },
+  "weekly": {
+    "section_label": "Strategie der Woche · LMGT3",
+    "strategy": {
+      "kicker": "Reifenmanagement · Streckenverständnis",
+      "headline": "LMGT3 ist kein Hotlap-Sim — die Reifenwahl ist eine Temperatur-Entscheidung, kein Reflex.",
+      "body": "In LMU hast du pro Rennen nur eine begrenzte Anzahl Reifensätze — du kannst nicht bei jedem Stopp auf frische Reifen wechseln. Die Mischungswahl richtet sich primär nach **Temperatur**, nicht nach \"weich = immer schnell\": `Soft` für kalte Bedingungen und Nachtstints, `Medium` als Allrounder, `Hard` für Tageshitze. Der entscheidende Skill-Unterschied zum reinen Hotlapping: die Reifen müssen den **ganzen Stint** halten, nicht nur eine schnelle Runde. Das GT3 fährt sich fast ausschließlich über den Reifen — anders als die aero-lastigen Hypercars reagiert es direkt auf Reifentemperatur und -druck. Das heißt, du fährst bewusst 1–2 % unter dem Limit, um Reifentemperatur und -abbau zu kontrollieren, statt jede Runde ans Limit zu pushen.",
+      "drill_label": "Übung diese Woche:",
+      "drill": "Fahr einen kompletten GT3-Stint (mind. 45 Min) ohne Boxenstopp und beobachte, wie sich Reifentemperatur und Rundenzeit über die Zeit entwickeln. Notiere, ab welcher Runde der Abbau spürbar wird."
+    },
+    "deepdive_label": "Vertiefung: drei Stellschrauben, die im GT3 den Unterschied machen",
+    "deepdive": [
+      {
+        "title": "Reifenfenster",
+        "text": "GT3-Reifen haben ein enges optimales Temperaturfenster. Zu kalt (Out-Lap, Regen) = wenig Grip, zu heiß (langer Push-Stint) = Abbau. Lerne, den Reifendruck im Setup so zu justieren, dass du das Fenster im Renntempo hältst, nicht nur in der Quali."
+      },
+      {
+        "title": "Bremsbalance & ABS",
+        "text": "GT3-Autos haben serienmäßiges ABS, aber die Bremsbalance (Front/Heck) entscheidet, wie stabil das Auto beim späten Bremsen bleibt. Zu viel Front = Understeer beim Einlenken, zu viel Heck = Instabilität. Kleine BB-Anpassungen pro Strecke lohnen sich mehr als neue Aero."
+      },
+      {
+        "title": "Kerbs & Kompromisse",
+        "text": "GT3s sind mechanisch sensibler auf Kerbs als Prototypen. Die schnellste Linie ist oft nicht die mit dem meisten Kerb-Kontakt — Traktion aus der Kurve raus zählt im GT3 mehr als der letzte Zehntel Kurveneingang."
+      }
+    ],
+    "footer_note": "Quellen-Kontext aus aktuellen Setup- und Renn-Guides (Coach Dave Academy, GitGud Racing Academy), gefiltert auf LMGT3. Für autospezifische Feinabstimmung (McLaren, Porsche, Ferrari GT3 etc.) lohnt sich zusätzlich ein Blick in dedizierte LMU-GT3-Setup-Datenbanken."
+  }
+}

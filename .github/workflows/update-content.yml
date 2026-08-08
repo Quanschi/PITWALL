@@ -1,0 +1,64 @@
+name: Update Pitwall Content
+
+on:
+  schedule:
+    # Daily briefing — 07:00 Europe/Berlin (UTC+2 in summer -> 05:00 UTC)
+    - cron: '0 5 * * *'
+    # Weekly deep dive — Monday 07:15 Europe/Berlin
+    - cron: '15 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Welcher Bereich soll neu generiert werden?'
+        required: false
+        default: both
+        type: choice
+        options:
+          - daily
+          - weekly
+          - both
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pitwall-content-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Determine scope
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "scope=${{ github.event.inputs.scope }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "15 5 * * 1" ]; then
+            echo "scope=weekly" >> "$GITHUB_OUTPUT"
+          else
+            echo "scope=daily" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate content
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/generate_content.py --scope ${{ steps.scope.outputs.scope }}
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "pitwall-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update pitwall content (${{ steps.scope.outputs.scope }})"
+            git push
+          else
+            echo "Keine Aenderungen."
+          fi

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111317">
+<meta name="description" content="Pitwall — LMU GT3 / F1 / Endurance Fahrer-Briefing">
+<title>Pitwall — Quanschi</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --carbon:#111317;
+  --panel:#1B1E24;
+  --panel-2:#22262E;
+  --line:#2E333C;
+  --text:#E9E7E1;
+  --muted:#8B9099;
+  --amber:#FFB020;
+  --amber-dim:#8A5F1A;
+  --teal:#3ED6C4;
+  --teal-dim:#1F5F58;
+  --red:#E85C4A;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--carbon);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(255,176,32,0.06), transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(62,214,196,0.05), transparent 40%);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  padding:0 0 60px 0;
+}
+
+/* ---- Header / signature: racing line divider ---- */
+.header{
+  padding:28px 32px 18px 32px;
+  border-bottom:1px solid var(--line);
+}
+.header-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.title{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:34px;
+  letter-spacing:0.5px;
+  margin:0;
+  text-transform:uppercase;
+  color:var(--text);
+}
+.title span{color:var(--amber);}
+.subtitle{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+}
+.stamp{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  text-align:right;
+  line-height:1.6;
+}
+.stamp b{color:var(--teal);}
+.raceline{
+  width:100%;
+  height:14px;
+  margin-top:16px;
+}
+
+/* ---- Tabs ---- */
+.tabs{
+  display:flex;
+  gap:2px;
+  padding:0 32px;
+  margin-top:20px;
+}
+.tab{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:600;
+  font-size:15px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:12px 22px;
+  background:var(--panel);
+  color:var(--muted);
+  cursor:pointer;
+  border:1px solid var(--line);
+  border-bottom:none;
+  transition:all .15s ease;
+}
+.tab.active{
+  color:var(--carbon);
+  background:var(--amber);
+  border-color:var(--amber);
+}
+.tab.active.weekly{
+  background:var(--teal);
+  border-color:var(--teal);
+}
+.tab:hover:not(.active){
+  color:var(--text);
+}
+
+.panel{
+  padding:26px 32px 10px 32px;
+  display:none;
+}
+.panel.active{display:block;}
+
+/* ---- Cards ---- */
+.section-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:26px 0 10px 0;
+}
+.section-label:first-child{margin-top:0;}
+
+.tip-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-left:4px solid var(--amber);
+  border-radius:4px;
+  padding:22px 24px;
+}
+.tip-card.weekly-card{border-left-color:var(--teal);}
+.tip-kicker{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--amber);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.weekly-card .tip-kicker{color:var(--teal);}
+.tip-headline{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:22px;
+  margin:0 0 10px 0;
+  color:var(--text);
+  line-height:1.25;
+}
+.tip-body{
+  font-size:14.5px;
+  line-height:1.65;
+  color:#CBCBC5;
+}
+.tip-body b{color:var(--text);}
+.tip-body code{
+  font-family:'JetBrains Mono',monospace;
+  background:var(--panel-2);
+  padding:1px 6px;
+  border-radius:3px;
+  color:var(--amber);
+  font-size:13px;
+}
+.weekly-card .tip-body code{color:var(--teal);}
+
+.drill{
+  margin-top:16px;
+  background:var(--panel-2);
+  border-radius:4px;
+  padding:14px 16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12.5px;
+  color:var(--muted);
+  border-left:2px solid var(--amber-dim);
+}
+.weekly-card .drill{border-left-color:var(--teal-dim);}
+.drill b{color:var(--text);font-family:'Inter',sans-serif;}
+
+/* ---- News list ---- */
+.news-list{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  background:var(--line);
+  border-radius:4px;
+  overflow:hidden;
+}
+.news-item{
+  background:var(--panel);
+  padding:14px 18px;
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+}
+.news-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  font-weight:700;
+  letter-spacing:0.5px;
+  padding:3px 8px;
+  border-radius:3px;
+  white-space:nowrap;
+  margin-top:1px;
+}
+.tag-f1{background:rgba(232,92,74,0.15);color:var(--red);}
+.tag-gt3{background:rgba(255,176,32,0.15);color:var(--amber);}
+.tag-lmu{background:rgba(62,214,196,0.15);color:var(--teal);}
+.tag-oval{background:rgba(139,144,153,0.2);color:var(--muted);}
+.news-text{font-size:13.5px;line-height:1.5;color:#D5D5CF;}
+.news-text b{color:var(--text);}
+
+/* ---- Weekly deep dive structure ---- */
+.deepdive-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+.dd-box{
+  background:var(--panel-2);
+  border-radius:4px;
+  padding:14px 16px;
+  border-top:2px solid var(--teal-dim);
+}
+.dd-box h4{
+  font-family:'Rajdhani',sans-serif;
+  font-size:14px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  margin:0 0 6px 0;
+  color:var(--teal);
+}
+.dd-box p{
+  font-size:12.5px;
+  line-height:1.55;
+  color:var(--muted);
+  margin:0;
+}
+
+.footer-note{
+  margin-top:30px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.6;
+}
+
+.sync-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+}
+.sync-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  background:none;
+  border:1px solid var(--line);
+  color:var(--muted);
+  padding:4px 10px;
+  border-radius:3px;
+  cursor:pointer;
+}
+.sync-btn:hover{color:var(--text);border-color:var(--muted);}
+.sync-state{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);}
+.sync-state.stale{color:var(--amber);}
+
+@media(max-width:640px){
+  .header{padding:22px 18px 14px 18px;}
+  .tabs, .panel{padding-left:18px;padding-right:18px;}
+  .title{font-size:26px;}
+  .deepdive-grid{grid-template-columns:1fr;}
+  .header-top{flex-direction:column;align-items:flex-start;}
+  .stamp{text-align:left;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <p class="title">Pit<span>wall</span></p>
+      <p class="subtitle">LMU GT3 · F1 · Endurance — Quanschi's Fahrer-Briefing</p>
+    </div>
+    <div class="stamp">
+      STAND <b id="stamp-date">—</b><br>
+      <span id="sync-state" class="sync-state">wird geladen…</span>
+      <div class="sync-row">
+        <button class="sync-btn" id="sync-btn" type="button">Jetzt aktualisieren</button>
+      </div>
+    </div>
+  </div>
+  <svg class="raceline" viewBox="0 0 800 14" preserveAspectRatio="none">
+    <polyline points="0,7 100,7 130,2 180,12 230,7 400,7 430,2 480,12 530,7 800,7"
+      fill="none" stroke="#FFB020" stroke-width="1.5" opacity="0.6"/>
+  </svg>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-daily" onclick="showPanel('daily')">Daily</div>
+  <div class="tab weekly" id="tab-weekly" onclick="showPanel('weekly')">Weekly</div>
+</div>
+
+<!-- DAILY -->
+<div class="panel active" id="panel-daily">
+
+  <p class="section-label" id="daily-section-label">Tipp des Tages · LMGT3</p>
+  <div class="tip-card">
+    <div class="tip-kicker" id="daily-tip-kicker"></div>
+    <p class="tip-headline" id="daily-tip-headline"></p>
+    <div class="tip-body" id="daily-tip-body"></div>
+    <div class="drill">
+      <b id="daily-drill-label"></b> <span id="daily-drill-body"></span>
+    </div>
+  </div>
+
+  <p class="section-label" id="news-label">Racing News</p>
+  <div class="news-list" id="news-list"></div>
+
+</div>
+
+<!-- WEEKLY -->
+<div class="panel" id="panel-weekly">
+
+  <p class="section-label" id="weekly-section-label">Strategie der Woche · LMGT3</p>
+  <div class="tip-card weekly-card">
+    <div class="tip-kicker" id="weekly-tip-kicker"></div>
+    <p class="tip-headline" id="weekly-tip-headline"></p>
+    <div class="tip-body" id="weekly-tip-body"></div>
+    <div class="drill">
+      <b id="weekly-drill-label"></b> <span id="weekly-drill-body"></span>
+    </div>
+  </div>
+
+  <p class="section-label" id="deepdive-label"></p>
+  <div class="deepdive-grid" id="deepdive-grid"></div>
+
+  <div class="footer-note" id="footer-note"></div>
+
+</div>
+
+<script>
+const DATA_URL = 'data.json';
+
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Minimal markdown-lite: escapes everything first, then allows **bold** and `code`.
+function mdLite(str){
+  let out = escapeHtml(str);
+  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  return out;
+}
+
+function setText(id, value){
+  const el = document.getElementById(id);
+  if(el) el.textContent = value || '';
+}
+function setHtml(id, value){
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = mdLite(value || '');
+}
+
+function renderNews(items){
+  const list = document.getElementById('news-list');
+  list.innerHTML = '';
+  (items || []).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'news-item';
+    const tag = document.createElement('span');
+    tag.className = 'news-tag ' + escapeHtml(item.tag_class || 'tag-oval').replace(/[^a-z0-9-]/gi,'');
+    tag.textContent = item.tag_label || '';
+    const text = document.createElement('span');
+    text.className = 'news-text';
+    text.innerHTML = mdLite(item.text || '');
+    row.appendChild(tag);
+    row.appendChild(text);
+    list.appendChild(row);
+  });
+}
+
+function renderDeepdive(boxes){
+  const grid = document.getElementById('deepdive-grid');
+  grid.innerHTML = '';
+  (boxes || []).forEach(box => {
+    const el = document.createElement('div');
+    el.className = 'dd-box';
+    const h4 = document.createElement('h4');
+    h4.textContent = box.title || '';
+    const p = document.createElement('p');
+    p.innerHTML = mdLite(box.text || '');
+    el.appendChild(h4);
+    el.appendChild(p);
+    grid.appendChild(el);
+  });
+}
+
+function render(data){
+  setText('stamp-date', data.stamp_date);
+
+  setText('daily-section-label', data.daily.section_label);
+  setText('daily-tip-kicker', data.daily.tip.kicker);
+  setText('daily-tip-headline', data.daily.tip.headline);
+  setHtml('daily-tip-body', data.daily.tip.body);
+  setText('daily-drill-label', data.daily.tip.drill_label);
+  setHtml('daily-drill-body', data.daily.tip.drill);
+  setText('news-label', data.daily.news_label);
+  renderNews(data.daily.news);
+
+  setText('weekly-section-label', data.weekly.section_label);
+  setText('weekly-tip-kicker', data.weekly.strategy.kicker);
+  setText('weekly-tip-headline', data.weekly.strategy.headline);
+  setHtml('weekly-tip-body', data.weekly.strategy.body);
+  setText('weekly-drill-label', data.weekly.strategy.drill_label);
+  setHtml('weekly-drill-body', data.weekly.strategy.drill);
+  setText('deepdive-label', data.weekly.deepdive_label);
+  renderDeepdive(data.weekly.deepdive);
+  setText('footer-note', data.weekly.footer_note);
+}
+
+function setSyncState(text, stale){
+  const el = document.getElementById('sync-state');
+  el.textContent = text;
+  el.classList.toggle('stale', !!stale);
+}
+
+const CACHE_KEY = 'pitwall-data-cache';
+
+async function loadData(force){
+  try{
+    const res = await fetch(DATA_URL + (force ? ('?t=' + Date.now()) : ''), { cache: force ? 'no-store' : 'default' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    render(data);
+    const ts = data.generated_at ? new Date(data.generated_at) : new Date();
+    setSyncState('aktuell · generiert ' + ts.toLocaleString('de-DE'), false);
+  }catch(err){
+    const cached = localStorage.getItem(CACHE_KEY);
+    if(cached){
+      render(JSON.parse(cached));
+      setSyncState('offline · zeige letzten Stand', true);
+    }else{
+      setSyncState('Fehler beim Laden der Daten', true);
+    }
+  }
+}
+
+document.getElementById('sync-btn').addEventListener('click', () => loadData(true));
+
+function showPanel(name){
+  document.getElementById('panel-daily').classList.toggle('active', name==='daily');
+  document.getElementById('panel-weekly').classList.toggle('active', name==='weekly');
+  document.getElementById('tab-daily').classList.toggle('active', name==='daily');
+  document.getElementById('tab-weekly').classList.toggle('active', name==='weekly');
+}
+
+loadData(false);
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
