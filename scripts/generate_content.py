@@ -30,11 +30,7 @@ DAILY_SCHEMA = """{
     "body": "3-5 Saetze Fliesstext mit Fahr-Tipp fuer LMU/LMGT3, **wichtige Begriffe** fett, `Fachbegriffe` in code-Markierung erlaubt",
     "drill_label": "Drill heute:",
     "drill": "eine konkrete, in 15-30 Minuten umsetzbare Uebung"
-  },
-  "news_label": "Racing News",
-  "news": [
-    {"tag_class": "tag-f1|tag-gt3|tag-lmu|tag-oval", "tag_label": "kurzer Serien-Name", "text": "3-4 Saetze Meldung mit Hintergrund/Einordnung (nicht nur eine Zeile), **Namen/Teams fett**"}
-  ]
+  }
 }"""
 
 WEEKLY_SCHEMA = """{
@@ -117,9 +113,6 @@ das exakt folgendem Schema entspricht (Werte sind Platzhalter-Beschreibungen, du
 Wichtig:
 - Ton: sachlich, kompakt, wie ein Renningenieur-Funkspruch, keine Floskeln.
 - Fahr-Tipps muessen inhaltlich korrekt und spezifisch fuer GT3-Fahrzeuge/LMU sein, keine generischen Plattitueden.
-- News-Meldungen sollen plausible, thematisch passende Inhalte rund um {"F1/GT3/IndyCar/DTM" if scope == "daily" else "LMGT3-Strategie/Setup"} sein;
-  falls dir aktuelle Fakten zum exakten Datum nicht sicher bekannt sind, formuliere sie als allgemeinen,
-  nicht ueberpruefbaren Kontext statt erfundene konkrete Ergebnisse/Zahlen zu behaupten.
 - Gib NUR das JSON-Objekt zurueck.
 """
 

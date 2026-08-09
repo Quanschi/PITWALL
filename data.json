@@ -10,25 +10,7 @@
       "body": "Im LMGT3 verleitet das **ABS** dazu, den Bremsdruck bis tief in den Scheitelpunkt zu hoch zu halten. Löst das System während des Einlenkens aus, regelt es den Bremsdruck herunter und nimmt dir den nötigen **Grip an der Vorderachse**, was zu massivem Untersteuern führt. Reduziere den Bremsdruck nach dem initialen Peak schlagartig auf ca. 15–20 %, um das Fahrzeug über den Dynamiktransfer einzudrehen, ohne die `ABS-Regelung` zu triggern. Ein sauberer Übergang zwischen Bremse und Lenkung schont zudem die **Vorderreifen** über Stintdistanz.",
       "drill_label": "Drill heute:",
       "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source & Les Combes): Achte im LMU-Telemetrie-Overlay darauf, dass die ABS-Indikatorleuchte nur im geradlinigen Anbremsbereich aufleuchtet, aber komplett erlischt, sobald du den Lenkwinkel erhöhst."
-    },
-    "news_label": "Racing News",
-    "news": [
-      {
-        "tag_class": "tag-lmu",
-        "tag_label": "LMU",
-        "text": "Das neueste Physik-Update für *Le Mans Ultimate* überarbeitet das Temperaturfenster der **Michelin-Slicks** in der LMGT3-Klasse. Zu aggressives Slip-Angle-Fahren führt nun schneller zu thermischem Graining an den Hinterreifen."
-      },
-      {
-        "tag_class": "tag-f1",
-        "tag_label": "Formula 1",
-        "text": "Im Hinblick auf das reglementbedingte Kräfteverhältnis fokussieren sich die **F1-Teams** vor den Herbstrennen intensiv auf die Optimierung der aktiven Aerodynamik und des Energiemanagements der **2026er Power Units**."
-      },
-      {
-        "tag_class": "tag-gt3",
-        "tag_label": "GT3",
-        "text": "**Team WRT** und **Porsche Motorsport** testen neue Setups für die kommenden Endurance-Läufe, wobei der Fokus primär auf der mechanischen Traktion auf unebenen Kursabschnitten liegt."
-      }
-    ]
+    }
   },
   "weekly": {
     "section_label": "Strategie der Woche · LMGT3",
