@@ -226,8 +226,8 @@ body{
 
 .schedule-carousel{
   position:relative;
-  height:min(64vh, 560px);
-  min-height:400px;
+  height:min(74vh, 660px);
+  min-height:460px;
   overflow-y:auto;
   scroll-snap-type:y mandatory;
   -webkit-overflow-scrolling:touch;
@@ -710,6 +710,7 @@ function occurrencesForWeek(weekKeyStr, raceDays, timesUtc, weekOffset){
 }
 
 const WEEKDAY_NAMES_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const TIER_ORDER = { beginner: 0, intermediate: 1, advanced: 2 };
 
 let tracksBySlugPromise = null;
 function loadTracksBySlug(){
@@ -775,13 +776,20 @@ async function fetchScheduleCards(type, difficulty){
   })
   .sort((a, b) => {
     const farFuture = 8640000000000000;
-    const keyOf = c => {
+    const timeKeyOf = c => {
       const next = c.times.find(d => d.getTime() >= now);
       if(next) return next.getTime();
       if(c.timesUnknown) return new Date(c.week_key + 'T00:00:00Z').getTime();
       return farFuture;
     };
-    return keyOf(a) - keyOf(b);
+    // With "All" selected, group by difficulty first (Beginner -> Advanced)
+    // so the tiers don't get interleaved by whichever race happens soonest.
+    if(difficulty === 'all'){
+      const tierRank = TIER_ORDER[a.tier_name] ?? 99;
+      const tierRankB = TIER_ORDER[b.tier_name] ?? 99;
+      if(tierRank !== tierRankB) return tierRank - tierRankB;
+    }
+    return timeKeyOf(a) - timeKeyOf(b);
   });
 
   scheduleCache[cacheKey] = cards;
