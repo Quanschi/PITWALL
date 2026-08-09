@@ -236,6 +236,7 @@ body{
   background:var(--panel);
 }
 .schedule-card{
+  position:relative;
   scroll-snap-align:start;
   scroll-snap-stop:always;
   height:100%;
@@ -250,11 +251,7 @@ body{
 .schedule-card.expanded{justify-content:flex-start;}
 .schedule-card:last-child{border-bottom:none;}
 .schedule-card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  flex-wrap:wrap;
-  gap:8px;
+  padding-right:92px;
   margin-bottom:2px;
 }
 .schedule-circuit{
@@ -265,6 +262,9 @@ body{
   line-height:1.15;
 }
 .schedule-tier-badge{
+  position:absolute;
+  top:18px;
+  right:24px;
   font-family:'JetBrains Mono',monospace;
   font-size:10.5px;
   padding:3px 9px;
@@ -273,7 +273,6 @@ body{
   background:rgba(232,92,74,0.15);
   color:var(--red);
   white-space:nowrap;
-  margin-top:2px;
 }
 .schedule-location{
   font-size:13px;
