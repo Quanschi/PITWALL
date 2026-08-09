@@ -354,6 +354,24 @@ body{
 }
 .schedule-time-chip.next{border:1px solid var(--red);color:var(--red);}
 .schedule-time-chip.past{color:var(--muted);text-decoration:line-through;opacity:0.55;}
+
+.schedule-date-groups{display:flex;flex-direction:column;gap:6px;}
+.schedule-date-group{}
+.schedule-date-toggle{
+  width:100%;
+  text-align:left;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12.5px;
+  letter-spacing:0.3px;
+  color:var(--text);
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:3px;
+  padding:8px 12px;
+  cursor:pointer;
+}
+.schedule-date-toggle.open{border-color:var(--red);color:var(--red);}
+.schedule-date-times{margin:8px 2px 0 2px;}
 .schedule-details-toggle{
   margin-top:14px;
   font-family:'JetBrains Mono',monospace;
@@ -709,22 +727,6 @@ async function supabaseSelect(table, query){
   return res.json();
 }
 
-// race_days/times_utc describe a weekly-recurring pattern (day-of-week index +
-// time-of-day). We only ever care about "today", so a weekly/special series
-// only produces times when today's UTC weekday is in its race_days.
-function occurrencesForToday(raceDays, timesUtc){
-  const todayDow = new Date().getUTCDay();
-  if(!(raceDays || []).includes(todayDow)) return [];
-  const base = new Date();
-  base.setUTCHours(0, 0, 0, 0);
-  return (timesUtc || []).map(t => {
-    const [hh, mm, ss] = t.split(':').map(Number);
-    const d = new Date(base);
-    d.setUTCHours(hh, mm, ss || 0, 0);
-    return d;
-  });
-}
-
 function timesFromTodayList(hhmmssList){
   return (hhmmssList || []).map(t => {
     const [hh, mm, ss] = t.split(':').map(Number);
@@ -732,6 +734,26 @@ function timesFromTodayList(hhmmssList){
     d.setUTCHours(hh, mm, ss || 0, 0);
     return d;
   });
+}
+
+// race_days/times_utc describe a weekly-recurring pattern anchored to week_key
+// (the Tuesday that rotation went live). weekOffset shifts by whole weeks so
+// weekly races can fall back to "next week" once this week's slots are done.
+function occurrencesForWeek(weekKeyStr, raceDays, timesUtc, weekOffset){
+  const anchor = new Date(weekKeyStr + 'T00:00:00Z');
+  const anchorDow = anchor.getUTCDay();
+  const out = [];
+  (raceDays || []).forEach(targetDow => {
+    const dayOffset = (targetDow - anchorDow + 7) % 7 + weekOffset * 7;
+    (timesUtc || []).forEach(t => {
+      const [hh, mm, ss] = t.split(':').map(Number);
+      const dt = new Date(anchor);
+      dt.setUTCDate(dt.getUTCDate() + dayOffset);
+      dt.setUTCHours(hh, mm, ss || 0, 0);
+      out.push(dt);
+    });
+  });
+  return out;
 }
 
 async function fetchScheduleCards(type, difficulty){
@@ -756,19 +778,25 @@ async function fetchScheduleCards(type, difficulty){
 
   const now = Date.now();
   const cards = rows.map(r => {
-    const times = type === 'daily'
-      ? timesFromTodayList(r.todays_start_times_utc)
-      : occurrencesForToday(r.race_days, r.times_utc);
+    let times;
+    if(type === 'daily'){
+      // Daily races only ever cover "today" - no other day is meaningful here.
+      times = timesFromTodayList(r.todays_start_times_utc);
+    }else{
+      times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 0);
+      if(type === 'weekly' && times.length > 0 && times.every(d => d.getTime() < now)){
+        times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 1);
+      }
+    }
     times.sort((a, b) => a - b);
-    return Object.assign({}, r, { times });
+    return Object.assign({}, r, { times, type });
   })
-  // only today's cards; entries with no slot today (e.g. a weekly race not
-  // scheduled today) simply don't show up
-  .filter(c => c.times.length > 0)
+  // keep a card if it still has at least one upcoming time - drops
+  // fully-concluded one-off special events; daily/weekly always have one
+  .filter(c => c.times.some(d => d.getTime() >= now))
   .sort((a, b) => {
-    const farFuture = 8640000000000000;
-    const nextA = a.times.find(d => d.getTime() >= now) || new Date(farFuture);
-    const nextB = b.times.find(d => d.getTime() >= now) || new Date(farFuture);
+    const nextA = a.times.find(d => d.getTime() >= now);
+    const nextB = b.times.find(d => d.getTime() >= now);
     return nextA - nextB;
   });
 
@@ -853,6 +881,85 @@ function formatScheduleTime(date){
   return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
+function buildTimesGrid(cardTimes, now){
+  const times = document.createElement('div');
+  times.className = 'schedule-times';
+  let nextMarked = false;
+  cardTimes.forEach(t => {
+    const chip = document.createElement('span');
+    const isPast = t.getTime() < now;
+    let cls = 'schedule-time-chip';
+    if(isPast) cls += ' past';
+    else if(!nextMarked){ cls += ' next'; nextMarked = true; }
+    chip.className = cls;
+    chip.textContent = formatScheduleTime(t);
+    times.appendChild(chip);
+  });
+  return times;
+}
+
+function dateGroupKey(date){
+  return date.toLocaleDateString('de-DE', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+function dateGroupLabel(date){
+  const weekday = date.toLocaleDateString('de-DE', { weekday: 'long' });
+  const day = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  return `${weekday}, ${day}`;
+}
+
+// Weekly/Special races can span several days - group by local calendar date,
+// each date collapsed behind a tap except the one holding the next upcoming
+// race, so the card stays compact until you ask for more.
+function buildTimesByDate(cardTimes, now){
+  const wrap = document.createElement('div');
+  wrap.className = 'schedule-date-groups';
+
+  const groups = [];
+  const byKey = {};
+  cardTimes.forEach(t => {
+    const key = dateGroupKey(t);
+    if(!byKey[key]){
+      byKey[key] = { key, date: t, times: [] };
+      groups.push(byKey[key]);
+    }
+    byKey[key].times.push(t);
+  });
+
+  let nextGroupKey = null;
+  for(const g of groups){
+    if(g.times.some(t => t.getTime() >= now)){ nextGroupKey = g.key; break; }
+  }
+
+  groups.forEach(g => {
+    const section = document.createElement('div');
+    section.className = 'schedule-date-group';
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'schedule-date-toggle';
+    header.textContent = dateGroupLabel(g.date) + ' ▾';
+
+    const body = buildTimesGrid(g.times, now);
+    body.classList.add('schedule-date-times');
+    const isOpen = g.key === nextGroupKey;
+    body.style.display = isOpen ? 'grid' : 'none';
+    header.classList.toggle('open', isOpen);
+
+    header.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nowOpen = body.style.display !== 'none';
+      body.style.display = nowOpen ? 'none' : 'grid';
+      header.classList.toggle('open', !nowOpen);
+    });
+
+    section.appendChild(header);
+    section.appendChild(body);
+    wrap.appendChild(section);
+  });
+
+  return wrap;
+}
+
 function renderScheduleCards(cards){
   const carousel = document.getElementById('schedule-carousel');
   const statusText = document.getElementById('schedule-status-text');
@@ -901,21 +1008,11 @@ function renderScheduleCards(cards){
 
     const timesLabel = document.createElement('div');
     timesLabel.className = 'schedule-times-label';
-    timesLabel.textContent = 'Heute · deine Zeitzone';
+    timesLabel.textContent = card.type === 'daily' ? 'Heute · deine Zeitzone' : 'Termine · deine Zeitzone';
 
-    const times = document.createElement('div');
-    times.className = 'schedule-times';
-    let nextMarked = false;
-    card.times.forEach(t => {
-      const chip = document.createElement('span');
-      const isPast = t.getTime() < now;
-      let cls = 'schedule-time-chip';
-      if(isPast) cls += ' past';
-      else if(!nextMarked){ cls += ' next'; nextMarked = true; }
-      chip.className = cls;
-      chip.textContent = formatScheduleTime(t);
-      times.appendChild(chip);
-    });
+    const times = card.type === 'daily'
+      ? buildTimesGrid(card.times, now)
+      : buildTimesByDate(card.times, now);
 
     const toggle = document.createElement('div');
     toggle.className = 'schedule-details-toggle';
