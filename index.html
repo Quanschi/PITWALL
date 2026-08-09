@@ -284,12 +284,24 @@ body{
 }
 .schedule-meta{font-size:13px;color:var(--muted);margin-bottom:16px;}
 .schedule-times-label{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
   font-family:'JetBrains Mono',monospace;
   font-size:10.5px;
   letter-spacing:1.5px;
   text-transform:uppercase;
   color:var(--muted);
   margin-bottom:8px;
+}
+.schedule-countdown{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  letter-spacing:0.3px;
+  text-transform:none;
+  color:var(--red);
+  white-space:nowrap;
 }
 .schedule-times{
   display:grid;
@@ -857,6 +869,27 @@ function formatScheduleTime(date){
   return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatCountdown(msRemaining){
+  if(msRemaining <= 0) return 'Jetzt';
+  const totalMin = Math.floor(msRemaining / 60000);
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  const mins = totalMin % 60;
+  if(days > 0) return `Startet in ${days}T ${hours}Std`;
+  if(hours > 0) return `Startet in ${hours}Std ${mins}Min`;
+  return `Startet in ${mins}Min`;
+}
+
+// One shared interval keeps every visible countdown accurate without
+// re-rendering the whole schedule (which would reset scroll/expand state).
+setInterval(() => {
+  document.querySelectorAll('.schedule-countdown').forEach(el => {
+    const target = Number(el.dataset.target);
+    if(!target) return;
+    el.textContent = formatCountdown(target - Date.now());
+  });
+}, 15000);
+
 function buildTimesGrid(cardTimes, now){
   const times = document.createElement('div');
   times.className = 'schedule-times';
@@ -984,9 +1017,20 @@ function renderScheduleCards(cards){
 
     const timesLabel = document.createElement('div');
     timesLabel.className = 'schedule-times-label';
-    timesLabel.textContent = card.timesUnknown
+    const timesLabelText = document.createElement('span');
+    timesLabelText.textContent = card.timesUnknown
       ? 'Termin'
       : (card.type === 'daily' ? 'Heute · deine Zeitzone' : 'Termine · deine Zeitzone');
+    timesLabel.appendChild(timesLabelText);
+
+    const nextTime = card.times.find(t => t.getTime() >= now);
+    if(nextTime){
+      const countdown = document.createElement('span');
+      countdown.className = 'schedule-countdown';
+      countdown.dataset.target = nextTime.getTime();
+      countdown.textContent = formatCountdown(nextTime.getTime() - now);
+      timesLabel.appendChild(countdown);
+    }
 
     let times;
     if(card.timesUnknown){
