@@ -275,6 +275,11 @@ body{
   white-space:nowrap;
   margin-top:2px;
 }
+.schedule-location{
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
 .schedule-series{
   font-family:'JetBrains Mono',monospace;
   font-size:12px;
@@ -706,11 +711,25 @@ function occurrencesForWeek(weekKeyStr, raceDays, timesUtc, weekOffset){
 
 const WEEKDAY_NAMES_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
+let tracksBySlugPromise = null;
+function loadTracksBySlug(){
+  if(!tracksBySlugPromise){
+    tracksBySlugPromise = supabaseSelect('tracks', 'select=slug,short_name,town,country')
+      .then(rows => {
+        const map = {};
+        rows.forEach(r => { map[r.slug] = r; });
+        return map;
+      })
+      .catch(() => ({}));
+  }
+  return tracksBySlugPromise;
+}
+
 async function fetchScheduleCards(type, difficulty){
   const cacheKey = `${type}:${difficulty}`;
   if(scheduleCache[cacheKey]) return scheduleCache[cacheKey];
 
-  const cols = 'series_id,tier_name,track_name,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather';
+  const cols = 'series_id,tier_name,track_name,track_slug,track_config,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather';
   const tierFilter = difficulty === 'all' ? '' : `&tier_name=eq.${difficulty}`;
   const currentWeekKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
   let rows;
@@ -726,6 +745,7 @@ async function fetchScheduleCards(type, difficulty){
     }
   }
 
+  const tracksBySlug = await loadTracksBySlug();
   const now = Date.now();
   const cards = rows.map(r => {
     let times;
@@ -739,7 +759,8 @@ async function fetchScheduleCards(type, difficulty){
       }
     }
     times.sort((a, b) => a - b);
-    return Object.assign({}, r, { times, type });
+    const track = tracksBySlug[r.track_slug] || null;
+    return Object.assign({}, r, { times, type, town: track ? track.town : null, country: track ? track.country : null });
   })
   .filter(c => {
     if(c.times.some(d => d.getTime() >= now)) return true;
@@ -863,6 +884,13 @@ function buildScheduleDetails(card){
     if(weather.wind !== null) items.push(['Wind', String(weather.wind)]);
   }
   return items;
+}
+
+function circuitTitle(card){
+  const name = card.track_name || '';
+  if(!card.track_config) return name;
+  const layout = card.track_config.charAt(0).toUpperCase() + card.track_config.slice(1);
+  return `${name} – ${layout} Circuit`;
 }
 
 function formatScheduleTime(date){
@@ -997,12 +1025,16 @@ function renderScheduleCards(cards){
     head.className = 'schedule-card-head';
     const circuit = document.createElement('span');
     circuit.className = 'schedule-circuit';
-    circuit.textContent = card.track_name || '';
+    circuit.textContent = circuitTitle(card);
     const badge = document.createElement('span');
     badge.className = 'schedule-tier-badge';
     badge.textContent = card.tier_name || '';
     head.appendChild(circuit);
     head.appendChild(badge);
+
+    const location = document.createElement('div');
+    location.className = 'schedule-location';
+    location.textContent = [card.town, card.country].filter(Boolean).join(' · ');
 
     const series = document.createElement('div');
     series.className = 'schedule-series';
@@ -1078,6 +1110,7 @@ function renderScheduleCards(cards){
     }
 
     el.appendChild(head);
+    if(location.textContent) el.appendChild(location);
     el.appendChild(series);
     el.appendChild(meta);
     el.appendChild(timesLabel);
