@@ -243,12 +243,11 @@ body{
   padding:18px 24px;
   display:flex;
   flex-direction:column;
-  justify-content:center;
+  justify-content:flex-start;
   overflow-y:auto;
   border-bottom:1px solid var(--line);
   cursor:pointer;
 }
-.schedule-card.expanded{justify-content:flex-start;}
 .schedule-card:last-child{border-bottom:none;}
 .schedule-card-head{
   padding-right:92px;
@@ -1130,7 +1129,6 @@ function renderScheduleCards(cards){
       const isOpen = detailsBlock.style.display !== 'none';
       detailsBlock.style.display = isOpen ? 'none' : 'grid';
       toggle.textContent = isOpen ? 'Tippen für Bedingungen ▾' : 'Weniger anzeigen ▴';
-      el.classList.toggle('expanded', !isOpen);
     });
 
     if(i < cards.length - 1){
