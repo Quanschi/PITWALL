@@ -2,10 +2,13 @@ name: Update Pitwall Content
 
 on:
   schedule:
-    # Daily briefing — 07:00 Europe/Berlin (UTC+2 in summer -> 05:00 UTC)
-    - cron: '0 5 * * *'
-    # Weekly deep dive — Monday 07:15 Europe/Berlin
-    - cron: '15 5 * * 1'
+    # Daily briefing — ~07:00 Europe/Berlin (UTC+2 in summer -> 05:xx UTC).
+    # Offset a few minutes past the hour on purpose: GitHub explicitly warns
+    # that on-the-hour schedules queue behind everyone else's on-the-hour
+    # schedules and can be delayed or skipped.
+    - cron: '12 5 * * *'
+    # Weekly deep dive — Monday ~07:15 Europe/Berlin
+    - cron: '27 5 * * 1'
   workflow_dispatch:
     inputs:
       scope:
@@ -40,7 +43,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "scope=${{ github.event.inputs.scope }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "15 5 * * 1" ]; then
+          elif [ "${{ github.event.schedule }}" = "27 5 * * 1" ]; then
             echo "scope=weekly" >> "$GITHUB_OUTPUT"
           else
             echo "scope=daily" >> "$GITHUB_OUTPUT"
