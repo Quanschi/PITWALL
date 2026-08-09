@@ -1132,7 +1132,10 @@ loadData(false);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(reg => {
+    // updateViaCache:'none' makes the browser always fetch sw.js itself over
+    // the network for update checks, bypassing GitHub Pages' 10-minute
+    // Cache-Control instead of just polling more often against a stale copy.
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       // GitHub Pages caches sw.js like any other file (10 min), so browsers
       // can go a while without noticing a new version on their own. Forcing
       // an update check here and whenever the app becomes visible again
