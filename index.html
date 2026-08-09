@@ -188,53 +188,6 @@ body{
 .weekly-card .drill{border-left-color:var(--teal-dim);}
 .drill b{color:var(--text);font-family:'Inter',sans-serif;}
 
-/* ---- News list ---- */
-.news-list{
-  display:flex;
-  flex-direction:column;
-  gap:1px;
-  background:var(--line);
-  border-radius:4px;
-  overflow:hidden;
-}
-.news-item{
-  background:var(--panel);
-  padding:14px 18px;
-  display:flex;
-  gap:14px;
-  align-items:flex-start;
-}
-.news-tag{
-  font-family:'JetBrains Mono',monospace;
-  font-size:10.5px;
-  font-weight:700;
-  letter-spacing:0.5px;
-  padding:3px 8px;
-  border-radius:3px;
-  white-space:nowrap;
-  margin-top:1px;
-}
-.tag-f1{background:rgba(232,92,74,0.15);color:var(--red);}
-.tag-gt3{background:rgba(255,176,32,0.15);color:var(--amber);}
-.tag-lmu{background:rgba(62,214,196,0.15);color:var(--teal);}
-.tag-oval{background:rgba(139,144,153,0.2);color:var(--muted);}
-.news-text{font-size:13.5px;line-height:1.5;color:#D5D5CF;}
-.news-text b{color:var(--text);}
-
-.sources-row{
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:10px 14px;
-  margin-top:12px;
-  padding:10px 14px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;
-}
-.sources-label{color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
-.source-link{color:var(--amber);text-decoration:none;border-bottom:1px solid transparent;}
-.source-link:hover{border-bottom-color:var(--amber);}
-
 /* ---- Schedule tab ---- */
 .filter-row{
   display:flex;
@@ -532,18 +485,6 @@ body{
     </div>
   </div>
 
-  <p class="section-label" id="news-label">Racing News</p>
-  <div class="news-list" id="news-list"></div>
-
-  <div class="sources-row">
-    <span class="sources-label">Quellen:</span>
-    <a class="source-link" href="https://www.formula1.com/" target="_blank" rel="noopener">Formula1.com</a>
-    <a class="source-link" href="https://www.lemansultimate.com/news" target="_blank" rel="noopener">LMU News</a>
-    <a class="source-link" href="https://www.gt-world-challenge-europe.com/" target="_blank" rel="noopener">GT World Challenge</a>
-    <a class="source-link" href="https://www.imsa.com/" target="_blank" rel="noopener">IMSA</a>
-    <a class="source-link" href="https://www.fiawec.com/" target="_blank" rel="noopener">FIA WEC</a>
-  </div>
-
 </div>
 
 <!-- WEEKLY -->
@@ -620,24 +561,6 @@ function setHtml(id, value){
   if(el) el.innerHTML = mdLite(value || '');
 }
 
-function renderNews(items){
-  const list = document.getElementById('news-list');
-  list.innerHTML = '';
-  (items || []).forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'news-item';
-    const tag = document.createElement('span');
-    tag.className = 'news-tag ' + escapeHtml(item.tag_class || 'tag-oval').replace(/[^a-z0-9-]/gi,'');
-    tag.textContent = item.tag_label || '';
-    const text = document.createElement('span');
-    text.className = 'news-text';
-    text.innerHTML = mdLite(item.text || '');
-    row.appendChild(tag);
-    row.appendChild(text);
-    list.appendChild(row);
-  });
-}
-
 function renderDeepdive(boxes){
   const grid = document.getElementById('deepdive-grid');
   grid.innerHTML = '';
@@ -663,8 +586,6 @@ function render(data){
   setHtml('daily-tip-body', data.daily.tip.body);
   setText('daily-drill-label', data.daily.tip.drill_label);
   setHtml('daily-drill-body', data.daily.tip.drill);
-  setText('news-label', data.daily.news_label);
-  renderNews(data.daily.news);
 
   setText('weekly-section-label', data.weekly.section_label);
   setText('weekly-tip-kicker', data.weekly.strategy.kicker);
