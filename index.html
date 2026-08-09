@@ -290,8 +290,11 @@ body{
   display:flex;
   flex-direction:column;
   justify-content:center;
+  overflow-y:auto;
   border-bottom:1px solid var(--line);
+  cursor:pointer;
 }
+.schedule-card.expanded{justify-content:flex-start;}
 .schedule-card:last-child{border-bottom:none;}
 .schedule-card-head{
   display:flex;
@@ -345,6 +348,32 @@ body{
   color:var(--text);
 }
 .schedule-time-chip.next{border:1px solid var(--red);color:var(--red);}
+.schedule-time-chip.past{color:var(--muted);text-decoration:line-through;opacity:0.55;}
+.schedule-details-toggle{
+  margin-top:14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.5px;
+  color:var(--muted);
+}
+.schedule-details{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 16px;
+}
+.schedule-detail-item{font-size:12px;}
+.schedule-detail-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+.schedule-detail-value{color:var(--text);}
 .schedule-swipe-hint{
   margin-top:18px;
   font-family:'JetBrains Mono',monospace;
@@ -519,6 +548,7 @@ body{
 
   <p class="section-label">Schwierigkeit</p>
   <div class="filter-row" id="difficulty-filter">
+    <button class="filter-pill" data-difficulty="all" type="button">All</button>
     <button class="filter-pill" data-difficulty="beginner" type="button">Beginner</button>
     <button class="filter-pill" data-difficulty="intermediate" type="button">Intermediate</button>
     <button class="filter-pill" data-difficulty="advanced" type="button">Advanced</button>
@@ -708,15 +738,16 @@ async function fetchScheduleCards(type, difficulty){
   const cacheKey = `${type}:${difficulty}`;
   if(scheduleCache[cacheKey]) return scheduleCache[cacheKey];
 
-  const cols = 'series_id,tier_name,track_name,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key';
+  const cols = 'series_id,tier_name,track_name,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather';
+  const tierFilter = difficulty === 'all' ? '' : `&tier_name=eq.${difficulty}`;
   let rows;
   if(type === 'special'){
     rows = await supabaseSelect('race_series',
-      `select=${cols}&type=eq.special&tier_name=eq.${difficulty}&hidden=eq.false&schedule_status=eq.active&limit=200`);
+      `select=${cols}&type=eq.special${tierFilter}&hidden=eq.false&schedule_status=eq.active&limit=200`);
   }else{
     const todayKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
     rows = await supabaseSelect('race_series',
-      `select=${cols}&type=eq.${type}&tier_name=eq.${difficulty}&hidden=eq.false&schedule_status=eq.active&week_key=lte.${todayKey}&order=week_key.desc&limit=200`);
+      `select=${cols}&type=eq.${type}${tierFilter}&hidden=eq.false&schedule_status=eq.active&week_key=lte.${todayKey}&order=week_key.desc&limit=200`);
     if(rows.length){
       const latestWeek = rows[0].week_key;
       rows = rows.filter(r => r.week_key === latestWeek);
@@ -727,22 +758,74 @@ async function fetchScheduleCards(type, difficulty){
   const cards = rows.map(r => {
     let times;
     if(type === 'daily'){
-      times = timesFromTodayList(r.todays_start_times_utc, 0).filter(d => d.getTime() >= now);
-      if(times.length === 0) times = timesFromTodayList(r.todays_start_times_utc, 1);
-    }else if(type === 'special'){
-      times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 0).filter(d => d.getTime() >= now);
+      times = timesFromTodayList(r.todays_start_times_utc, 0);
+      if(times.length > 0 && times.every(d => d.getTime() < now)){
+        times = timesFromTodayList(r.todays_start_times_utc, 1);
+      }
     }else{
-      times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 0).filter(d => d.getTime() >= now);
-      if(times.length === 0) times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 1);
+      times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 0);
+      if(type === 'weekly' && times.length > 0 && times.every(d => d.getTime() < now)){
+        times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 1);
+      }
     }
     times.sort((a, b) => a - b);
     return Object.assign({}, r, { times });
   })
-  .filter(c => c.times.length > 0)
-  .sort((a, b) => a.times[0] - b.times[0]);
+  // keep a card only if it still has at least one upcoming time - drops
+  // fully-concluded one-off special events, daily/weekly always roll forward
+  .filter(c => c.times.some(d => d.getTime() >= now))
+  .sort((a, b) => {
+    const nextA = a.times.find(d => d.getTime() >= now);
+    const nextB = b.times.find(d => d.getTime() >= now);
+    return nextA - nextB;
+  });
 
   scheduleCache[cacheKey] = cards;
   return cards;
+}
+
+function summarizeWeather(weatherField){
+  let segments = weatherField;
+  if(segments && !Array.isArray(segments) && Array.isArray(segments.weather)) segments = segments.weather;
+  if(!Array.isArray(segments) || segments.length === 0) return null;
+  const num = (seg, keyA, keyB) => {
+    const v = seg[keyA] !== undefined ? seg[keyA] : seg[keyB];
+    return v === undefined || v === null ? null : parseFloat(v);
+  };
+  const first = segments[0];
+  const temp = num(first, 'temperature', 'temperature');
+  const humidity = num(first, 'humidity', 'humidity');
+  const wind = num(first, 'windSpeed', 'wind_speed');
+  const rainValues = segments.map(s => num(s, 'rainChange', 'rain_change')).filter(v => v !== null);
+  const maxRain = rainValues.length ? Math.max(...rainValues) : null;
+  return { temp, humidity, wind, maxRain };
+}
+
+function buildScheduleDetails(card){
+  const items = [];
+  if(card.setup) items.push(['Setup', card.setup]);
+  if(card.tyre_warmers !== null && card.tyre_warmers !== undefined){
+    items.push(['Tyre Warmers', card.tyre_warmers ? 'Aktiviert' : 'Deaktiviert']);
+  }
+  if(card.tyre_allowance !== null && card.tyre_allowance !== undefined){
+    items.push(['Reifensätze', String(card.tyre_allowance)]);
+  }
+  if(card.fuel_multiplier !== null && card.fuel_multiplier !== undefined){
+    items.push(['Verbrauch-Multiplikator', `${card.fuel_multiplier}×`]);
+  }
+  if(card.driver_swap_enabled !== null && card.driver_swap_enabled !== undefined){
+    items.push(['Fahrerwechsel', card.driver_swap_enabled ? 'Ja' : 'Nein']);
+  }
+  if(card.sr_requirement) items.push(['SR-Anforderung', card.sr_requirement]);
+
+  const weather = summarizeWeather(card.race_weather);
+  if(weather){
+    if(weather.temp !== null) items.push(['Temperatur (Start)', `${weather.temp}°C`]);
+    if(weather.maxRain !== null) items.push(['Regenwahrscheinlichkeit', `${weather.maxRain}%`]);
+    if(weather.humidity !== null) items.push(['Luftfeuchtigkeit', `${weather.humidity}%`]);
+    if(weather.wind !== null) items.push(['Wind', String(weather.wind)]);
+  }
+  return items;
 }
 
 function formatScheduleTime(date){
@@ -770,6 +853,7 @@ function renderScheduleCards(cards){
 
   statusText.textContent = 'Live-Daten · Zeiten in deiner lokalen Zeitzone';
   counter.textContent = `1 / ${cards.length}`;
+  const now = Date.now();
 
   cards.forEach((card, i) => {
     const el = document.createElement('div');
@@ -799,22 +883,66 @@ function renderScheduleCards(cards){
 
     const timesLabel = document.createElement('div');
     timesLabel.className = 'schedule-times-label';
-    timesLabel.textContent = 'Nächste Termine';
+    timesLabel.textContent = 'Termine (deine Zeitzone)';
 
     const times = document.createElement('div');
     times.className = 'schedule-times';
-    card.times.slice(0, 6).forEach((t, idx) => {
+    let nextMarked = false;
+    card.times.forEach(t => {
       const chip = document.createElement('span');
-      chip.className = 'schedule-time-chip' + (idx === 0 ? ' next' : '');
+      const isPast = t.getTime() < now;
+      let cls = 'schedule-time-chip';
+      if(isPast) cls += ' past';
+      else if(!nextMarked){ cls += ' next'; nextMarked = true; }
+      chip.className = cls;
       chip.textContent = formatScheduleTime(t);
       times.appendChild(chip);
     });
+
+    const toggle = document.createElement('div');
+    toggle.className = 'schedule-details-toggle';
+    toggle.textContent = 'Tippen für Bedingungen ▾';
+
+    const detailsBlock = document.createElement('div');
+    detailsBlock.className = 'schedule-details';
+    detailsBlock.style.display = 'none';
+    const detailItems = buildScheduleDetails(card);
+    if(detailItems.length === 0){
+      const none = document.createElement('div');
+      none.className = 'schedule-detail-item';
+      none.textContent = 'Keine weiteren Bedingungsdaten verfügbar.';
+      detailsBlock.appendChild(none);
+    }else{
+      detailItems.forEach(([label, value]) => {
+        const item = document.createElement('div');
+        item.className = 'schedule-detail-item';
+        const l = document.createElement('div');
+        l.className = 'schedule-detail-label';
+        l.textContent = label;
+        const v = document.createElement('div');
+        v.className = 'schedule-detail-value';
+        v.textContent = value;
+        item.appendChild(l);
+        item.appendChild(v);
+        detailsBlock.appendChild(item);
+      });
+    }
 
     el.appendChild(head);
     el.appendChild(series);
     el.appendChild(meta);
     el.appendChild(timesLabel);
     el.appendChild(times);
+    el.appendChild(toggle);
+    el.appendChild(detailsBlock);
+
+    el.addEventListener('click', (e) => {
+      if(e.target.closest('.schedule-times')) return;
+      const isOpen = detailsBlock.style.display !== 'none';
+      detailsBlock.style.display = isOpen ? 'none' : 'grid';
+      toggle.textContent = isOpen ? 'Tippen für Bedingungen ▾' : 'Weniger anzeigen ▴';
+      el.classList.toggle('expanded', !isOpen);
+    });
 
     if(i < cards.length - 1){
       const hint = document.createElement('div');
