@@ -338,14 +338,19 @@ body{
   color:var(--muted);
   margin-bottom:8px;
 }
-.schedule-times{display:flex;flex-wrap:wrap;gap:8px;}
+.schedule-times{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(56px, 1fr));
+  gap:6px;
+}
 .schedule-time-chip{
   font-family:'JetBrains Mono',monospace;
-  font-size:13px;
+  font-size:12px;
   background:var(--panel-2);
-  padding:6px 12px;
+  padding:5px 4px;
   border-radius:3px;
   color:var(--text);
+  text-align:center;
 }
 .schedule-time-chip.next{border:1px solid var(--red);color:var(--red);}
 .schedule-time-chip.past{color:var(--muted);text-decoration:line-through;opacity:0.55;}
@@ -704,31 +709,26 @@ async function supabaseSelect(table, query){
   return res.json();
 }
 
-// race_days/times_utc describe a weekly-recurring pattern anchored to week_key
-// (the Tuesday that rotation went live). weekOffset shifts by whole weeks so
-// we can fall back to "next week" once this week's slots are all in the past.
-function occurrencesForWeek(weekKeyStr, raceDays, timesUtc, weekOffset){
-  const anchor = new Date(weekKeyStr + 'T00:00:00Z');
-  const anchorDow = anchor.getUTCDay();
-  const out = [];
-  (raceDays || []).forEach(targetDow => {
-    const dayOffset = (targetDow - anchorDow + 7) % 7 + weekOffset * 7;
-    (timesUtc || []).forEach(t => {
-      const [hh, mm, ss] = t.split(':').map(Number);
-      const dt = new Date(anchor);
-      dt.setUTCDate(dt.getUTCDate() + dayOffset);
-      dt.setUTCHours(hh, mm, ss || 0, 0);
-      out.push(dt);
-    });
+// race_days/times_utc describe a weekly-recurring pattern (day-of-week index +
+// time-of-day). We only ever care about "today", so a weekly/special series
+// only produces times when today's UTC weekday is in its race_days.
+function occurrencesForToday(raceDays, timesUtc){
+  const todayDow = new Date().getUTCDay();
+  if(!(raceDays || []).includes(todayDow)) return [];
+  const base = new Date();
+  base.setUTCHours(0, 0, 0, 0);
+  return (timesUtc || []).map(t => {
+    const [hh, mm, ss] = t.split(':').map(Number);
+    const d = new Date(base);
+    d.setUTCHours(hh, mm, ss || 0, 0);
+    return d;
   });
-  return out;
 }
 
-function timesFromTodayList(hhmmssList, dayOffset){
+function timesFromTodayList(hhmmssList){
   return (hhmmssList || []).map(t => {
     const [hh, mm, ss] = t.split(':').map(Number);
     const d = new Date();
-    d.setUTCDate(d.getUTCDate() + dayOffset);
     d.setUTCHours(hh, mm, ss || 0, 0);
     return d;
   });
@@ -756,32 +756,49 @@ async function fetchScheduleCards(type, difficulty){
 
   const now = Date.now();
   const cards = rows.map(r => {
-    let times;
-    if(type === 'daily'){
-      times = timesFromTodayList(r.todays_start_times_utc, 0);
-      if(times.length > 0 && times.every(d => d.getTime() < now)){
-        times = timesFromTodayList(r.todays_start_times_utc, 1);
-      }
-    }else{
-      times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 0);
-      if(type === 'weekly' && times.length > 0 && times.every(d => d.getTime() < now)){
-        times = occurrencesForWeek(r.week_key, r.race_days, r.times_utc, 1);
-      }
-    }
+    const times = type === 'daily'
+      ? timesFromTodayList(r.todays_start_times_utc)
+      : occurrencesForToday(r.race_days, r.times_utc);
     times.sort((a, b) => a - b);
     return Object.assign({}, r, { times });
   })
-  // keep a card only if it still has at least one upcoming time - drops
-  // fully-concluded one-off special events, daily/weekly always roll forward
-  .filter(c => c.times.some(d => d.getTime() >= now))
+  // only today's cards; entries with no slot today (e.g. a weekly race not
+  // scheduled today) simply don't show up
+  .filter(c => c.times.length > 0)
   .sort((a, b) => {
-    const nextA = a.times.find(d => d.getTime() >= now);
-    const nextB = b.times.find(d => d.getTime() >= now);
+    const farFuture = 8640000000000000;
+    const nextA = a.times.find(d => d.getTime() >= now) || new Date(farFuture);
+    const nextB = b.times.find(d => d.getTime() >= now) || new Date(farFuture);
     return nextA - nextB;
   });
 
   scheduleCache[cacheKey] = cards;
   return cards;
+}
+
+// Sky codes aren't officially documented anywhere we could find - this is a
+// reasonable best-effort reading of the observed 0-3 range, not confirmed by
+// Studio 397/lmuportal docs.
+function skyLabel(code){
+  const n = parseInt(code, 10);
+  if(isNaN(n)) return null;
+  if(n <= 0) return 'Sonnig';
+  if(n === 1) return 'Leicht bewölkt';
+  if(n === 2) return 'Bewölkt';
+  if(n === 3) return 'Stark bewölkt';
+  return 'Regen möglich';
+}
+
+function dayNightLabel(timeOfDay, startTimeMinutes){
+  let hour = null;
+  const m = /^(\d+)h/.exec(timeOfDay || '');
+  if(m){
+    hour = parseInt(m[1], 10);
+  }else if(startTimeMinutes !== undefined && startTimeMinutes !== null){
+    hour = Math.floor(Number(startTimeMinutes) / 60) % 24;
+  }
+  if(hour === null || isNaN(hour)) return null;
+  return (hour < 6 || hour >= 20) ? 'Nacht' : 'Tag';
 }
 
 function summarizeWeather(weatherField){
@@ -796,9 +813,11 @@ function summarizeWeather(weatherField){
   const temp = num(first, 'temperature', 'temperature');
   const humidity = num(first, 'humidity', 'humidity');
   const wind = num(first, 'windSpeed', 'wind_speed');
+  const sky = skyLabel(first.sky);
+  const dayNight = dayNightLabel(first.time_of_day || first.timeOfDay, first.start_time !== undefined ? first.start_time : first.startTime);
   const rainValues = segments.map(s => num(s, 'rainChange', 'rain_change')).filter(v => v !== null);
   const maxRain = rainValues.length ? Math.max(...rainValues) : null;
-  return { temp, humidity, wind, maxRain };
+  return { temp, humidity, wind, maxRain, sky, dayNight };
 }
 
 function buildScheduleDetails(card){
@@ -811,7 +830,7 @@ function buildScheduleDetails(card){
     items.push(['Reifensätze', String(card.tyre_allowance)]);
   }
   if(card.fuel_multiplier !== null && card.fuel_multiplier !== undefined){
-    items.push(['Verbrauch-Multiplikator', `${card.fuel_multiplier}×`]);
+    items.push(['Rank Multiplikator', `${card.fuel_multiplier}×`]);
   }
   if(card.driver_swap_enabled !== null && card.driver_swap_enabled !== undefined){
     items.push(['Fahrerwechsel', card.driver_swap_enabled ? 'Ja' : 'Nein']);
@@ -820,7 +839,9 @@ function buildScheduleDetails(card){
 
   const weather = summarizeWeather(card.race_weather);
   if(weather){
-    if(weather.temp !== null) items.push(['Temperatur (Start)', `${weather.temp}°C`]);
+    if(weather.dayNight) items.push(['Tageszeit', weather.dayNight]);
+    if(weather.sky) items.push(['Wetter', weather.sky]);
+    if(weather.temp !== null) items.push(['Temperatur', `${weather.temp}°C`]);
     if(weather.maxRain !== null) items.push(['Regenwahrscheinlichkeit', `${weather.maxRain}%`]);
     if(weather.humidity !== null) items.push(['Luftfeuchtigkeit', `${weather.humidity}%`]);
     if(weather.wind !== null) items.push(['Wind', String(weather.wind)]);
@@ -829,10 +850,7 @@ function buildScheduleDetails(card){
 }
 
 function formatScheduleTime(date){
-  const weekday = date.toLocaleDateString('de-DE', { weekday: 'short' });
-  const day = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-  const time = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  return `${weekday} ${day}, ${time}`;
+  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
 function renderScheduleCards(cards){
@@ -883,7 +901,7 @@ function renderScheduleCards(cards){
 
     const timesLabel = document.createElement('div');
     timesLabel.className = 'schedule-times-label';
-    timesLabel.textContent = 'Termine (deine Zeitzone)';
+    timesLabel.textContent = 'Heute · deine Zeitzone';
 
     const times = document.createElement('div');
     times.className = 'schedule-times';
