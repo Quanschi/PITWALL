@@ -1145,12 +1145,21 @@ function bindScheduleScrollCounter(){
 }
 
 async function loadScheduleView(){
+  // Capture which filters this call is for, so a slow response that arrives
+  // after the user already switched filters again doesn't overwrite the
+  // (correct) result of a later, faster request.
+  const requestType = scheduleFilters.type;
+  const requestDifficulty = scheduleFilters.difficulty;
+  const isStale = () => requestType !== scheduleFilters.type || requestDifficulty !== scheduleFilters.difficulty;
+
   document.getElementById('schedule-status-text').textContent = 'Lade Rennplan…';
   try{
-    const cards = await fetchScheduleCards(scheduleFilters.type, scheduleFilters.difficulty);
+    const cards = await fetchScheduleCards(requestType, requestDifficulty);
+    if(isStale()) return;
     renderScheduleCards(cards);
     bindScheduleScrollCounter();
   }catch(err){
+    if(isStale()) return;
     document.getElementById('schedule-status-text').textContent = 'Rennplan konnte nicht geladen werden (offline?).';
     document.getElementById('schedule-counter').textContent = '';
     document.getElementById('schedule-carousel').innerHTML = '';
