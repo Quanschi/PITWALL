@@ -1,7 +1,7 @@
 {
   "name": "Pitwall — Quanschi",
   "short_name": "Pitwall",
-  "description": "LMU GT3 / F1 / Endurance Fahrer-Briefing",
+  "description": "LMU Tipps & Rennplan Fahrer-Briefing",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
