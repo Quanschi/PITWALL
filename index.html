@@ -414,6 +414,13 @@ body{
   padding:0 24px;
   text-align:center;
 }
+.schedule-tbd{
+  font-size:13px;
+  color:var(--muted);
+  background:var(--panel-2);
+  border-radius:3px;
+  padding:10px 12px;
+}
 
 /* ---- Weekly deep dive structure ---- */
 .deepdive-grid{
@@ -756,20 +763,22 @@ function occurrencesForWeek(weekKeyStr, raceDays, timesUtc, weekOffset){
   return out;
 }
 
+const WEEKDAY_NAMES_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
 async function fetchScheduleCards(type, difficulty){
   const cacheKey = `${type}:${difficulty}`;
   if(scheduleCache[cacheKey]) return scheduleCache[cacheKey];
 
   const cols = 'series_id,tier_name,track_name,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather';
   const tierFilter = difficulty === 'all' ? '' : `&tier_name=eq.${difficulty}`;
+  const currentWeekKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
   let rows;
   if(type === 'special'){
     rows = await supabaseSelect('race_series',
       `select=${cols}&type=eq.special${tierFilter}&hidden=eq.false&schedule_status=eq.active&limit=200`);
   }else{
-    const todayKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
     rows = await supabaseSelect('race_series',
-      `select=${cols}&type=eq.${type}${tierFilter}&hidden=eq.false&schedule_status=eq.active&week_key=lte.${todayKey}&order=week_key.desc&limit=200`);
+      `select=${cols}&type=eq.${type}${tierFilter}&hidden=eq.false&schedule_status=eq.active&week_key=lte.${currentWeekKey}&order=week_key.desc&limit=200`);
     if(rows.length){
       const latestWeek = rows[0].week_key;
       rows = rows.filter(r => r.week_key === latestWeek);
@@ -791,13 +800,26 @@ async function fetchScheduleCards(type, difficulty){
     times.sort((a, b) => a - b);
     return Object.assign({}, r, { times, type });
   })
-  // keep a card if it still has at least one upcoming time - drops
-  // fully-concluded one-off special events; daily/weekly always have one
-  .filter(c => c.times.some(d => d.getTime() >= now))
+  .filter(c => {
+    if(c.times.some(d => d.getTime() >= now)) return true;
+    // Special events sometimes get announced (track/days) before Studio 397
+    // publishes exact start times - show those as "time TBD" instead of
+    // hiding them, as long as the event itself isn't already in the past.
+    if(type === 'special' && c.times.length === 0 && (c.race_days || []).length > 0 && c.week_key >= currentWeekKey){
+      c.timesUnknown = true;
+      return true;
+    }
+    return false;
+  })
   .sort((a, b) => {
-    const nextA = a.times.find(d => d.getTime() >= now);
-    const nextB = b.times.find(d => d.getTime() >= now);
-    return nextA - nextB;
+    const farFuture = 8640000000000000;
+    const keyOf = c => {
+      const next = c.times.find(d => d.getTime() >= now);
+      if(next) return next.getTime();
+      if(c.timesUnknown) return new Date(c.week_key + 'T00:00:00Z').getTime();
+      return farFuture;
+    };
+    return keyOf(a) - keyOf(b);
   });
 
   scheduleCache[cacheKey] = cards;
@@ -829,6 +851,26 @@ function dayNightLabel(timeOfDay, startTimeMinutes){
   return (hour < 6 || hour >= 20) ? 'Nacht' : 'Tag';
 }
 
+// Best-effort reading of real_road/water_depth - Studio 397/lmuportal don't
+// publicly document these values, so this is an approximation, not a
+// guaranteed-accurate reading.
+function trackConditionLabel(seg){
+  if(!seg) return null;
+  const wdRaw = seg.water_depth !== undefined ? seg.water_depth : seg.waterDepth;
+  const wd = wdRaw === undefined || wdRaw === null ? null : parseFloat(wdRaw);
+  const rr = String(seg.real_road || seg.realRoad || '').toUpperCase();
+  if(rr.includes('SATURATED') || rr.includes('FLOOD')) return 'Nass';
+  if(rr.includes('WET')) return 'Nass';
+  if(rr.includes('DAMP')) return 'Feucht';
+  if(wd !== null){
+    if(wd > 0.3) return 'Nass';
+    if(wd > 0) return 'Feucht';
+    return 'Trocken';
+  }
+  if(rr.includes('DRY') || rr.includes('GREEN') || rr.includes('FAST') || rr === 'NATURAL') return 'Trocken';
+  return null;
+}
+
 function summarizeWeather(weatherField){
   let segments = weatherField;
   if(segments && !Array.isArray(segments) && Array.isArray(segments.weather)) segments = segments.weather;
@@ -845,7 +887,11 @@ function summarizeWeather(weatherField){
   const dayNight = dayNightLabel(first.time_of_day || first.timeOfDay, first.start_time !== undefined ? first.start_time : first.startTime);
   const rainValues = segments.map(s => num(s, 'rainChange', 'rain_change')).filter(v => v !== null);
   const maxRain = rainValues.length ? Math.max(...rainValues) : null;
-  return { temp, humidity, wind, maxRain, sky, dayNight };
+  // real_road/water_depth are only present on some entries; when missing but
+  // rain chance is known and 0 throughout, "dry" is still a safe inference.
+  let track = trackConditionLabel(first);
+  if(!track && maxRain === 0) track = 'Trocken';
+  return { temp, humidity, wind, maxRain, sky, dayNight, track };
 }
 
 function buildScheduleDetails(card){
@@ -869,6 +915,7 @@ function buildScheduleDetails(card){
   if(weather){
     if(weather.dayNight) items.push(['Tageszeit', weather.dayNight]);
     if(weather.sky) items.push(['Wetter', weather.sky]);
+    if(weather.track) items.push(['Strecke', weather.track]);
     if(weather.temp !== null) items.push(['Temperatur', `${weather.temp}°C`]);
     if(weather.maxRain !== null) items.push(['Regenwahrscheinlichkeit', `${weather.maxRain}%`]);
     if(weather.humidity !== null) items.push(['Luftfeuchtigkeit', `${weather.humidity}%`]);
@@ -1008,11 +1055,25 @@ function renderScheduleCards(cards){
 
     const timesLabel = document.createElement('div');
     timesLabel.className = 'schedule-times-label';
-    timesLabel.textContent = card.type === 'daily' ? 'Heute · deine Zeitzone' : 'Termine · deine Zeitzone';
+    timesLabel.textContent = card.timesUnknown
+      ? 'Termin'
+      : (card.type === 'daily' ? 'Heute · deine Zeitzone' : 'Termine · deine Zeitzone');
 
-    const times = card.type === 'daily'
-      ? buildTimesGrid(card.times, now)
-      : buildTimesByDate(card.times, now);
+    let times;
+    if(card.timesUnknown){
+      times = document.createElement('div');
+      times.className = 'schedule-tbd';
+      const dayNames = (card.race_days || []).slice()
+        .sort((a, b) => (a + 6) % 7 - (b + 6) % 7) // Monday-first order for display
+        .map(d => WEEKDAY_NAMES_DE[d]).join('/');
+      const weekDate = new Date(card.week_key + 'T00:00:00Z');
+      const weekLabel = weekDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+      times.textContent = `Zeit noch nicht bekannt · ${dayNames || 'Tag offen'}, Woche vom ${weekLabel}`;
+    }else if(card.type === 'daily'){
+      times = buildTimesGrid(card.times, now);
+    }else{
+      times = buildTimesByDate(card.times, now);
+    }
 
     const toggle = document.createElement('div');
     toggle.className = 'schedule-details-toggle';
