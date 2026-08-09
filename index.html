@@ -626,7 +626,15 @@ async function loadData(force){
   }
 }
 
-document.getElementById('sync-btn').addEventListener('click', () => loadData(true));
+document.getElementById('sync-btn').addEventListener('click', () => {
+  loadData(true);
+  // The button should refresh everything "live", not just the daily/weekly
+  // tip text - clear the schedule cache too and reload it if that tab is open.
+  Object.keys(scheduleCache).forEach(key => delete scheduleCache[key]);
+  if(document.getElementById('panel-schedule').classList.contains('active')){
+    loadScheduleView();
+  }
+});
 
 // ---- Schedule tab: own cards rendered from lmuportal.com's public Supabase
 // data (their anon key + open REST API are meant for direct client use,
@@ -1124,7 +1132,16 @@ loadData(false);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // GitHub Pages caches sw.js like any other file (10 min), so browsers
+      // can go a while without noticing a new version on their own. Forcing
+      // an update check here and whenever the app becomes visible again
+      // gets new content live for reopened tabs/installed PWAs much faster.
+      reg.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => {
+        if(!document.hidden) reg.update().catch(() => {});
+      });
+    }).catch(() => {});
   });
 }
 </script>
