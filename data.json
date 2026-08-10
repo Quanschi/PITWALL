@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-08T21:02:41Z",
-  "stamp_date": "08.08.2026",
+  "generated_at": "2026-08-10T10:01:34Z",
+  "stamp_date": "10.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremstechnik",
-      "headline": "Trailbraking im LMGT3: ABS-Eingriff beim Einlenken minimieren für maximale Rotation",
-      "body": "Im LMGT3 verleitet das **ABS** dazu, den Bremsdruck bis tief in den Scheitelpunkt zu hoch zu halten. Löst das System während des Einlenkens aus, regelt es den Bremsdruck herunter und nimmt dir den nötigen **Grip an der Vorderachse**, was zu massivem Untersteuern führt. Reduziere den Bremsdruck nach dem initialen Peak schlagartig auf ca. 15–20 %, um das Fahrzeug über den Dynamiktransfer einzudrehen, ohne die `ABS-Regelung` zu triggern. Ein sauberer Übergang zwischen Bremse und Lenkung schont zudem die **Vorderreifen** über Stintdistanz.",
+      "kicker": "Fahrtechnik · Bremsphase",
+      "headline": "Gleichmäßiges Trailing statt schlagartigem Lösen: Rotationsaufbau im Kurveneingang",
+      "body": "In Le Mans Ultimate belohnen die `LMGT3`-Fahrzeuge eine feinfühlige **Trail-Braking-Technik**, um die Vorderachse beim Einlenken gezielt zu belasten. Wer die Bremse zu abrupt löst, verliert schlagartig den **Vorderachs-Grip** und erzeugt unnötiges Untersteuern im Kurveneingang. Nutze den Restbremsdruck im ersten Drittel der Lenkbewegung, um das Fahrzeug ohne exzessiven Lenkwinkel zu rotieren. Passe die `Brake Bias` während des Stints an: Mit sinkendem Kraftstoffgewicht wandert die dynamische Lastverteilung leicht nach **hinten**, weshalb du die Balance schrittweise anpassen musst.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source & Les Combes): Achte im LMU-Telemetrie-Overlay darauf, dass die ABS-Indikatorleuchte nur im geradlinigen Anbremsbereich aufleuchtet, aber komplett erlischt, sobald du den Lenkwinkel erhöhst."
+      "drill": "15 Minuten Spa-Francorchamps: Fahre 8 konstante Runden und konzentriere dich in La Source sowie Stavelot darauf, den Bremsdruck von 100% stufenlos bis zum Scheitelpunkt auf 0% abzubauen, ohne dass das `ABS` spürbar regelt."
     }
   },
   "weekly": {
