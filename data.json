@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-10T10:01:34Z",
+  "generated_at": "2026-08-10T10:04:18Z",
   "stamp_date": "10.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
@@ -15,27 +15,27 @@
   "weekly": {
     "section_label": "Strategie der Woche · LMGT3",
     "strategy": {
-      "kicker": "REIFENMANAGEMENT & BREMSBALANCE",
-      "headline": "Trail-Braking und ABS-Interaktion auf Longruns optimieren",
-      "body": "In Le Mans Ultimate verlangen die **LMGT3-Fahrzeuge** ein präzises Zusammenspiel von `Brake Bias` und `ABS Map`. Ein zu hohes `ABS`-Level verhindert zwar stehende Räder, verlängert aber in späten **Trail-Braking-Phasen** den Bremsweg und überhitzt die Lauffläche der Vorderreifen massiv. Verstelle die **Bremsbalance** während des Stints schrittweise um 0,5 % nach hinten, sobald der Tank leichter wird, um das Eindrehen in die Kurve konstant zu halten. Achte darauf, das `Traction Control` (`TC Slip`) feinfühlig abzustimmen, damit beim Herausbeschleunigen der Heckreifen nicht durch Mikroschlupf thermisch degradiert.",
+      "kicker": "LMGT3 REIFENMANAGEMENT & ABS",
+      "headline": "Bremsdruck und ABS-Eingriff auf langen Stints minimieren",
+      "body": "In Le Mans Ultimate fordern die Goodyear-Slicks im **LMGT3-Feld** ein extrem feinfühliges Management der Vorderreifen. Ein zu hoch eingestelltes `ABS` verhindert zwar effektiv Standplatten, überhitzt die Lauffläche jedoch rasant und führt nach wenigen Runden zu spürbarem **Untersteuern**. Reduziere das `ABS` um einen Klick und verschiebe die `Brake Bias` leicht nach hinten, um die Vorderachse beim Anbremsen zu entlasten. Nutze beim Einlenken präzises **Trail Braking**, um die Fahrzeugrotation ohne exzessiven Schlupf einzuleiten. So minimierst du das `Graining` und hältst die Reifentemperaturen im optimalen Fenster von 85 bis 95 °C.",
       "drill_label": "Uebung diese Woche:",
-      "drill": "Fahre einen 10-Runden-Stint in Spa-Francorchamps: Reduziere ab Runde 3 das `ABS` um eine Stufe und passe die Bremsbalance alle 3 Runden um 0,5 % nach hinten an, um ein konstantes Einlenkverhalten ohne Reifenkochen zu halten."
+      "drill": "Fahre einen 10-Runden-Stint in Le Mans mit reduziertem ABS und fokussiere dich darauf, den Bremsdruck beim Eindrehen in Arnage und Mulsanne schrittweise abzubauen, ohne das ABS in den Regelbereich zu zwingen."
     },
     "deepdive_label": "Vertiefung: drei Stellschrauben, die im GT3 den Unterschied machen",
     "deepdive": [
       {
-        "title": "Differential Preload",
-        "text": "Eine höhere Vorspannung stabilisiert das Fahrzeug beim Anbremsen und Einlenken deutlich, erzeugt aber im Scheitelpunkt leichtes Untersteuern. Reduziere den Wert auf Kursen mit engen Schikanen für agilere Richtungswechsel."
+        "title": "Traction Control (TC) Cut vs. Slip",
+        "text": "Eine zu aggressive Traktionskontrolle unterbricht die Leistungsentfaltung abrupt und kostet Topspeed am Kurvenausgang. Richte den `TC Slip` so ein, dass minimaler Schlupf erlaubt bleibt, um die Rotation über die Hinterachse zu unterstützen."
       },
       {
-        "title": "Rake (Fahrwerksanstellung)",
-        "text": "Ein höheres Heck erhöht den aerodynamischen Abtrieb der Vorderachse über den Diffusor und schärft das Einlenken bei hohem Tempo. Zu viel Rake lässt das Heck auf schnellen Geraden instabil werden und erhöht den Drag."
+        "title": "Brake Migration / Bias",
+        "text": "Die dynamische Anpassung der `Brake Bias` während des Stints kompensiert den schwindenden Grip der Hinterreifen bei sinkendem Fahrzeuggewicht. Verstelle die Balance alle drei Runden um 0,5 % nach vorne, um das Heck beim Anbremsen stabil zu halten."
       },
       {
-        "title": "Anti-Roll Bars (ARB)",
-        "text": "Eine weichere Vorderachse verbessert den mechanischen Grip beim Einlenken in langsamen Passagen spürbar. Steifere Stabilisatoren hinten sorgen dagegen für präzises Ansprechverhalten bei schnellen Lastwechseln."
+        "title": "Differenzial-Vorspannung (Preload)",
+        "text": "Eine höhere `Differential Preload` stabilisiert das Fahrzeug beim Anbremsen und in schnellen Passagen wie den Porsche-Kurven. Zu hohe Werte verhindern jedoch das Eindrehen in langsamen Schikanen und erhöhen den Verschleiß der Vorderreifen."
       }
     ],
-    "footer_note": "Analysen basieren auf den aktuellen Fahrzeugdaten der LMU-Plattform sowie GT3-Telemetrie-Standards im Langstreckensport."
+    "footer_note": "Datenbasis: Telemetrieanalyse LMGT3 in LMU. Für optimale Rundenzeiten Setups stets an die jeweilige Streckentemperatur anpassen."
   }
 }
