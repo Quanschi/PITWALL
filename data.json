@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-10T10:04:18Z",
-  "stamp_date": "10.08.2026",
+  "generated_at": "2026-08-11T08:33:42Z",
+  "stamp_date": "11.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremsphase",
-      "headline": "Gleichmäßiges Trailing statt schlagartigem Lösen: Rotationsaufbau im Kurveneingang",
-      "body": "In Le Mans Ultimate belohnen die `LMGT3`-Fahrzeuge eine feinfühlige **Trail-Braking-Technik**, um die Vorderachse beim Einlenken gezielt zu belasten. Wer die Bremse zu abrupt löst, verliert schlagartig den **Vorderachs-Grip** und erzeugt unnötiges Untersteuern im Kurveneingang. Nutze den Restbremsdruck im ersten Drittel der Lenkbewegung, um das Fahrzeug ohne exzessiven Lenkwinkel zu rotieren. Passe die `Brake Bias` während des Stints an: Mit sinkendem Kraftstoffgewicht wandert die dynamische Lastverteilung leicht nach **hinten**, weshalb du die Balance schrittweise anpassen musst.",
+      "kicker": "Bremstechnik · LMU LMGT3",
+      "headline": "ABS-Eingriffe minimieren: Wie du in LMGT3-Boliden späten Rotationsgewinn ohne Reifenüberhitzung holst",
+      "body": "In LMU führt exzessiver **ABS-Eingriff** beim Anbremsen zu verlängertem Bremsweg und thermischer Überlastung der Vorderreifen. Löse den Bremsdruck beim Einlenken schrittweise von 100% auf ca. 15% (`Trail Braking`), um die Vorderachse belastet zu halten, ohne die Regelgrenze des System zu erreichen. Nutze gezielte Verstellung der `Brake Bias` nach hinten, um die **Fahrzeugrotation** in der Trail-Phase zu unterstützen. Ein sauberer Übergang von Bremse zu Lenkung verhindert Untersteuern am Scheitelpunkt.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Spa-Francorchamps: Fahre 8 konstante Runden und konzentriere dich in La Source sowie Stavelot darauf, den Bremsdruck von 100% stufenlos bis zum Scheitelpunkt auf 0% abzubauen, ohne dass das `ABS` spürbar regelt."
+      "drill": "10 Runden Spa-Francorchamps (La Source & Les Combes): Bremse 5 Meter früher als gewohnt, halte das ABS komplett stumm und vergleiche deine Apex-Geschwindigkeit in den LMU-Telemetry-Data."
     }
   },
   "weekly": {
