@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-13T09:36:50Z",
-  "stamp_date": "13.08.2026",
+  "generated_at": "2026-08-14T08:55:07Z",
+  "stamp_date": "14.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Trail Braking",
-      "headline": "Stabile Rotationsphase in schnellen GT3-Eingängen durch präzises Trail Braking",
-      "body": "In Le Mans Ultimate erzeugt der **LMGT3** bei hohem Pedaldruck ein abruptes Ansprechen des `ABS`. Wer die Bremse beim Einlenken zu schlagartig löst, provoziert ein **Untersteuern durch unzureichende Lastverlagerung** auf die Vorderachse. Reduziere den Bremsdruck beim Eindrehen linear auf ca. 10–15 %, um die Front belastet zu halten und eine **saubere Rotation** ohne Eingriff der Traktionskontrolle am Scheitelpunkt zu ermöglichen. Passe bei steigenden Reifentemperaturen die `Brake Bias` schrittweise um 0,5 % nach hinten an.",
+      "kicker": "Bremstechnik · LMU LMGT3",
+      "headline": "Effizientes Trail Braking: Reifenüberhitzung im ABS-Regelbereich vermeiden",
+      "body": "In Le Mans Ultimate belohnen die LMGT3-Fahrzeuge ein **progressives Lösen der Bremse** beim Einlenken. Vermeide es, das `ABS` in der Trail-Braking-Phase voll regeln zu lassen, da dies die **Vorderreifen überhitzt** und Untersteuern provoziert. Reduziere den Bremsdruck vor dem Einlenkpunkt zügig auf unter 30 %, um maximale **Seitenführungskraft** aufzubauen. So triffst du den `Apex` konstanter und schonst die Reifen über den Stint.",
       "drill_label": "Drill heute:",
-      "drill": "10 Runden Spa-Francorchamps: Fokus auf La Source und Les Combes. Halte den Bremsdruck beim Einlenken konstant zwischen 10 und 15 %, bis der Wagen zum Scheitelpunkt rotiert ist, ohne das `ABS` auszulösen."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source & Les Combes). Sinke den Bremsdruck beim Einlenken bewusst auf 20–30 % und kontrolliere über die Telemetrie oder Dashboard-LEDs, dass das `ABS` beim Eindrehen nicht auslöst."
     }
   },
   "weekly": {
