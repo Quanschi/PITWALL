@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-14T08:55:07Z",
-  "stamp_date": "14.08.2026",
+  "generated_at": "2026-08-15T05:58:34Z",
+  "stamp_date": "15.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · LMU LMGT3",
-      "headline": "Effizientes Trail Braking: Reifenüberhitzung im ABS-Regelbereich vermeiden",
-      "body": "In Le Mans Ultimate belohnen die LMGT3-Fahrzeuge ein **progressives Lösen der Bremse** beim Einlenken. Vermeide es, das `ABS` in der Trail-Braking-Phase voll regeln zu lassen, da dies die **Vorderreifen überhitzt** und Untersteuern provoziert. Reduziere den Bremsdruck vor dem Einlenkpunkt zügig auf unter 30 %, um maximale **Seitenführungskraft** aufzubauen. So triffst du den `Apex` konstanter und schonst die Reifen über den Stint.",
+      "kicker": "Fahrtechnik · ABS-Management",
+      "headline": "Spätanbremsen ohne Überhitzen: Die ABS-Mechanik in LMU effizient nutzen",
+      "body": "In Le Mans Ultimate führt ein exzessiver Eingriff des **Anti-Blockier-Systems (ABS)** bei den LMGT3-Fahrzeugen zu **erhöhtem Reifenverschleiß** und stark steigenden Oberflächentemperaturen an der Vorderachse. Reduziere beim Anbremsen den initialen Pedaldruck auf etwa 85 bis 90 %, um das `ABS` gar nicht erst in die volle Sättigung zu zwingen. Nutze stattdessen ein sauberes, degressives **Trailbraking** bis zum Scheitelpunkt, damit das Auto präzise über die Vorderachse eindreht. Das verhindert ein Schrubben der Vorderräder und stabilisiert deine Stint-Pace über Distanzen wie in Spa oder Sebring.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source & Les Combes). Sinke den Bremsdruck beim Einlenken bewusst auf 20–30 % und kontrolliere über die Telemetrie oder Dashboard-LEDs, dass das `ABS` beim Eindrehen nicht auslöst."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps: Bremse für Turn 1 (La Source) bewusst mit maximal 85 % Bremsdruck an und kontrolliere die Reifen-Oberflächentemperaturen im MFD nach der Kurvenausfahrt."
     }
   },
   "weekly": {
