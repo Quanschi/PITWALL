@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-15T05:58:34Z",
-  "stamp_date": "15.08.2026",
+  "generated_at": "2026-08-16T06:00:11Z",
+  "stamp_date": "16.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · ABS-Management",
-      "headline": "Spätanbremsen ohne Überhitzen: Die ABS-Mechanik in LMU effizient nutzen",
-      "body": "In Le Mans Ultimate führt ein exzessiver Eingriff des **Anti-Blockier-Systems (ABS)** bei den LMGT3-Fahrzeugen zu **erhöhtem Reifenverschleiß** und stark steigenden Oberflächentemperaturen an der Vorderachse. Reduziere beim Anbremsen den initialen Pedaldruck auf etwa 85 bis 90 %, um das `ABS` gar nicht erst in die volle Sättigung zu zwingen. Nutze stattdessen ein sauberes, degressives **Trailbraking** bis zum Scheitelpunkt, damit das Auto präzise über die Vorderachse eindreht. Das verhindert ein Schrubben der Vorderräder und stabilisiert deine Stint-Pace über Distanzen wie in Spa oder Sebring.",
+      "kicker": "Bremstechnik · ABS-Management",
+      "headline": "Druckspitze minimieren: So steuerst du LMGT3-Brakes im LMU-Grenzbereich",
+      "body": "In Le Mans Ultimate führt exzessives **Arbeiten im ABS-Regelbereich** zu schnellem Anstieg der `Vorderreifentemperatur` und verlängert den effektiven Bremsweg. Baue zu Beginn der Bremszone kurz maximalen Druck auf (`85–90% Brake Pressure`), verringere diesen aber sofort mit beginnendem Lenkeinschlag (**Trail Braking**). Ziel ist es, die Schräglaufwinkel der Vorderreifen ohne tiefen Eingriff der Fahrhilfen zu nutzen, um die **Fahrzeugrotation** zu schärfen. Spürst du ein Nachlassen der FFB-Kräfte am Lenkrad, blockiert die Elektronik die Vorderachse bereits zu stark.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps: Bremse für Turn 1 (La Source) bewusst mit maximal 85 % Bremsdruck an und kontrolliere die Reifen-Oberflächentemperaturen im MFD nach der Kurvenausfahrt."
+      "drill": "15 Minuten Training in Spa (La Source & Les Combes): Fahre 10 fliegende Runden und konzentriere dich darauf, den ABS-Eingriff beim Einlenkpunkt laut Telemetrie/HUD unter 10 % der Bremsphase zu halten."
     }
   },
   "weekly": {
