@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-16T06:00:11Z",
-  "stamp_date": "16.08.2026",
+  "generated_at": "2026-08-17T07:59:05Z",
+  "stamp_date": "17.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · ABS-Management",
-      "headline": "Druckspitze minimieren: So steuerst du LMGT3-Brakes im LMU-Grenzbereich",
-      "body": "In Le Mans Ultimate führt exzessives **Arbeiten im ABS-Regelbereich** zu schnellem Anstieg der `Vorderreifentemperatur` und verlängert den effektiven Bremsweg. Baue zu Beginn der Bremszone kurz maximalen Druck auf (`85–90% Brake Pressure`), verringere diesen aber sofort mit beginnendem Lenkeinschlag (**Trail Braking**). Ziel ist es, die Schräglaufwinkel der Vorderreifen ohne tiefen Eingriff der Fahrhilfen zu nutzen, um die **Fahrzeugrotation** zu schärfen. Spürst du ein Nachlassen der FFB-Kräfte am Lenkrad, blockiert die Elektronik die Vorderachse bereits zu stark.",
+      "kicker": "Fahrtechnik · Bremstechnik",
+      "headline": "ABS-Eingriff minimieren: Mehr Rotation auf der Bremse ohne Reifenüberhitzung",
+      "body": "Im LMU-GT3 verführt das `ABS` oft dazu, voll im Regelbereich zu bleiben, was die Vorderreifen überhitzt und Untersteuern provoziert. Reduziere den maximalen Bremsdruck nach dem Anbremsen zügig auf etwa 30–40 %, um präzises **Trail Braking** bis zum Scheitelpunkt zu realisieren. Dadurch nutzt du die **Gewichtsverlagerung** optimal aus, um die Rotation des Fahrzeugs ohne Gripverlust einzuleiten. Vermeide aktives Regeln der `ABS`-Elektronik beim Einlenken, um die **Karkassentemperatur** im grünen Fenster zu halten.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Training in Spa (La Source & Les Combes): Fahre 10 fliegende Runden und konzentriere dich darauf, den ABS-Eingriff beim Einlenkpunkt laut Telemetrie/HUD unter 10 % der Bremsphase zu halten."
+      "drill": "Fahre 10 Runden in Spa (Kurve 1 & Les Combes). Achte auf das Bremsdruck-Widget: Reduziere den Pedaldruck vor dem Einlenken schrittweise so weit, dass die `ABS`-LED im Dashboard vor der Kurve komplett erlischt."
     }
   },
   "weekly": {
