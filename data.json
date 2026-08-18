@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-17T08:03:52Z",
-  "stamp_date": "17.08.2026",
+  "generated_at": "2026-08-18T06:00:43Z",
+  "stamp_date": "18.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremstechnik",
-      "headline": "ABS-Eingriff minimieren: Mehr Rotation auf der Bremse ohne Reifenüberhitzung",
-      "body": "Im LMU-GT3 verführt das `ABS` oft dazu, voll im Regelbereich zu bleiben, was die Vorderreifen überhitzt und Untersteuern provoziert. Reduziere den maximalen Bremsdruck nach dem Anbremsen zügig auf etwa 30–40 %, um präzises **Trail Braking** bis zum Scheitelpunkt zu realisieren. Dadurch nutzt du die **Gewichtsverlagerung** optimal aus, um die Rotation des Fahrzeugs ohne Gripverlust einzuleiten. Vermeide aktives Regeln der `ABS`-Elektronik beim Einlenken, um die **Karkassentemperatur** im grünen Fenster zu halten.",
+      "kicker": "Bremstechnik · LMGT3 Physics",
+      "headline": "Maximale Verzögerung ohne ABS-Eingriff: Bremsdruck im Threshold-Bereich halten",
+      "body": "In Le Mans Ultimate führt exzessives **Auslösen des ABS** zu stark ansteigenden Reifentemperaturen und spürbarem Untersteuern am Kurveneingang. Nutze den initialen Aero-Peak für maximalen Pedaldruck, reduziere diesen jedoch sofort proportional zur abnehmenden Geschwindigkeit (`Trail Braking`). Halte den Druck knapp unter der Regelgrenze des `ABS`, um die **Einlenkrotation** zu maximieren und das Überhitzen der Vorderreifen-Lauffläche zu verhindern.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa (Kurve 1 & Les Combes). Achte auf das Bremsdruck-Widget: Reduziere den Pedaldruck vor dem Einlenken schrittweise so weit, dass die `ABS`-LED im Dashboard vor der Kurve komplett erlischt."
+      "drill": "10 Runden Spa-Francorchamps (Focus auf La Source & Les Combes): ABS-Einstellung um eine Stufe reduzieren und die Bremszonen so treffen, dass das ABS-Feedback auf dem Telemetrie-Display unberührt bleibt."
     }
   },
   "weekly": {
