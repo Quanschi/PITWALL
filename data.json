@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-19T06:02:00Z",
-  "stamp_date": "19.08.2026",
+  "generated_at": "2026-08-20T06:02:55Z",
+  "stamp_date": "20.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · Trailbraking",
-      "headline": "ABS-Eingriffe beim Einlenken minimieren für maximale Präzision am Scheitelpunkt",
-      "body": "In Le Mans Ultimate führt ein zu starkes Ansprechen des `ABS` beim Einlenken zu **Untersteuern** und überhitzt die Lauffläche der Vorderreifen. Löse den Bremsdruck beim Kurveneingang stufenweise von 100 % auf ca. 15 % (`Trailbraking`), bevor du den Hauptlenkimpuls setzt. Dadurch nutzt du die **Gewichtsverlagerung** optimal für Grip an der Vorderachse, ohne das Heck beim Eindrehen zu überlasten. Ein stufenfreies Lösen des Pedals hält zudem die **Aero-Balance** des GT3-Chassis stabil.",
+      "kicker": "Bremstechnik · Trailbraking & ABS",
+      "headline": "Perfekter Einlenkpunkt im LMGT3: ABS-Eingriff minimieren für maximale Rotationsgeschwindigkeit",
+      "body": "Im **Le Mans Ultimate LMGT3** führt zu starker **ABS-Eingriff** beim Trailbraking zum Aufbrechen der Fahrzeugbalance und spürbarem Untersteuern am Scheitelpunkt. Reduziere den Bremsdruck beim Einlenken kontinuierlich auf unter 15 %, um die Vorderräder nicht über die `Slip Ratio` im Regelbereich zu blockieren. Nutze die dynamische Lastverlagerung auf die Vorderachse gezielt, um die **Rotation über das Heck** einzuleiten, ohne die Vorderradhaftung zu überfordern. Erst wenn der Wagen stabil auf den Kurvenausgang ausgerichtet ist, die Drosselklappe wieder progressiv öffnen.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Spa-Francorchamps (Les Combes & Bruxelles): Fokussiere dich darauf, den Bremsdruck vor der Einlenkphase gezielt auf unter 20 % zu senken. Ziel: Null `ABS`-Aktivierung während des Einlenkens."
+      "drill": "Fahre 10 Runden in Portimão (Turn 1 & 3): Bremse mit 100 % Druck auf gerader Linie und reduziere den Druck beim Einlenken strikt synchron zum Lenkeinschlag, sodass die ABS-LEDs im Dashboard ab dem Einlenkpunkt komplett erlöschen."
     }
   },
   "weekly": {
