@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-20T06:02:55Z",
-  "stamp_date": "20.08.2026",
+  "generated_at": "2026-08-21T06:05:38Z",
+  "stamp_date": "21.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · Trailbraking & ABS",
-      "headline": "Perfekter Einlenkpunkt im LMGT3: ABS-Eingriff minimieren für maximale Rotationsgeschwindigkeit",
-      "body": "Im **Le Mans Ultimate LMGT3** führt zu starker **ABS-Eingriff** beim Trailbraking zum Aufbrechen der Fahrzeugbalance und spürbarem Untersteuern am Scheitelpunkt. Reduziere den Bremsdruck beim Einlenken kontinuierlich auf unter 15 %, um die Vorderräder nicht über die `Slip Ratio` im Regelbereich zu blockieren. Nutze die dynamische Lastverlagerung auf die Vorderachse gezielt, um die **Rotation über das Heck** einzuleiten, ohne die Vorderradhaftung zu überfordern. Erst wenn der Wagen stabil auf den Kurvenausgang ausgerichtet ist, die Drosselklappe wieder progressiv öffnen.",
+      "kicker": "Fahrtechnik · Bremsdruck-Modulation",
+      "headline": "ABS-Eingriffe im Kurveneingang minimieren: So stabilisierst du die Vorderachse in LMU",
+      "body": "Beim Anbremsen mit LMGT3-Fahrzeugen in Le Mans Ultimate fuehrt spates **ABS-Thresholding** beim Einlenken zu starkem Untersteuern und ueberhitzten Vorderreifen. Reduziere den Bremsdruck beim Uebergang von der Geraden in die Kurve zuegig auf unter 20 %, um die **Rotationsdynamik** ueber den `Trail Braking`-Effekt optimal zu nutzen. Beobachte das Telemetrie-HUD: Sobald das `ABS` regelt, verringert sich das Kurveneinlenk-Potenzial der Vorderachse spuerbar. Ein stufenloser **Bremsoeffnungs-Verlauf** haelt den Vorderreifen im optimalen Schlupffenster und erlaubt frueheres Ans-Gas-Gehen am Scheitelpunkt.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Portimão (Turn 1 & 3): Bremse mit 100 % Druck auf gerader Linie und reduziere den Druck beim Einlenken strikt synchron zum Lenkeinschlag, sodass die ABS-LEDs im Dashboard ab dem Einlenkpunkt komplett erlöschen."
+      "drill": "Fahre 10 konstante Runden in Spa-Francorchamps (Schwerpunkt La Source & Les Combes). Ziel: ABS-Aktivitaet beim Einlenken vollstaendig vermeiden, waehrend das `Trail Braking` bis zum Scheitelpunkt aufrechterhalten wird."
     }
   },
   "weekly": {
