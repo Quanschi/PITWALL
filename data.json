@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-21T06:05:38Z",
-  "stamp_date": "21.08.2026",
+  "generated_at": "2026-08-22T05:59:50Z",
+  "stamp_date": "22.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremsdruck-Modulation",
-      "headline": "ABS-Eingriffe im Kurveneingang minimieren: So stabilisierst du die Vorderachse in LMU",
-      "body": "Beim Anbremsen mit LMGT3-Fahrzeugen in Le Mans Ultimate fuehrt spates **ABS-Thresholding** beim Einlenken zu starkem Untersteuern und ueberhitzten Vorderreifen. Reduziere den Bremsdruck beim Uebergang von der Geraden in die Kurve zuegig auf unter 20 %, um die **Rotationsdynamik** ueber den `Trail Braking`-Effekt optimal zu nutzen. Beobachte das Telemetrie-HUD: Sobald das `ABS` regelt, verringert sich das Kurveneinlenk-Potenzial der Vorderachse spuerbar. Ein stufenloser **Bremsoeffnungs-Verlauf** haelt den Vorderreifen im optimalen Schlupffenster und erlaubt frueheres Ans-Gas-Gehen am Scheitelpunkt.",
+      "kicker": "Fahrtechnik · ABS & Trail Braking",
+      "headline": "Rotationsgewinn am Kurveneingang: ABS-Regelung nach dem Anbremspunkt gezielt reduzieren",
+      "body": "In LMU führt ein dauerhaft ansprechendes **ABS** zu thermischer Überlastung der Vorderreifen und unterdrückt das Eindrehen des Fahrzeugs. Reduziere den Pedaldruck nach dem harten Bremsimpuls zügig auf ca. 20–30 %, um `Trail Braking` effektiv zu nutzen. Dadurch verlagert sich die **Vorderachslast** optimal, ohne dass die `ABS`-Elektronik den Bremsdruck künstlich regelt. Lass die Bremse bis kurz vor den **Apex** leicht schleifen, um das Heck kontrolliert mitlenken zu lassen.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 konstante Runden in Spa-Francorchamps (Schwerpunkt La Source & Les Combes). Ziel: ABS-Aktivitaet beim Einlenken vollstaendig vermeiden, waehrend das `Trail Braking` bis zum Scheitelpunkt aufrechterhalten wird."
+      "drill": "Fahre 10 Runden in Spa (Kurve 1 & Les Combes). Ziel: Das ABS-Signal im Display ab dem Einlenkpunkt komplett stumm halten und die minimale Apex-Geschwindigkeit um 2-3 km/h steigern."
     }
   },
   "weekly": {
