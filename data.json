@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-22T05:59:50Z",
-  "stamp_date": "22.08.2026",
+  "generated_at": "2026-08-23T06:01:41Z",
+  "stamp_date": "23.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · ABS & Trail Braking",
-      "headline": "Rotationsgewinn am Kurveneingang: ABS-Regelung nach dem Anbremspunkt gezielt reduzieren",
-      "body": "In LMU führt ein dauerhaft ansprechendes **ABS** zu thermischer Überlastung der Vorderreifen und unterdrückt das Eindrehen des Fahrzeugs. Reduziere den Pedaldruck nach dem harten Bremsimpuls zügig auf ca. 20–30 %, um `Trail Braking` effektiv zu nutzen. Dadurch verlagert sich die **Vorderachslast** optimal, ohne dass die `ABS`-Elektronik den Bremsdruck künstlich regelt. Lass die Bremse bis kurz vor den **Apex** leicht schleifen, um das Heck kontrolliert mitlenken zu lassen.",
+      "kicker": "Bremstechnik · LMU LMGT3",
+      "headline": "Trail Braking im LMGT3: ABS-Eingriff minimieren für maximale Rotation",
+      "body": "Im LMGT3 führt zu starkes `Trail Braking` bei aktivem `ABS` oft zum Verlust der Vorderachs-Rotation, da die Elektronik den Bremsdruck zur Stabilitätskontrolle herunterregelt. Reduziere nach dem initialen Peak-Braking den Pedalweg zügig auf **15–20%**, bevor du den Einlenkpunkt ansteuerst. So nutzt du den dynamischen **Gewichtstransfer** auf die Vorderachse optimal aus, ohne dass die `ABS`-Regelung das Einlenkverhalten schwammig macht. Löse die Bremse erst vollständig, wenn das Fahrzeug stabil auf den Kurvenausgang ausgerichtet ist.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa (Kurve 1 & Les Combes). Ziel: Das ABS-Signal im Display ab dem Einlenkpunkt komplett stumm halten und die minimale Apex-Geschwindigkeit um 2-3 km/h steigern."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source): Variiere den Restbremsdruck beim Einlenken bewusst zwischen 10% und 30% und finde den Sweetspot kurz vor dem ABS-Eingriff."
     }
   },
   "weekly": {
