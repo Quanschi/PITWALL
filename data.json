@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-24T08:04:40Z",
+  "generated_at": "2026-08-24T08:08:59Z",
   "stamp_date": "24.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
@@ -15,27 +15,27 @@
   "weekly": {
     "section_label": "Strategie der Woche · LMGT3",
     "strategy": {
-      "kicker": "REIFENMANAGEMENT & SECTOR 3",
-      "headline": "Bremstemperatur und Traktion in Spa-Francorchamps optimieren",
-      "body": "In LMU tendieren die `LMGT3`-Fahrzeuge beim Anbremsen von **Bus Stop** zum Überhitzen der Vorderreifen, was das Einlenkverhalten nach einigen Runden spürbar verschlechtert. Reduziere die `Brake Duct`-Öffnung um einen Klick, um die Scheiben im optimalen **Fenster von 450–550°C** zu halten. Ein leicht höherer `Coast Differential`-Wert verhindert das Eindrehen beim Trail-Braking in **La Source**. Achte darauf, den `TC2` (Slip Angle) in den langsamen Passagen präzise einzustellen, um das Durchdrehen der Hinterräder zu minimieren. So konservierst du die **Rear-Tyres** nachhaltig über den Stint.",
+      "kicker": "REIFENDRUCK & BRAKE BIAS",
+      "headline": "Druckfenster halten: Thermische Stabilität über 45 Minuten LMU-Stints",
+      "body": "In LMU reagiert die LMGT3-Karkasse extrem empfindlich auf Überhitzung durch zu hohen **Slip Angle** in schnellen Passagen. Richte dein Setup so aus, dass der **Kaltluftdruck** nach fünf Runden exakt im Zielkorridor von 1.95 bis 2.00 bar liegt. Nutze die `Brake Bias`, um beim Anbremsen das Heck stabil zu halten und ein Eingreifen des `ABS` im initialen Pedalweg zu vermeiden. Ein zu stark arbeitendes `ABS` heizt die Vorderreifen exponentiell auf und ruiniert die Profiltiefe für das Stintende. Achte darauf, in Traktionszonen mit abgestimmtem `TC1` zu fahren, um Raddurchdrehen im zweiten Gang gezielt zu unterbinden.",
       "drill_label": "Uebung diese Woche:",
-      "drill": "5 Runden Spa-Francorchamps mit Fokus auf Bremsdruck-Modulation in Bus Stop; Telemetrie bezüglich Reifenoberflächentemperatur vorne links analysieren."
+      "drill": "Fahre einen 12-Runden-Stint in Spa: Ziel ist es, die Varianz der Reifentemperaturen (IMO) an der Vorderachse unter 5 °C zu halten und das ABS pro Runde maximal zweimal auszulösen."
     },
     "deepdive_label": "Vertiefung: drei Stellschrauben, die im GT3 den Unterschied machen",
     "deepdive": [
       {
-        "title": "Brake Bias Adjustment",
-        "text": "Die schrittweise Anpassung der Bremsbalance um 0,5% nach hinten während des Stints kompensiert den Front-Grip-Verlust bei sinkender Treibstoffmasse. Dies stabilisiert das Fahrzeug in späten Bremszonen spürbar."
+        "title": "Differential-Vorspannung (`Preload`)",
+        "text": "Eine höhere Vorspannung stabilisiert das Fahrzeug beim Trail-Braking am Kurveneingang deutlich. Zu viel `Preload` führt jedoch zu spürbarem Untersteuern im Scheitelpunkt enger Schikanen."
       },
       {
-        "title": "Pre-load Differential",
-        "text": "Ein höheres Sperrmoment beruhigt das Heck beim schnellen Lastwechsel in schnellen Schikanen. Es schützt vor unkontrolliertem Snap-Oversteer auf Kosten von minimaler Agilität im Kurvenscheitel."
+        "title": "Stabilisatoren (`Front/Rear ARB`)",
+        "text": "Ein weicherer Vorderachs-`ARB` verbessert den mechanischen Grip beim ersten Einlenken. Passe den hinteren `ARB` an, um das Rotationsverhalten in schnellen Passagen exakt auszubalancieren."
       },
       {
-        "title": "Hot Tire Pressure Window",
-        "text": "In LMU liegt der optimale Hot-Pressure-Zielbereich der LMGT3-Slicks im Fenster zwischen 2.00 und 2.05 bar. Abweichungen erhöhen den Verschleiß exponentiell und mindern den mechanischen Grip."
+        "title": "TC-Dual-Mapping (`TC1` / `TC2`)",
+        "text": "Trenne Schlupfgrenze (`TC1`) und Motorleistungsdrosselung (`TC2`). Nutze ein konservativeres `TC2` im späten Stintverlauf, um die thermische Belastung der Hinterreifen ohne großen Zeitverlust zu senken."
       }
     ],
-    "footer_note": "Analysen basieren auf LMU-Telemetrie-Daten und Setup-Tests der aktuellen LMGT3-Klasse."
+    "footer_note": "Basiert auf Telemetriedaten der aktuellen LMU-Build-Spezifikation für LMGT3. Stand: August 2026."
   }
 }
