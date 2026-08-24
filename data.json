@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-23T06:01:41Z",
-  "stamp_date": "23.08.2026",
+  "generated_at": "2026-08-24T08:04:40Z",
+  "stamp_date": "24.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · LMU LMGT3",
-      "headline": "Trail Braking im LMGT3: ABS-Eingriff minimieren für maximale Rotation",
-      "body": "Im LMGT3 führt zu starkes `Trail Braking` bei aktivem `ABS` oft zum Verlust der Vorderachs-Rotation, da die Elektronik den Bremsdruck zur Stabilitätskontrolle herunterregelt. Reduziere nach dem initialen Peak-Braking den Pedalweg zügig auf **15–20%**, bevor du den Einlenkpunkt ansteuerst. So nutzt du den dynamischen **Gewichtstransfer** auf die Vorderachse optimal aus, ohne dass die `ABS`-Regelung das Einlenkverhalten schwammig macht. Löse die Bremse erst vollständig, wenn das Fahrzeug stabil auf den Kurvenausgang ausgerichtet ist.",
+      "kicker": "Bremstechnik · Trail Braking & ABS",
+      "headline": "ABS-Triggering minimieren: Sauberes Trail Braking im LMGT3 für Reifenlebensdauer und Rotation",
+      "body": "Im LMGT3 führt zu langes Verharren im **ABS-Regelbereich** zu überhitzter Lauffläche an der Vorderachse und unnötigem Untersteuern. Löse den Bremsdruck beim Einlenken kontinuierlich von 100 % auf etwa 15 % ab, um die Vorderachse präzise über `Trail Braking` belastet zu halten. Nutze diesen Druckabfall gezielt als Rotationshilfe für das Heck, statt die Rotation erzwungen über den Lenkwinkel zu holen. Ein fließender Übergang schont die **Reifenstruktur** spürbar über Stints von 45 Minuten und länger.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source): Variiere den Restbremsdruck beim Einlenken bewusst zwischen 10% und 30% und finde den Sweetspot kurz vor dem ABS-Eingriff."
+      "drill": "10 Runden Spa-Francorchamps (Fokus La Source & Les Combes): Reduziere den Bremsdruck beim Anbremsen so, dass das ABS-Symbol im HUD maximal beim ersten Peak kurz aufleuchtet."
     }
   },
   "weekly": {
