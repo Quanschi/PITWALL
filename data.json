@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-24T08:08:59Z",
-  "stamp_date": "24.08.2026",
+  "generated_at": "2026-08-25T06:04:09Z",
+  "stamp_date": "25.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · Trail Braking & ABS",
-      "headline": "ABS-Triggering minimieren: Sauberes Trail Braking im LMGT3 für Reifenlebensdauer und Rotation",
-      "body": "Im LMGT3 führt zu langes Verharren im **ABS-Regelbereich** zu überhitzter Lauffläche an der Vorderachse und unnötigem Untersteuern. Löse den Bremsdruck beim Einlenken kontinuierlich von 100 % auf etwa 15 % ab, um die Vorderachse präzise über `Trail Braking` belastet zu halten. Nutze diesen Druckabfall gezielt als Rotationshilfe für das Heck, statt die Rotation erzwungen über den Lenkwinkel zu holen. Ein fließender Übergang schont die **Reifenstruktur** spürbar über Stints von 45 Minuten und länger.",
+      "kicker": "Bremstechnik · ABS-Management",
+      "headline": "Vermeide hohe ABS-Intervention für präzises Einlenken und kühlere Vorderreifen",
+      "body": "In LMU führt eine ständige Überregelung des **Anti-Blockier-Systems (ABS)** zu erhöhten Reifentemperaturen an der Vorderachse und Untersteuern beim Einlenken. Baue den initialen Bremsdruck steil auf, reduziere ihn beim Übergang ins `Trail Braking` jedoch zügig auf ca. 20 %. Dadurch bleibt die **Seitenführungskraft** des Vorderreifens erhalten und die Karkasse überhitzt im Longrun nicht. Achte auf das Feedback der `FFB-Vibration`, um die Regelgrenze des ABS spürbar zu vermeiden.",
       "drill_label": "Drill heute:",
-      "drill": "10 Runden Spa-Francorchamps (Fokus La Source & Les Combes): Reduziere den Bremsdruck beim Anbremsen so, dass das ABS-Symbol im HUD maximal beim ersten Peak kurz aufleuchtet."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps: Reduziere die ABS-Einstellung um eine Stufe und bremse T1 (La Source) sowie Les Combes so an, dass das ABS-Ruckeln im Lenkrad vor dem Einlenken vollständig verstummt."
     }
   },
   "weekly": {
