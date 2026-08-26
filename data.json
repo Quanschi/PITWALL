@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-25T06:04:09Z",
-  "stamp_date": "25.08.2026",
+  "generated_at": "2026-08-26T07:34:56Z",
+  "stamp_date": "26.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · ABS-Management",
-      "headline": "Vermeide hohe ABS-Intervention für präzises Einlenken und kühlere Vorderreifen",
-      "body": "In LMU führt eine ständige Überregelung des **Anti-Blockier-Systems (ABS)** zu erhöhten Reifentemperaturen an der Vorderachse und Untersteuern beim Einlenken. Baue den initialen Bremsdruck steil auf, reduziere ihn beim Übergang ins `Trail Braking` jedoch zügig auf ca. 20 %. Dadurch bleibt die **Seitenführungskraft** des Vorderreifens erhalten und die Karkasse überhitzt im Longrun nicht. Achte auf das Feedback der `FFB-Vibration`, um die Regelgrenze des ABS spürbar zu vermeiden.",
+      "kicker": "Fahrtechnik · Bremstechnik",
+      "headline": "ABS-Eingriff minimieren: Effizientes Trail Braking im LMGT3",
+      "body": "Beim Anbremsen von langsamen Passagen im LMGT3 neigen viele Fahrer dazu, die Bremse tief in die Kurve hinein im **ABS-Regelbereich** zu halten. In *Le Mans Ultimate* verlängert übermäßiger ABS-Eingriff den Bremsweg und überhitzt die Vorderreifen. Verringere den Bremsdruck beim Eindrehen kontinuierlich auf `10-15%`, um das Fahrzeug über die **Vorderachse zu rotieren**, ohne das `ABS` zu überfordern. Rufe den maximalen Bremsdruck ausschließlich bei gerader Lenkung ab und löse das Pedal dynamisch.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps: Reduziere die ABS-Einstellung um eine Stufe und bremse T1 (La Source) sowie Les Combes so an, dass das ABS-Ruckeln im Lenkrad vor dem Einlenken vollständig verstummt."
+      "drill": "Fahre 10 Runden in Spa (La Source & Les Combes). Reduziere den ABS-Wert auf Stufe 2 und konzentriere dich darauf, vor dem Einlenken den Bremsdruck unter die ABS-Schwelle zu lösen, bis deine Sektor-1-Zeiten innerhalb von 0,1 Sekunden variieren."
     }
   },
   "weekly": {
