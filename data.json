@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-26T07:34:56Z",
-  "stamp_date": "26.08.2026",
+  "generated_at": "2026-08-28T21:21:27Z",
+  "stamp_date": "28.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremstechnik",
-      "headline": "ABS-Eingriff minimieren: Effizientes Trail Braking im LMGT3",
-      "body": "Beim Anbremsen von langsamen Passagen im LMGT3 neigen viele Fahrer dazu, die Bremse tief in die Kurve hinein im **ABS-Regelbereich** zu halten. In *Le Mans Ultimate* verlängert übermäßiger ABS-Eingriff den Bremsweg und überhitzt die Vorderreifen. Verringere den Bremsdruck beim Eindrehen kontinuierlich auf `10-15%`, um das Fahrzeug über die **Vorderachse zu rotieren**, ohne das `ABS` zu überfordern. Rufe den maximalen Bremsdruck ausschließlich bei gerader Lenkung ab und löse das Pedal dynamisch.",
+      "kicker": "Fahrtechnik · Bremszonen",
+      "headline": "ABS-Eingriff minimieren: Effizientes Trail-Braking im LMGT3",
+      "body": "Im LMGT3 führt ein permanenter Regelbereich des `ABS` zu überhitzten Vorderreifen und verlängertem Bremsweg. Nutze die initiale Bremsphase für maximalen Druck, reduziere den Pedaldruck zügig und leite erst dann das **Trail-Braking** bis zum Scheitelpunkt ein. Passe die `Brake Bias` während des Stints schrittweise nach hinten an, wenn der Tank leichter wird, um das Eindrehen über die **Hinterachse** zu unterstützen.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa (La Source & Les Combes). Reduziere den ABS-Wert auf Stufe 2 und konzentriere dich darauf, vor dem Einlenken den Bremsdruck unter die ABS-Schwelle zu lösen, bis deine Sektor-1-Zeiten innerhalb von 0,1 Sekunden variieren."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps: Verringere den Peak-Bremsdruck in T1 und Les Combes so weit, dass das ABS-HUD-Icon kaum aufleuchtet, und vergleiche die Reifenkerntemperaturen in der Telemetrie."
     }
   },
   "weekly": {
