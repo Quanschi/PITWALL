@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-28T21:21:27Z",
-  "stamp_date": "28.08.2026",
+  "generated_at": "2026-08-29T05:13:45Z",
+  "stamp_date": "29.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremszonen",
-      "headline": "ABS-Eingriff minimieren: Effizientes Trail-Braking im LMGT3",
-      "body": "Im LMGT3 führt ein permanenter Regelbereich des `ABS` zu überhitzten Vorderreifen und verlängertem Bremsweg. Nutze die initiale Bremsphase für maximalen Druck, reduziere den Pedaldruck zügig und leite erst dann das **Trail-Braking** bis zum Scheitelpunkt ein. Passe die `Brake Bias` während des Stints schrittweise nach hinten an, wenn der Tank leichter wird, um das Eindrehen über die **Hinterachse** zu unterstützen.",
+      "kicker": "Fahrtechnik · Bremszone",
+      "headline": "ABS-Eingriff minimieren: Mehr Grip an der Vorderachse durch dynamisches Trail Braking",
+      "body": "In Le Mans Ultimate bestraft die Reifensimulation der LMGT3-Klasse exzessiven **ABS-Eingriff** mit rapidem Temperaturanstieg an der Lauffläche. Baue beim Anbremsen initial **maximalen Bremsdruck** auf, verringere diesen aber sofort kontinuierlich (`Trail Braking`), sobald du den Einlenkpunkt erreichst. Lass das `ABS` nur die Druckspitze abfangen, statt die Regelung durchgehend arbeiten zu lassen – das stabilisiert den Pitch-Wechsel und schont die Vorderreifen über den gesamten Stint.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps: Verringere den Peak-Bremsdruck in T1 und Les Combes so weit, dass das ABS-HUD-Icon kaum aufleuchtet, und vergleiche die Reifenkerntemperaturen in der Telemetrie."
+      "drill": "15 Minuten Stint auf einer Strecke mit harten Bremszonen: Reduziere das `ABS` um eine Stufe und triff die ersten Bremsspitzen so, dass die Dashboard-Warnleuchte nur kurz aufblinkt anstatt durchgehend zu leuchten."
     }
   },
   "weekly": {
