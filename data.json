@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-29T05:13:45Z",
-  "stamp_date": "29.08.2026",
+  "generated_at": "2026-08-30T05:13:52Z",
+  "stamp_date": "30.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremszone",
-      "headline": "ABS-Eingriff minimieren: Mehr Grip an der Vorderachse durch dynamisches Trail Braking",
-      "body": "In Le Mans Ultimate bestraft die Reifensimulation der LMGT3-Klasse exzessiven **ABS-Eingriff** mit rapidem Temperaturanstieg an der Lauffläche. Baue beim Anbremsen initial **maximalen Bremsdruck** auf, verringere diesen aber sofort kontinuierlich (`Trail Braking`), sobald du den Einlenkpunkt erreichst. Lass das `ABS` nur die Druckspitze abfangen, statt die Regelung durchgehend arbeiten zu lassen – das stabilisiert den Pitch-Wechsel und schont die Vorderreifen über den gesamten Stint.",
+      "kicker": "Bremstechnik · ABS-Management",
+      "headline": "Schwellenbremsen vor der ABS-Regelung: So verkürzt du den Bremsweg im LMGT3",
+      "body": "In Le Mans Ultimate führt zu starkes Verlassen auf das **ABS** zu unnötig hohen Reifentemperaturen und verlängertem Bremsweg im Kurveneingang. Bremse bei Initialkontakt hart mit ca. 85–90 % Druck an, um das Gewicht auf die Vorderachse zu verlagern, und reduziere den Druck beim Einlenken kontinuierlich (`Trail Braking`). Sobald die **ABS-Pulsierung** voll einsetzt, verliert das Fahrzeug an Rotation. Ziel ist das Agieren direkt an der `Slip Threshold`, ohne den Regler zur Arbeit zu zwingen.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Stint auf einer Strecke mit harten Bremszonen: Reduziere das `ABS` um eine Stufe und triff die ersten Bremsspitzen so, dass die Dashboard-Warnleuchte nur kurz aufblinkt anstatt durchgehend zu leuchten."
+      "drill": "10 Runden Monza T1 (Variante del Rettifilo): Senke den initialen Bremsdruck stufenweise ab, bis die ABS-Kontrollleuchte im Dashboard vor dem Einlenken höchstens einmal kurz aufblinkt."
     }
   },
   "weekly": {
