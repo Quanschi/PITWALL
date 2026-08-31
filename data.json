@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-31T05:14:20Z",
+  "generated_at": "2026-08-31T05:35:05Z",
   "stamp_date": "31.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
@@ -15,27 +15,27 @@
   "weekly": {
     "section_label": "Strategie der Woche · LMGT3",
     "strategy": {
-      "kicker": "REIFENDRUCK & BRAKE BIAS",
-      "headline": "Druckfenster halten: Thermische Stabilität über 45 Minuten LMU-Stints",
-      "body": "In LMU reagiert die LMGT3-Karkasse extrem empfindlich auf Überhitzung durch zu hohen **Slip Angle** in schnellen Passagen. Richte dein Setup so aus, dass der **Kaltluftdruck** nach fünf Runden exakt im Zielkorridor von 1.95 bis 2.00 bar liegt. Nutze die `Brake Bias`, um beim Anbremsen das Heck stabil zu halten und ein Eingreifen des `ABS` im initialen Pedalweg zu vermeiden. Ein zu stark arbeitendes `ABS` heizt die Vorderreifen exponentiell auf und ruiniert die Profiltiefe für das Stintende. Achte darauf, in Traktionszonen mit abgestimmtem `TC1` zu fahren, um Raddurchdrehen im zweiten Gang gezielt zu unterbinden.",
+      "kicker": "REIFENMANAGEMENT & ARB",
+      "headline": "Balance auf langen Stints in Spa-Francorchamps halten",
+      "body": "LMGT3-Fahrzeuge in LMU neigen über einen Stint hinweg zu starker thermischer Degradation der Hinterreifen, besonders in schnellen Passagen wie Pouhon. Um dem entgegenzuwirken, solltest du die **mechanische Balance** frühzeitig über den `ARB` nach vorne verlagern. Ein weicherer `ARB rear` reduziert das Rutschen beim Herausbeschleunigen und schont den **Reifenlatschen** an der Hinterachse. Koppel dies mit einer leichten Anpassung des `Brake Bias` nach vorne, sobald das Heck beim Trail-Braking instabil wird. Das verhindert **Grip-Abrisse** und stabilisiert die Rundenzeiten über eine volle Stint-Dauer von 45 Minuten hinweg exzellent.",
       "drill_label": "Uebung diese Woche:",
-      "drill": "Fahre einen 12-Runden-Stint in Spa: Ziel ist es, die Varianz der Reifentemperaturen (IMO) an der Vorderachse unter 5 °C zu halten und das ABS pro Runde maximal zweimal auszulösen."
+      "drill": "Fahre einen 15-Runden-Stint in Spa mit festem ARB-Setup. Wiederhole den Stint und verstelle ab Runde 5 den ARB hinten um 1 Klick weicher. Vergleiche anschließend die Reifentemperaturen und Druckverläufe in der Telemetrie."
     },
     "deepdive_label": "Vertiefung: drei Stellschrauben, die im GT3 den Unterschied machen",
     "deepdive": [
       {
-        "title": "Differential-Vorspannung (`Preload`)",
-        "text": "Eine höhere Vorspannung stabilisiert das Fahrzeug beim Trail-Braking am Kurveneingang deutlich. Zu viel `Preload` führt jedoch zu spürbarem Untersteuern im Scheitelpunkt enger Schikanen."
+        "title": "Tire Pressure Window",
+        "text": "Im LMU LMGT3 liegt das optimale Fenster bei warmen Reifen zwischen 1.90 und 2.05 bar. Zu hoher Druck verringert die Kontaktfläche in High-Speed-Sektoren und sorgt für übermäßige Hitzeentwicklung in den Reifenabrollflächen."
       },
       {
-        "title": "Stabilisatoren (`Front/Rear ARB`)",
-        "text": "Ein weicherer Vorderachs-`ARB` verbessert den mechanischen Grip beim ersten Einlenken. Passe den hinteren `ARB` an, um das Rotationsverhalten in schnellen Passagen exakt auszubalancieren."
+        "title": "Differential Preload",
+        "text": "Ein höherer Sperrwert stabilisiert das Fahrzeug beim Einlenken unter Volllast, erzeugt aber Untersteuern am Scheitelpunkt. Für engere Kurvenkombinationen sollte die Preload um 1-2 Klicks reduziert werden, um das Einlenkverhalten zu schärfen."
       },
       {
-        "title": "TC-Dual-Mapping (`TC1` / `TC2`)",
-        "text": "Trenne Schlupfgrenze (`TC1`) und Motorleistungsdrosselung (`TC2`). Nutze ein konservativeres `TC2` im späten Stintverlauf, um die thermische Belastung der Hinterreifen ohne großen Zeitverlust zu senken."
+        "title": "Traction Control Cut vs. Slip",
+        "text": "Eine Feinjustierung der `TC` ist essenziell: Ein zu aggressiver Engine-Cut kostet spürbaren Vortrieb am Kurvenausgang, während zu viel zugelassener Schlupf die Hinterreifen überhitzt. Nutze getrennte Mappings für Slip-Angle und Power-Cut, falls vom Fahrzeugmodell unterstützt."
       }
     ],
-    "footer_note": "Basiert auf Telemetriedaten der aktuellen LMU-Build-Spezifikation für LMGT3. Stand: August 2026."
+    "footer_note": "Datenbasis: LMU Telemetrie-Referenzwerte für LMGT3-Klasse (Stand Aug 2026). Setup-Anpassungen stets an Streckentemperatur und Asphalt-Grip level angleichen."
   }
 }
