@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-30T05:13:52Z",
-  "stamp_date": "30.08.2026",
+  "generated_at": "2026-08-31T05:14:20Z",
+  "stamp_date": "31.08.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · ABS-Management",
-      "headline": "Schwellenbremsen vor der ABS-Regelung: So verkürzt du den Bremsweg im LMGT3",
-      "body": "In Le Mans Ultimate führt zu starkes Verlassen auf das **ABS** zu unnötig hohen Reifentemperaturen und verlängertem Bremsweg im Kurveneingang. Bremse bei Initialkontakt hart mit ca. 85–90 % Druck an, um das Gewicht auf die Vorderachse zu verlagern, und reduziere den Druck beim Einlenken kontinuierlich (`Trail Braking`). Sobald die **ABS-Pulsierung** voll einsetzt, verliert das Fahrzeug an Rotation. Ziel ist das Agieren direkt an der `Slip Threshold`, ohne den Regler zur Arbeit zu zwingen.",
+      "kicker": "Bremstechnik · ABS-Thresholding",
+      "headline": "Präzises Trail Braking ohne ABS-Überregelung im LMGT3",
+      "body": "Im LMU-LMGT3 führt ein dauerhafter Eingriff des `ABS` zu hoher thermischer Belastung der Vorderreifen und verlängert effektiv den Bremsweg. Reduziere den Pedaldruck beim Einlenken kontinuierlich auf unter 20 %, um die **Vorderachse optimal zu belasten**, ohne dass die Assistenz eingreift. Ein sauberes **Trail Braking** rotiert das Fahrzeug effizient in den Scheitelpunkt und schont das `Tyre Degradation`-Profil für Stints. Achte im Telemetrie-HUD auf die `ABS`-Aktivierungsanzeige und passe den Druck-Bleed-off entsprechend an.",
       "drill_label": "Drill heute:",
-      "drill": "10 Runden Monza T1 (Variante del Rettifilo): Senke den initialen Bremsdruck stufenweise ab, bis die ABS-Kontrollleuchte im Dashboard vor dem Einlenken höchstens einmal kurz aufblinkt."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps. Bremse vor T1 (La Source) von 100 % Druck zügig ab und reduziere den Druck vor dem Einlenken so, dass die `ABS`-Leuchte ab dem Turn-in aus bleibt. Ziel: 5 aufeinanderfolgende Runden ohne ABS-Eingriff in der Einlenkphase."
     }
   },
   "weekly": {
