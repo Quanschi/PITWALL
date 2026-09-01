@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-08-31T05:35:05Z",
-  "stamp_date": "31.08.2026",
+  "generated_at": "2026-09-01T05:20:35Z",
+  "stamp_date": "01.09.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · ABS-Thresholding",
-      "headline": "Präzises Trail Braking ohne ABS-Überregelung im LMGT3",
-      "body": "Im LMU-LMGT3 führt ein dauerhafter Eingriff des `ABS` zu hoher thermischer Belastung der Vorderreifen und verlängert effektiv den Bremsweg. Reduziere den Pedaldruck beim Einlenken kontinuierlich auf unter 20 %, um die **Vorderachse optimal zu belasten**, ohne dass die Assistenz eingreift. Ein sauberes **Trail Braking** rotiert das Fahrzeug effizient in den Scheitelpunkt und schont das `Tyre Degradation`-Profil für Stints. Achte im Telemetrie-HUD auf die `ABS`-Aktivierungsanzeige und passe den Druck-Bleed-off entsprechend an.",
+      "kicker": "Bremstechnik · LMU Physics",
+      "headline": "ABS-Eingriff minimieren: Effizientes Trail-Braking für Reifenrelevanz über lange Stints",
+      "body": "In Le Mans Ultimate führt langanhaltender **ABS-Regelbereich** zu überhitzierten Laufflächen und unkonstantem Bremsweg. Baue den initialen Bremsdruck hart auf, reduziere ihn beim Einlenken aber zügig auf unter 20 %, um mittels `Trail Braking` den Grip der Vorderachse optimal auszunutzen. Achte darauf, dass die `Slip Ratio` stabil bleibt und das Fahrzeugheck nicht durch schlagartiges Lösen der Bremse unruhig wird. Diese Technik sichert dir eine **konstante Reifenperformance** über volle 60-Minuten-Stints in Le Mans.",
       "drill_label": "Drill heute:",
-      "drill": "Fahre 10 Runden in Spa-Francorchamps. Bremse vor T1 (La Source) von 100 % Druck zügig ab und reduziere den Druck vor dem Einlenken so, dass die `ABS`-Leuchte ab dem Turn-in aus bleibt. Ziel: 5 aufeinanderfolgende Runden ohne ABS-Eingriff in der Einlenkphase."
+      "drill": "15 Minuten Anbremsopeation Mulsanne-Spitzkehre: Triff den Einlenkpunkt aus 280 km/h so, dass das ABS-Signal auf deinem Telemetrie-Display nach dem initialen Pedalimpuls vollständig erlischt."
     }
   },
   "weekly": {
