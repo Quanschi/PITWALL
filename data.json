@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-09-01T05:20:35Z",
-  "stamp_date": "01.09.2026",
+  "generated_at": "2026-09-02T05:22:29Z",
+  "stamp_date": "02.09.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · LMU Physics",
-      "headline": "ABS-Eingriff minimieren: Effizientes Trail-Braking für Reifenrelevanz über lange Stints",
-      "body": "In Le Mans Ultimate führt langanhaltender **ABS-Regelbereich** zu überhitzierten Laufflächen und unkonstantem Bremsweg. Baue den initialen Bremsdruck hart auf, reduziere ihn beim Einlenken aber zügig auf unter 20 %, um mittels `Trail Braking` den Grip der Vorderachse optimal auszunutzen. Achte darauf, dass die `Slip Ratio` stabil bleibt und das Fahrzeugheck nicht durch schlagartiges Lösen der Bremse unruhig wird. Diese Technik sichert dir eine **konstante Reifenperformance** über volle 60-Minuten-Stints in Le Mans.",
+      "kicker": "Bremstechnik · LMU LMGT3",
+      "headline": "ABS-Eingriff minimieren: Mehr Verzögerung und Reifenschonung beim Anbremsen",
+      "body": "In Le Mans Ultimate führt ein zu hoher **ABS-Eingriff** bei LMGT3-Fahrzeugen zu verfälschtem Pedalgefühl und spürbarem Zeitverlust am Apex. Nutze sauberes `Trail Braking`: Steige bei hoher Geschwindigkeit hart ein (90–100 % Bremsdruck) und reduziere den Druck mit fallendem Aero-Grip schrittweise auf 15–20 % vor dem Einlenken. Das schont die **Vorderreifen** über lange Stints und hält das Fahrzeugheck beim Anbremsen in `Indianapolis` stabil.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Anbremsopeation Mulsanne-Spitzkehre: Triff den Einlenkpunkt aus 280 km/h so, dass das ABS-Signal auf deinem Telemetrie-Display nach dem initialen Pedalimpuls vollständig erlischt."
+      "drill": "15 Minuten Stint in Le Mans: Stelle das ABS im Setup eine Stufe niedriger als gewohnt. Bremse die Mulsanne-Kombination und Indianapolis an, ohne dass das ABS-Symbol auf dem Dash aufleuchtet."
     }
   },
   "weekly": {
