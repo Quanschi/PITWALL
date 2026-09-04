@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-09-02T05:22:29Z",
-  "stamp_date": "02.09.2026",
+  "generated_at": "2026-09-04T05:20:29Z",
+  "stamp_date": "04.09.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
       "kicker": "Bremstechnik · LMU LMGT3",
-      "headline": "ABS-Eingriff minimieren: Mehr Verzögerung und Reifenschonung beim Anbremsen",
-      "body": "In Le Mans Ultimate führt ein zu hoher **ABS-Eingriff** bei LMGT3-Fahrzeugen zu verfälschtem Pedalgefühl und spürbarem Zeitverlust am Apex. Nutze sauberes `Trail Braking`: Steige bei hoher Geschwindigkeit hart ein (90–100 % Bremsdruck) und reduziere den Druck mit fallendem Aero-Grip schrittweise auf 15–20 % vor dem Einlenken. Das schont die **Vorderreifen** über lange Stints und hält das Fahrzeugheck beim Anbremsen in `Indianapolis` stabil.",
+      "headline": "ABS-Schwellenwert nutzen: Bessere Rotation ohne Reifenüberhitzung im Scheitelpunkt",
+      "body": "In Le Mans Ultimate führt zu hartes Einstechen ins `ABS` zu überhöhten Vorderreiffentemperaturen und schlagartigem Untersteuern. Baue den maximalen Bremsdruck kurz vor dem Einlenken zügig auf etwa 15 bis 20 % ab (**Trail Braking**), um das **Gewicht auf der Vorderachse** zu halten, ohne das Regelsystem zu überfordern. Das akustische ABS-Stottern sollte vor dem eigentlichen `Apex` komplett verstummt sein, damit die **Seitenführungskraft** voll greift.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Stint in Le Mans: Stelle das ABS im Setup eine Stufe niedriger als gewohnt. Bremse die Mulsanne-Kombination und Indianapolis an, ohne dass das ABS-Symbol auf dem Dash aufleuchtet."
+      "drill": "10 Runden Circuit de la Sarthe (Mulsanne-Chicanes): Bremse bewusst 5 Meter früher, löse die Bremse sanfter ab und achte darauf, dass das ABS-Geräusch vor dem Einlenkpunkt endet. Vergleiche deine Reifentemperaturen im MFD."
     }
   },
   "weekly": {
