@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-09-04T05:20:29Z",
-  "stamp_date": "04.09.2026",
+  "generated_at": "2026-09-05T05:18:51Z",
+  "stamp_date": "05.09.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · LMU LMGT3",
-      "headline": "ABS-Schwellenwert nutzen: Bessere Rotation ohne Reifenüberhitzung im Scheitelpunkt",
-      "body": "In Le Mans Ultimate führt zu hartes Einstechen ins `ABS` zu überhöhten Vorderreiffentemperaturen und schlagartigem Untersteuern. Baue den maximalen Bremsdruck kurz vor dem Einlenken zügig auf etwa 15 bis 20 % ab (**Trail Braking**), um das **Gewicht auf der Vorderachse** zu halten, ohne das Regelsystem zu überfordern. Das akustische ABS-Stottern sollte vor dem eigentlichen `Apex` komplett verstummt sein, damit die **Seitenführungskraft** voll greift.",
+      "kicker": "Fahrtechnik · Bremstechnik",
+      "headline": "ABS-Eingriff im LMGT3 minimieren: Mehr Front-Grip und geringerer Reifenverschleiß",
+      "body": "In den LMGT3-Fahrzeugen führt ein dauerhafter `ABS`-Eingriff zu höheren **Reifentemperaturen** und Untersteuern beim Einlenken. Treffe den initialen **Bremsschwellenwert** hart bei 100%, verringere den Druck beim Eindrehen jedoch zügig auf 10-20% (**Trail-Braking**). Dadurch bleibt die Vorderachse präzise belastet, ohne dass das System die Bremswirkung durch `ABS`-Regelung öffnet. Passe die **Bremsbalance** (`BB`) schrittweise nach hinten an, falls das Fahrzeug beim Einlenken zu träge reagiert.",
       "drill_label": "Drill heute:",
-      "drill": "10 Runden Circuit de la Sarthe (Mulsanne-Chicanes): Bremse bewusst 5 Meter früher, löse die Bremse sanfter ab und achte darauf, dass das ABS-Geräusch vor dem Einlenkpunkt endet. Vergleiche deine Reifentemperaturen im MFD."
+      "drill": "15 Minuten Session auf Le Mans (Mulsanne-Chicane 1): Fahre 8 fliegende Runden und konzentriere dich darauf, den ABS-Eingriff beim Einlenken laut Telemetrie/FFB auf null zu reduzieren."
     }
   },
   "weekly": {
