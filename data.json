@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-09-05T05:18:51Z",
-  "stamp_date": "05.09.2026",
+  "generated_at": "2026-09-06T05:18:52Z",
+  "stamp_date": "06.09.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Fahrtechnik · Bremstechnik",
-      "headline": "ABS-Eingriff im LMGT3 minimieren: Mehr Front-Grip und geringerer Reifenverschleiß",
-      "body": "In den LMGT3-Fahrzeugen führt ein dauerhafter `ABS`-Eingriff zu höheren **Reifentemperaturen** und Untersteuern beim Einlenken. Treffe den initialen **Bremsschwellenwert** hart bei 100%, verringere den Druck beim Eindrehen jedoch zügig auf 10-20% (**Trail-Braking**). Dadurch bleibt die Vorderachse präzise belastet, ohne dass das System die Bremswirkung durch `ABS`-Regelung öffnet. Passe die **Bremsbalance** (`BB`) schrittweise nach hinten an, falls das Fahrzeug beim Einlenken zu träge reagiert.",
+      "kicker": "Bremstechnik · ABS-Management",
+      "headline": "ABS-Eingriff reduzieren: Maximale Rotation beim Einlenken in LMU nutzen",
+      "body": "In Le Mans Ultimate führt ein zu starker **ABS-Eingriff** beim Einlenken zu abruptem Untersteuern, da das System die Bremskraft an der Vorderachse stark reguliert. Verringere den Pedaldruck beim Übergang in die Kurve progressiv auf unter 20 %, um die **dynamische Radlastverteilung** optimal zu nutzen. Nur wenn die Vorderreifen nicht im Regelbereich des `ABS` blockieren, baut das LMGT3-Fahrzeug die gewünschte Rotation auf. Dies schont gleichzeitig die Lauffläche der **Vorderreifen** über längere Stints.",
       "drill_label": "Drill heute:",
-      "drill": "15 Minuten Session auf Le Mans (Mulsanne-Chicane 1): Fahre 8 fliegende Runden und konzentriere dich darauf, den ABS-Eingriff beim Einlenken laut Telemetrie/FFB auf null zu reduzieren."
+      "drill": "10 Runden Spa-Francorchamps (La Source & Les Combes): Bremse initial hart, aber reduziere den Druck vor dem Einlenkpunkt so, dass die `ABS`-LEDs im Display beim Einlenken vollständig erlöschen."
     }
   },
   "weekly": {
