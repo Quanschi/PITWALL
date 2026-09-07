@@ -1991,6 +1991,10 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
     showFormMessage('te-create-message', '"Bis"-Datum liegt vor dem "Von"-Datum.');
     return;
   }
+  if((end - start) / 86400000 > 30){
+    showFormMessage('te-create-message', 'Der Zeitraum darf höchstens 31 Tage umfassen.');
+    return;
+  }
   const days = [];
   for(let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
     days.push(d.toISOString().slice(0, 10));
@@ -2019,12 +2023,14 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
 });
 
 async function deleteTeamEvent(id){
-  await pitwallClient.from('team_events').delete().eq('id', id);
+  const { error } = await pitwallClient.from('team_events').delete().eq('id', id);
+  if(error) console.error('Delete team event failed:', error.message);
   loadTeamEvents();
 }
 
 async function setTeamEventClosed(id, closed){
-  await pitwallClient.from('team_events').update({ closed }).eq('id', id);
+  const { error } = await pitwallClient.from('team_events').update({ closed }).eq('id', id);
+  if(error) console.error('Close/reopen team event failed:', error.message);
   loadTeamEvents();
 }
 
@@ -2036,7 +2042,8 @@ async function joinTeam(teamId){
 }
 
 async function deleteTeam(teamId){
-  await pitwallClient.from('team_event_teams').delete().eq('id', teamId);
+  const { error } = await pitwallClient.from('team_event_teams').delete().eq('id', teamId);
+  if(error) console.error('Delete team failed:', error.message);
   loadTeamEvents();
 }
 
