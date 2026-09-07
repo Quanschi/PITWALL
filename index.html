@@ -482,6 +482,8 @@ input:focus{outline:none;border-color:var(--violet);}
 .leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
 .leaderboard-filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
 .lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
+.link-btn{background:none;border:none;padding:0;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif;text-decoration:underline;cursor:pointer;}
+.link-btn:hover{color:var(--text);}
 .lb-filter-toggle input{width:auto;}
 #lb-track-filter{width:auto;max-width:220px;}
 
@@ -684,7 +686,7 @@ input:focus{outline:none;border-color:var(--violet);}
         <div class="form-message" id="auth-message" hidden></div>
         <button type="submit" class="filter-pill active" id="auth-submit">Anmelden</button>
       </form>
-      <button type="button" class="lb-filter-toggle" id="forgot-password-btn" style="margin-top:12px;">Passwort vergessen?</button>
+      <button type="button" class="link-btn" id="forgot-password-btn" style="margin-top:12px;">Passwort vergessen?</button>
       <div id="forgot-password-card" hidden style="margin-top:14px;">
         <div class="field">
           <label for="forgot-email">E-Mail</label>
@@ -1956,9 +1958,10 @@ async function ensureTeamEventsForSpecialCards(cards){
       week_key: card.week_key,
       created_by: session.user.id,
     };
-    await pitwallClient
+    const { error } = await pitwallClient
       .from('team_events')
       .upsert(payload, { onConflict: 'race_series_id,week_key', ignoreDuplicates: true });
+    if(error) console.error('Auto-create team event failed:', error.message, payload);
   }
 }
 
