@@ -669,6 +669,10 @@ input:focus{outline:none;border-color:var(--violet);}
           <label for="auth-username">Benutzername</label>
           <input type="text" id="auth-username" autocomplete="username" placeholder="Wird auf der Bestenliste angezeigt">
         </div>
+        <div class="field" id="field-invite" hidden>
+          <label for="auth-invite-code">Einladungscode</label>
+          <input type="text" id="auth-invite-code" autocomplete="off">
+        </div>
         <div class="field">
           <label for="auth-email">E-Mail</label>
           <input type="email" id="auth-email" autocomplete="email" required>
@@ -1526,6 +1530,7 @@ function translateAuthError(msg){
   if(/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
   if(/email not confirmed/i.test(msg)) return 'Bitte zuerst die E-Mail bestätigen (Link steht in deinem Postfach).';
   if(/password.*(least|characters)/i.test(msg)) return 'Passwort muss mindestens 6 Zeichen haben.';
+  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Ungültiger Einladungscode.';
   return msg;
 }
 
@@ -1534,6 +1539,7 @@ document.querySelectorAll('.auth-tab').forEach(btn => {
     authMode = btn.dataset.mode;
     document.querySelectorAll('.auth-tab').forEach(b => b.classList.toggle('active', b === btn));
     document.getElementById('field-username').hidden = authMode !== 'signup';
+    document.getElementById('field-invite').hidden = authMode !== 'signup';
     document.getElementById('auth-password').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
     document.getElementById('auth-submit').textContent = authMode === 'signup' ? 'Registrieren' : 'Anmelden';
     hideFormMessage('auth-message');
@@ -1550,13 +1556,18 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
   try{
     if(authMode === 'signup'){
       const username = document.getElementById('auth-username').value.trim();
+      const inviteCode = document.getElementById('auth-invite-code').value.trim();
       if(!username){
         showFormMessage('auth-message', 'Bitte einen Benutzernamen wählen.');
         return;
       }
+      if(!inviteCode){
+        showFormMessage('auth-message', 'Bitte einen Einladungscode angeben.');
+        return;
+      }
       const { data, error } = await pitwallClient.auth.signUp({
         email, password,
-        options: { data: { username } },
+        options: { data: { username, invite_code: inviteCode } },
       });
       if(error) throw error;
       if(!data.session){
