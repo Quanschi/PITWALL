@@ -684,6 +684,29 @@ input:focus{outline:none;border-color:var(--violet);}
         <div class="form-message" id="auth-message" hidden></div>
         <button type="submit" class="filter-pill active" id="auth-submit">Anmelden</button>
       </form>
+      <button type="button" class="lb-filter-toggle" id="forgot-password-btn" style="margin-top:12px;">Passwort vergessen?</button>
+      <div id="forgot-password-card" hidden style="margin-top:14px;">
+        <div class="field">
+          <label for="forgot-email">E-Mail</label>
+          <input type="email" id="forgot-email" autocomplete="email">
+        </div>
+        <div class="form-message" id="forgot-message" hidden></div>
+        <button type="button" class="filter-pill active" id="forgot-submit">Link senden</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="recovery-section" hidden>
+    <div class="auth-card">
+      <p class="section-label" style="margin-top:0">Neues Passwort setzen</p>
+      <form id="recovery-form">
+        <div class="field">
+          <label for="recovery-password">Neues Passwort</label>
+          <input type="password" id="recovery-password" autocomplete="new-password" required minlength="6">
+        </div>
+        <div class="form-message" id="recovery-message" hidden></div>
+        <button type="submit" class="filter-pill active">Passwort speichern</button>
+      </form>
     </div>
   </div>
 
@@ -738,9 +761,11 @@ input:focus{outline:none;border-color:var(--violet);}
 <!-- TEAM EVENTS -->
 <div class="panel" id="panel-teamevents">
 
+  <div id="te-login-gate" class="leaderboard-empty">Bitte zuerst im Logbuch-Tab anmelden, um Team Events zu sehen.</div>
+
+  <div id="te-content" hidden>
   <div class="te-toolbar">
-    <button type="button" class="filter-pill" id="te-new-btn" hidden>+ Event erstellen</button>
-    <span class="te-login-hint" id="te-login-hint">Zum Erstellen eines Events bitte im Logbuch-Tab anmelden.</span>
+    <button type="button" class="filter-pill" id="te-new-btn">+ Event erstellen</button>
     <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
   </div>
 
@@ -792,6 +817,7 @@ input:focus{outline:none;border-color:var(--violet);}
   </div>
 
   <div id="te-list"></div>
+  </div>
 
 </div>
 
@@ -1586,6 +1612,45 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
   }
 });
 
+document.getElementById('forgot-password-btn').addEventListener('click', () => {
+  const card = document.getElementById('forgot-password-card');
+  card.hidden = !card.hidden;
+});
+
+document.getElementById('forgot-submit').addEventListener('click', async () => {
+  hideFormMessage('forgot-message');
+  const email = document.getElementById('forgot-email').value.trim();
+  if(!email){
+    showFormMessage('forgot-message', 'Bitte E-Mail-Adresse angeben.');
+    return;
+  }
+  const { error } = await pitwallClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href.split('#')[0],
+  });
+  if(error){
+    showFormMessage('forgot-message', translateAuthError(error.message));
+    return;
+  }
+  showFormMessage('forgot-message', 'Falls diese E-Mail registriert ist, wurde ein Link zum Zurücksetzen verschickt.', true);
+});
+
+document.getElementById('recovery-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideFormMessage('recovery-message');
+  const password = document.getElementById('recovery-password').value;
+  const { error } = await pitwallClient.auth.updateUser({ password });
+  if(error){
+    showFormMessage('recovery-message', translateAuthError(error.message));
+    return;
+  }
+  document.getElementById('recovery-section').hidden = true;
+  document.getElementById('recovery-form').reset();
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  currentProfile = session ? await loadOwnProfile(session.user.id) : null;
+  updateAuthUI(session);
+});
+
+
 document.getElementById('logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
 
 async function loadOwnProfile(userId){
@@ -1608,12 +1673,19 @@ function updateAuthUI(session){
     authSection.hidden = false;
     logbookSection.hidden = true;
   }
-  document.getElementById('te-new-btn').hidden = !session;
-  document.getElementById('te-login-hint').hidden = !!session;
-  if(!session) document.getElementById('te-create-card').hidden = true;
+  document.getElementById('te-login-gate').hidden = !!session;
+  document.getElementById('te-content').hidden = !session;
+  if(session) loadTeamEvents();
+  else document.getElementById('te-create-card').hidden = true;
 }
 
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    document.getElementById('auth-section').hidden = true;
+    document.getElementById('logbook-section').hidden = true;
+    document.getElementById('recovery-section').hidden = false;
+    return;
+  }
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
   updateAuthUI(session);
 });
@@ -1866,7 +1938,6 @@ function renderLeaderboard(){
 // Real team assignment: several separate teams can exist for the same time
 // slot - tapping a slot lets you join one of the existing teams there or
 // start a new one. ----
-let teamEventsFirstLoadDone = false;
 let teOpenSlot = {}; // eventId -> slotIso currently expanded, per event card
 let teSelectedTimes = new Set();
 
@@ -2308,10 +2379,6 @@ function showPanel(name){
   if(name === 'schedule' && !scheduleFirstLoadDone){
     scheduleFirstLoadDone = true;
     loadScheduleView();
-  }
-  if(name === 'teamevents' && !teamEventsFirstLoadDone){
-    teamEventsFirstLoadDone = true;
-    loadTeamEvents();
   }
 }
 
