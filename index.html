@@ -699,20 +699,6 @@ input:focus{outline:none;border-color:var(--violet);}
     </div>
   </div>
 
-  <div id="recovery-section" hidden>
-    <div class="auth-card">
-      <p class="section-label" style="margin-top:0">Neues Passwort setzen</p>
-      <form id="recovery-form">
-        <div class="field">
-          <label for="recovery-password">Neues Passwort</label>
-          <input type="password" id="recovery-password" autocomplete="new-password" required minlength="6">
-        </div>
-        <div class="form-message" id="recovery-message" hidden></div>
-        <button type="submit" class="filter-pill active">Passwort speichern</button>
-      </form>
-    </div>
-  </div>
-
   <div id="logbook-section" hidden>
     <div class="logbook-header">
       <span id="logbook-user"></span>
@@ -1627,8 +1613,9 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
     showFormMessage('forgot-message', 'Bitte E-Mail-Adresse angeben.');
     return;
   }
+  const resetUrl = new URL('reset-password.html', window.location.href).href;
   const { error } = await pitwallClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href.split('#')[0],
+    redirectTo: resetUrl,
   });
   if(error){
     showFormMessage('forgot-message', translateAuthError(error.message));
@@ -1636,23 +1623,6 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   }
   showFormMessage('forgot-message', 'Falls diese E-Mail registriert ist, wurde ein Link zum Zurücksetzen verschickt.', true);
 });
-
-document.getElementById('recovery-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  hideFormMessage('recovery-message');
-  const password = document.getElementById('recovery-password').value;
-  const { error } = await pitwallClient.auth.updateUser({ password });
-  if(error){
-    showFormMessage('recovery-message', translateAuthError(error.message));
-    return;
-  }
-  document.getElementById('recovery-form').reset();
-  document.getElementById('tabs-nav').hidden = false;
-  await pitwallClient.auth.signOut();
-  document.getElementById('recovery-section').hidden = true;
-  showFormMessage('auth-message', 'Passwort erfolgreich geändert — bitte melde dich damit an.', true);
-});
-
 
 document.getElementById('logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
 
@@ -1683,14 +1653,6 @@ function updateAuthUI(session){
 }
 
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
-  if(event === 'PASSWORD_RECOVERY'){
-    showPanel('logbook');
-    document.getElementById('tabs-nav').hidden = true;
-    document.getElementById('auth-section').hidden = true;
-    document.getElementById('logbook-section').hidden = true;
-    document.getElementById('recovery-section').hidden = false;
-    return;
-  }
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
   updateAuthUI(session);
 });
