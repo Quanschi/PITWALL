@@ -480,6 +480,10 @@ input:focus{outline:none;border-color:var(--violet);}
 }
 .leaderboard-actions button:hover{color:var(--red);}
 .leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
+.leaderboard-filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
+.lb-filter-toggle input{width:auto;}
+#lb-track-filter{width:auto;max-width:220px;}
 
 /* ---- Team Events tab ---- */
 .te-toolbar{margin-bottom:16px;}
@@ -530,11 +534,12 @@ input:focus{outline:none;border-color:var(--violet);}
   flex-direction:column;
   align-items:center;
   gap:2px;
+  max-width:160px;
   transition:all .2s var(--ease);
 }
 .te-slot.has-me{border-color:var(--violet);color:var(--violet);}
 .te-slot:hover{border-color:var(--muted);}
-.te-slot-count{font-size:10px;color:var(--muted);}
+.te-slot-count{font-size:10px;color:var(--muted);white-space:normal;text-align:center;font-family:'Inter',sans-serif;}
 .te-slot.has-me .te-slot-count{color:var(--violet);}
 .te-slot-detail{
   margin-top:12px;
@@ -714,6 +719,12 @@ input:focus{outline:none;border-color:var(--violet);}
     <div class="form-message" id="laptime-message" hidden></div>
 
     <p class="section-label">Bestenliste</p>
+    <div class="leaderboard-filters">
+      <label class="lb-filter-toggle"><input type="checkbox" id="lb-only-mine"> Nur meine Zeiten</label>
+      <select id="lb-track-filter">
+        <option value="">Alle Strecken</option>
+      </select>
+    </div>
     <div id="leaderboard"></div>
   </div>
 
@@ -1715,6 +1726,8 @@ async function deleteLapTime(id){
   loadLeaderboard();
 }
 
+let lastLeaderboardData = [];
+
 async function loadLeaderboard(){
   const container = document.getElementById('leaderboard');
   container.innerHTML = '<div class="leaderboard-empty">Lade…</div>';
@@ -1727,8 +1740,39 @@ async function loadLeaderboard(){
     container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
     return;
   }
-  if(!data || data.length === 0){
-    container.innerHTML = '<div class="leaderboard-empty">Noch keine Zeiten eingetragen — sei der/die Erste.</div>';
+  lastLeaderboardData = data || [];
+
+  const trackFilter = document.getElementById('lb-track-filter');
+  const previousValue = trackFilter.value;
+  const tracks = [...new Set(lastLeaderboardData.map(row => row.track))].sort();
+  trackFilter.innerHTML = '<option value="">Alle Strecken</option>';
+  tracks.forEach(track => {
+    const opt = document.createElement('option');
+    opt.value = track;
+    opt.textContent = track;
+    trackFilter.appendChild(opt);
+  });
+  if(tracks.includes(previousValue)) trackFilter.value = previousValue;
+
+  renderLeaderboard();
+}
+
+document.getElementById('lb-only-mine').addEventListener('change', renderLeaderboard);
+document.getElementById('lb-track-filter').addEventListener('change', renderLeaderboard);
+
+function renderLeaderboard(){
+  const container = document.getElementById('leaderboard');
+  const onlyMine = document.getElementById('lb-only-mine').checked;
+  const trackFilterValue = document.getElementById('lb-track-filter').value;
+
+  let data = lastLeaderboardData;
+  if(onlyMine) data = data.filter(row => currentProfile && row.user_id === currentProfile.id);
+  if(trackFilterValue) data = data.filter(row => row.track === trackFilterValue);
+
+  if(data.length === 0){
+    container.innerHTML = lastLeaderboardData.length === 0
+      ? '<div class="leaderboard-empty">Noch keine Zeiten eingetragen — sei der/die Erste.</div>'
+      : '<div class="leaderboard-empty">Keine Zeiten für diese Auswahl.</div>';
     return;
   }
 
@@ -1836,6 +1880,14 @@ async function ensureTeamEventsForSpecialCards(cards){
 
 function formatSlotTime(iso){
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+function formatSlotMembersSummary(teamsHere){
+  if(!teamsHere.length) return 'noch niemand';
+  return teamsHere.map((t, i) => {
+    const names = (t.team_event_members || []).map(m => (m.profiles && m.profiles.username) || 'Unbekannt');
+    const label = teamsHere.length > 1 ? `T${i + 1}: ` : '';
+    return label + (names.length ? names.join(', ') : '–');
+  }).join(' · ');
 }
 function localDayKey(d){
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -2133,7 +2185,6 @@ function renderEventCard(ev, teams, carData){
     slotsRow.className = 'te-slots';
     group.slots.forEach(slotIso => {
       const teamsHere = slotTeams[slotIso] || [];
-      const memberCount = teamsHere.reduce((sum, t) => sum + (t.team_event_members ? t.team_event_members.length : 0), 0);
       const iAmIn = currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
 
       const btn = document.createElement('button');
@@ -2143,9 +2194,7 @@ function renderEventCard(ev, teams, carData){
       label.textContent = formatSlotTime(slotIso);
       const count = document.createElement('span');
       count.className = 'te-slot-count';
-      count.textContent = teamsHere.length
-        ? `${teamsHere.length} Team${teamsHere.length > 1 ? 's' : ''} · ${memberCount}`
-        : 'noch niemand';
+      count.textContent = formatSlotMembersSummary(teamsHere);
       btn.appendChild(label);
       btn.appendChild(count);
       btn.addEventListener('click', () => {
