@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated_at": "2026-09-06T05:18:52Z",
-  "stamp_date": "06.09.2026",
+  "generated_at": "2026-09-07T05:20:36Z",
+  "stamp_date": "07.09.2026",
   "daily": {
     "section_label": "Tipp des Tages · LMGT3",
     "tip": {
-      "kicker": "Bremstechnik · ABS-Management",
-      "headline": "ABS-Eingriff reduzieren: Maximale Rotation beim Einlenken in LMU nutzen",
-      "body": "In Le Mans Ultimate führt ein zu starker **ABS-Eingriff** beim Einlenken zu abruptem Untersteuern, da das System die Bremskraft an der Vorderachse stark reguliert. Verringere den Pedaldruck beim Übergang in die Kurve progressiv auf unter 20 %, um die **dynamische Radlastverteilung** optimal zu nutzen. Nur wenn die Vorderreifen nicht im Regelbereich des `ABS` blockieren, baut das LMGT3-Fahrzeug die gewünschte Rotation auf. Dies schont gleichzeitig die Lauffläche der **Vorderreifen** über längere Stints.",
+      "kicker": "LMGT3 · Bremstechnik & Reifenmanagement",
+      "headline": "ABS-Eingriff minimieren: Wie du in LMGT3-Fahrzeugen die Vorderräder schonst und den Bremsweg verkürzt",
+      "body": "In LMU führt ein zu starker `ABS`-Eingriff bei LMGT3-Fahrzeugen zu verwaschenem Einlenkverhalten und überhöhten **Reifentemperaturen**. Bremse initial hart mit 100 % Druck im **geraden Bremsbereich**, reduziere den Druck beim Einlenken (`Trail Braking`) jedoch zügig auf unter 15 %, um das ABS aus dem Regelbereich zu halten. Ein leichtes **Rotieren über die Hinterachse** hilft dir, den Lenkwinkel klein zu halten und Traktion am Kurvenausgang früher aufzubauen.",
       "drill_label": "Drill heute:",
-      "drill": "10 Runden Spa-Francorchamps (La Source & Les Combes): Bremse initial hart, aber reduziere den Druck vor dem Einlenkpunkt so, dass die `ABS`-LEDs im Display beim Einlenken vollständig erlöschen."
+      "drill": "Fahre 10 Runden in Spa-Francorchamps (La Source & Les Combes). Blende das Pedal-Overlay ein und passe die Bremskraftkurve so an, dass die ABS-Aktivierung während der Trail-Braking-Phase vollständig ausbleibt."
     }
   },
   "weekly": {
