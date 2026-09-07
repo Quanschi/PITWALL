@@ -713,7 +713,7 @@ const TIER_ORDER = { beginner: 0, intermediate: 1, advanced: 2 };
 let tracksBySlugPromise = null;
 function loadTracksBySlug(){
   if(!tracksBySlugPromise){
-    tracksBySlugPromise = supabaseSelect('tracks', 'select=slug,short_name,town,country')
+    tracksBySlugPromise = supabaseSelect('tracks', 'select=slug,short_name,town,country,variants')
       .then(rows => {
         const map = {};
         rows.forEach(r => { map[r.slug] = r; });
@@ -759,7 +759,14 @@ async function fetchScheduleCards(type, difficulty){
     }
     times.sort((a, b) => a - b);
     const track = tracksBySlug[r.track_slug] || null;
-    return Object.assign({}, r, { times, type, town: track ? track.town : null, country: track ? track.country : null });
+    const variants = track && track.variants ? track.variants : [];
+    return Object.assign({}, r, {
+      times, type,
+      town: track ? track.town : null,
+      country: track ? track.country : null,
+      defaultLayout: variants.length ? variants[0] : null,
+      hasLayoutChoice: variants.length > 1,
+    });
   })
   .filter(c => {
     if(c.times.some(d => d.getTime() >= now)) return true;
@@ -892,11 +899,23 @@ function buildScheduleDetails(card){
   return items;
 }
 
+// lmuportal uses these as placeholders meaning "no specific layout was set",
+// not an actual variant name - treat them the same as an empty track_config.
+const GENERIC_LAYOUT_WORDS = new Set(['default', 'standard', 'normal', 'full', 'base', 'gp']);
+
 function circuitTitle(card){
   const name = card.track_name || '';
-  if(!card.track_config) return name;
-  const layout = card.track_config.charAt(0).toUpperCase() + card.track_config.slice(1);
-  return `${name} – ${layout} Circuit`;
+  const config = (card.track_config || '').trim();
+  const hasRealConfig = config && !GENERIC_LAYOUT_WORDS.has(config.toLowerCase());
+  // Only call out a layout when there's actually a choice to make (a track
+  // with just one listed variant has nothing to disambiguate, so naming it
+  // would just repeat the track name) - or when the data explicitly names one.
+  if(!hasRealConfig && !card.hasLayoutChoice) return name;
+  const layout = hasRealConfig
+    ? config.charAt(0).toUpperCase() + config.slice(1)
+    : card.defaultLayout;
+  if(!layout || layout.toLowerCase() === name.toLowerCase()) return name;
+  return `${name} – ${layout}`;
 }
 
 function formatScheduleTime(date){
