@@ -509,6 +509,7 @@ input:focus{outline:none;border-color:var(--violet);}
   padding:2px 6px;
   margin-left:8px;
 }
+.te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;flex-shrink:0;}
 .te-delete-btn:hover{color:var(--red);}
 .te-day-header{
@@ -736,6 +737,7 @@ input:focus{outline:none;border-color:var(--violet);}
   <div class="te-toolbar">
     <button type="button" class="filter-pill" id="te-new-btn" hidden>+ Event erstellen</button>
     <span class="te-login-hint" id="te-login-hint">Zum Erstellen eines Events bitte im Logbuch-Tab anmelden.</span>
+    <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
   </div>
 
   <div class="auth-card" id="te-create-card" hidden style="max-width:460px;">
@@ -1909,6 +1911,8 @@ document.getElementById('te-new-btn').addEventListener('click', () => {
   card.hidden = !card.hidden;
 });
 
+document.getElementById('te-show-closed').addEventListener('change', loadTeamEvents);
+
 document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     btn.classList.toggle('active');
@@ -1966,6 +1970,11 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
 
 async function deleteTeamEvent(id){
   await pitwallClient.from('team_events').delete().eq('id', id);
+  loadTeamEvents();
+}
+
+async function setTeamEventClosed(id, closed){
+  await pitwallClient.from('team_events').update({ closed }).eq('id', id);
   loadTeamEvents();
 }
 
@@ -2144,6 +2153,12 @@ function renderEventCard(ev, teams, carData){
     badge.textContent = 'Aus Schedule';
     nameEl.appendChild(badge);
   }
+  if(ev.closed){
+    const badge = document.createElement('span');
+    badge.className = 'te-badge-auto';
+    badge.textContent = 'Abgeschlossen';
+    nameEl.appendChild(badge);
+  }
   const dateEl = document.createElement('div');
   dateEl.className = 'te-event-date';
   dateEl.textContent = formatEventDateRange(ev.slot_times);
@@ -2152,13 +2167,26 @@ function renderEventCard(ev, teams, carData){
   header.appendChild(left);
 
   if(currentProfile && ev.created_by === currentProfile.id){
+    const actions = document.createElement('div');
+    actions.className = 'te-event-actions';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'te-delete-btn';
+    closeBtn.textContent = ev.closed ? '↺' : '✓';
+    closeBtn.title = ev.closed ? 'Event wieder öffnen' : 'Event abschließen';
+    closeBtn.addEventListener('click', () => setTeamEventClosed(ev.id, !ev.closed));
+    actions.appendChild(closeBtn);
+
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'te-delete-btn';
     delBtn.textContent = '✕';
-    delBtn.title = 'Event löschen';
+    delBtn.title = 'Event entfernen';
     delBtn.addEventListener('click', () => deleteTeamEvent(ev.id));
-    header.appendChild(delBtn);
+    actions.appendChild(delBtn);
+
+    header.appendChild(actions);
   }
   card.appendChild(header);
 
@@ -2216,17 +2244,24 @@ function renderEventCard(ev, teams, carData){
 
 async function loadTeamEvents(){
   const container = document.getElementById('te-list');
-  const { data: events, error } = await pitwallClient
+  const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,created_by')
+    .select('id,name,event_date,slot_times,source,created_by,closed')
     .order('event_date', { ascending: true });
 
   if(error){
     container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
     return;
   }
-  if(!events || events.length === 0){
+  if(!allEvents || allEvents.length === 0){
     container.innerHTML = '<div class="leaderboard-empty">Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.</div>';
+    return;
+  }
+
+  const showClosed = document.getElementById('te-show-closed').checked;
+  const events = showClosed ? allEvents : allEvents.filter(ev => !ev.closed);
+  if(events.length === 0){
+    container.innerHTML = '<div class="leaderboard-empty">Keine offenen Team Events — alle abgeschlossen.</div>';
     return;
   }
 
