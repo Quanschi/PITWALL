@@ -123,11 +123,6 @@ body{
   border-color:var(--red);
   box-shadow:0 4px 16px rgba(232,92,74,0.28);
 }
-.tab.active.championship{
-  background:var(--violet);
-  border-color:var(--violet);
-  box-shadow:0 4px 16px rgba(167,139,250,0.28);
-}
 .tab:hover:not(.active){
   color:var(--text);
   background:var(--panel-2);
@@ -294,6 +289,10 @@ body{
   background:rgba(232,92,74,0.15);
   color:var(--red);
   white-space:nowrap;
+}
+.schedule-tier-badge.championship{
+  background:rgba(167,139,250,0.18);
+  color:var(--violet);
 }
 .schedule-location{
   font-size:13px;
@@ -556,6 +555,7 @@ body{
     <button class="filter-pill" data-type="daily" type="button">Daily Races</button>
     <button class="filter-pill" data-type="weekly" type="button">Weekly Races</button>
     <button class="filter-pill" data-type="special" type="button">Special Event</button>
+    <button class="filter-pill" data-type="championship" type="button">Championship</button>
   </div>
 
   <p class="section-label">Schwierigkeit</p>
@@ -750,9 +750,113 @@ function loadTracksBySlug(){
   return tracksBySlugPromise;
 }
 
+function tierFromLeaderboardId(id){
+  const m = /^championship-([a-z]+)-/.exec(id || '');
+  return m ? m[1] : null;
+}
+
+// Championships are official LMU season-long series (points, fixed rounds),
+// a different shape from the casual ranked race_series table - season and
+// series/round metadata are loaded once and cached for the page's lifetime.
+let championshipLookupsPromise = null;
+function loadChampionshipLookups(){
+  if(!championshipLookupsPromise){
+    championshipLookupsPromise = (async () => {
+      const seasons = await supabaseSelect('championship_season',
+        'select=season_id,season_name,status,current_week,total_weeks&status=eq.active&limit=1');
+      const season = seasons[0] || null;
+      if(!season) return { season: null, seriesById: {}, roundsById: {} };
+
+      const seriesRows = await supabaseSelect('championship_series',
+        `select=championship_series_id,series_name,car_classes,race_duration_minutes,setup,sr_requirement,driver_swap_enabled,fuel_multiplier,tyres_available&season_id=eq.${season.season_id}`);
+      const seriesById = {};
+      seriesRows.forEach(s => { seriesById[s.championship_series_id] = s; });
+
+      const roundRows = await supabaseSelect('championship_round',
+        'select=championship_round_id,championship_series_id,track_friendly_name,track_config,race_weather');
+      const roundsById = {};
+      roundRows.forEach(r => { roundsById[r.championship_round_id] = r; });
+
+      return { season, seriesById, roundsById };
+    })().catch(() => ({ season: null, seriesById: {}, roundsById: {} }));
+  }
+  return championshipLookupsPromise;
+}
+
+async function fetchChampionshipCards(difficulty){
+  const { season, seriesById, roundsById } = await loadChampionshipLookups();
+  if(!season) return [];
+
+  const nowIso = new Date().toISOString();
+  const events = await supabaseSelect('championship_event',
+    `select=championship_round_id,race_starts_at,leaderboard_id&race_starts_at=gte.${nowIso}&order=race_starts_at.asc&limit=500`);
+
+  const tracksBySlug = await loadTracksBySlug();
+  // championship_round only gives a friendly track name, not a slug - match
+  // it against the tracks table by name so we still get town/country/layout.
+  const tracksByName = {};
+  Object.values(tracksBySlug).forEach(t => { tracksByName[(t.short_name || '').toLowerCase()] = t; });
+
+  const seasonLabel = `${season.season_name} · Woche ${season.current_week}/${season.total_weeks}`;
+  const groups = {};
+  events.forEach(ev => {
+    const round = roundsById[ev.championship_round_id];
+    if(!round) return; // belongs to a series/season we didn't load (e.g. archived)
+    const series = seriesById[round.championship_series_id];
+    if(!series) return;
+    const tier = tierFromLeaderboardId(ev.leaderboard_id);
+    if(difficulty !== 'all' && tier !== difficulty) return;
+
+    if(!groups[ev.championship_round_id]){
+      const track = tracksByName[(round.track_friendly_name || '').toLowerCase()] || null;
+      const variants = track && track.variants ? track.variants : [];
+      groups[ev.championship_round_id] = {
+        type: 'championship',
+        tier_name: tier,
+        track_name: round.track_friendly_name,
+        track_config: round.track_config,
+        series_name: series.series_name,
+        car_classes: series.car_classes,
+        race_duration_minutes: series.race_duration_minutes,
+        setup: series.setup,
+        tyre_allowance: series.tyres_available,
+        fuel_multiplier: series.fuel_multiplier,
+        driver_swap_enabled: series.driver_swap_enabled,
+        sr_requirement: series.sr_requirement,
+        race_weather: round.race_weather,
+        town: track ? track.town : null,
+        country: track ? track.country : null,
+        defaultLayout: variants.length ? variants[0] : null,
+        hasLayoutChoice: variants.length > 1,
+        seasonLabel,
+        times: [],
+      };
+    }
+    groups[ev.championship_round_id].times.push(new Date(ev.race_starts_at));
+  });
+
+  const cards = Object.values(groups);
+  cards.forEach(c => c.times.sort((a, b) => a - b));
+  cards.sort((a, b) => {
+    if(difficulty === 'all'){
+      const rankA = TIER_ORDER[a.tier_name] ?? 99;
+      const rankB = TIER_ORDER[b.tier_name] ?? 99;
+      if(rankA !== rankB) return rankA - rankB;
+    }
+    return a.times[0] - b.times[0];
+  });
+  return cards;
+}
+
 async function fetchScheduleCards(type, difficulty){
   const cacheKey = `${type}:${difficulty}`;
   if(scheduleCache[cacheKey]) return scheduleCache[cacheKey];
+
+  if(type === 'championship'){
+    const cards = await fetchChampionshipCards(difficulty);
+    scheduleCache[cacheKey] = cards;
+    return cards;
+  }
 
   const cols = 'series_id,tier_name,track_name,track_slug,track_config,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather';
   const tierFilter = difficulty === 'all' ? '' : `&tier_name=eq.${difficulty}`;
@@ -929,10 +1033,18 @@ function buildScheduleDetails(card){
 // not an actual variant name - treat them the same as an empty track_config.
 const GENERIC_LAYOUT_WORDS = new Set(['default', 'standard', 'normal', 'full', 'base', 'gp']);
 
+// Strip accents so "Portimao" (config value) reads as identical to "Portimão"
+// (track name) instead of being shown as a fake distinct layout.
+function foldAccents(str){
+  return String(str).normalize('NFD').replace(new RegExp('[̀-ͯ]', 'g'), '').toLowerCase();
+}
+
 function circuitTitle(card){
   const name = card.track_name || '';
   const config = (card.track_config || '').trim();
-  const hasRealConfig = config && !GENERIC_LAYOUT_WORDS.has(config.toLowerCase());
+  const hasRealConfig = config
+    && !GENERIC_LAYOUT_WORDS.has(config.toLowerCase())
+    && foldAccents(config) !== foldAccents(name);
   // Only call out a layout when there's actually a choice to make (a track
   // with just one listed variant has nothing to disambiguate, so naming it
   // would just repeat the track name) - or when the data explicitly names one.
@@ -940,7 +1052,7 @@ function circuitTitle(card){
   const layout = hasRealConfig
     ? config.charAt(0).toUpperCase() + config.slice(1)
     : card.defaultLayout;
-  if(!layout || layout.toLowerCase() === name.toLowerCase()) return name;
+  if(!layout || foldAccents(layout) === foldAccents(name)) return name;
   return `${name} – ${layout}`;
 }
 
@@ -1078,7 +1190,7 @@ function renderScheduleCards(cards){
     circuit.className = 'schedule-circuit';
     circuit.textContent = circuitTitle(card);
     const badge = document.createElement('span');
-    badge.className = 'schedule-tier-badge';
+    badge.className = 'schedule-tier-badge' + (card.type === 'championship' ? ' championship' : '');
     badge.textContent = card.tier_name || '';
     head.appendChild(circuit);
     head.appendChild(badge);
@@ -1094,6 +1206,7 @@ function renderScheduleCards(cards){
     const metaParts = [];
     if(card.car_classes && card.car_classes.length) metaParts.push(card.car_classes.join(' · '));
     if(card.race_duration_minutes) metaParts.push(`${card.race_duration_minutes} Min`);
+    if(card.seasonLabel) metaParts.push(card.seasonLabel);
     const meta = document.createElement('div');
     meta.className = 'schedule-meta';
     meta.textContent = metaParts.join(' · ');
