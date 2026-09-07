@@ -2190,8 +2190,15 @@ function renderEventCard(ev, teams, carData){
   }
   card.appendChild(header);
 
-  const slotTeams = {}; // slotIso -> [team, ...]
-  teams.forEach(t => { (slotTeams[t.slot_time] = slotTeams[t.slot_time] || []).push(t); });
+  // Keyed by epoch ms, not the raw string - team_event_teams.slot_time comes
+  // back from Postgres as "...+00:00" while team_events.slot_times is our own
+  // "...Z"-suffixed ISO strings; same instant, different string, so string
+  // equality would never match.
+  const slotTeams = {};
+  teams.forEach(t => {
+    const key = new Date(t.slot_time).getTime();
+    (slotTeams[key] = slotTeams[key] || []).push(t);
+  });
 
   const dayGroups = {}; // localDayKey -> { date, slots: [isoString, ...] }
   (ev.slot_times || []).forEach(slotIso => {
@@ -2212,7 +2219,7 @@ function renderEventCard(ev, teams, carData){
     const slotsRow = document.createElement('div');
     slotsRow.className = 'te-slots';
     group.slots.forEach(slotIso => {
-      const teamsHere = slotTeams[slotIso] || [];
+      const teamsHere = slotTeams[new Date(slotIso).getTime()] || [];
       const iAmIn = currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
 
       const btn = document.createElement('button');
@@ -2235,7 +2242,7 @@ function renderEventCard(ev, teams, carData){
     card.appendChild(slotsRow);
 
     if(openSlot && group.slots.includes(openSlot)){
-      card.appendChild(renderSlotDetail(ev, openSlot, slotTeams[openSlot] || [], carData));
+      card.appendChild(renderSlotDetail(ev, openSlot, slotTeams[new Date(openSlot).getTime()] || [], carData));
     }
   });
 
