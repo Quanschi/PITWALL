@@ -422,6 +422,9 @@ input:focus{outline:none;border-color:var(--violet);}
 .form-message.success{color:var(--violet);background:rgba(167,139,250,0.1);}
 
 .laptime-form{display:flex;flex-direction:column;gap:10px;margin-bottom:4px;max-width:420px;}
+.laptime-inputs{display:flex;align-items:center;gap:5px;}
+.laptime-inputs select{width:auto;min-width:60px;}
+.laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
 
 .logbook-header{
   display:flex;
@@ -504,6 +507,15 @@ input:focus{outline:none;border-color:var(--violet);}
 }
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;flex-shrink:0;}
 .te-delete-btn:hover{color:var(--red);}
+.te-day-header{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  letter-spacing:0.3px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:12px 0 6px 0;
+}
+.te-day-header:first-of-type{margin-top:0;}
 .te-slots{display:flex;flex-wrap:wrap;gap:8px;}
 .te-slot{
   font-family:'JetBrains Mono',monospace;
@@ -542,6 +554,7 @@ input:focus{outline:none;border-color:var(--violet);}
   gap:10px;
 }
 .te-team-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:3px;}
+.te-team-car{font-size:11.5px;color:var(--violet);margin-bottom:3px;}
 .te-team-members{font-size:12.5px;color:var(--text);}
 .te-team-members .empty{color:var(--muted);}
 .te-team-btn{
@@ -573,6 +586,8 @@ input:focus{outline:none;border-color:var(--violet);}
   cursor:pointer;
 }
 .te-new-team-btn:hover{color:var(--text);border-color:var(--muted);}
+.te-new-team-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
+.te-new-team-form select{width:auto;min-width:150px;}
 
 @media(max-width:640px){
   .header{padding:22px 18px 14px 18px;}
@@ -682,7 +697,16 @@ input:focus{outline:none;border-color:var(--violet);}
       <select id="lt-car" required disabled>
         <option value="" disabled selected>Fahrzeug wählen…</option>
       </select>
-      <input type="text" id="lt-time" placeholder="Zeit, z.B. 1:23.456" required pattern="^(\d+:)?\d{1,2}\.\d{1,3}$">
+      <div class="field">
+        <label>Rundenzeit</label>
+        <div class="laptime-inputs">
+          <select id="lt-min"></select>
+          <span>:</span>
+          <select id="lt-sec"></select>
+          <span>.</span>
+          <select id="lt-ms"></select>
+        </div>
+      </div>
       <input type="date" id="lt-date">
       <input type="text" id="lt-notes" placeholder="Notiz (optional)">
       <button type="submit" class="filter-pill active">Eintragen</button>
@@ -1451,14 +1475,19 @@ const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABA
 let authMode = 'login';
 let currentProfile = null; // { id, username }
 
-function parseLapTime(str){
-  const m = /^(?:(\d+):)?(\d{1,2})\.(\d{1,3})$/.exec(String(str).trim());
-  if(!m) return null;
-  const min = m[1] ? parseInt(m[1], 10) : 0;
-  const sec = parseInt(m[2], 10);
-  const msPart = parseInt(m[3].padEnd(3, '0').slice(0, 3), 10);
-  return min * 60000 + sec * 1000 + msPart;
+function populateDigitSelect(id, count, digits){
+  const sel = document.getElementById(id);
+  for(let i = 0; i < count; i++){
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = String(i).padStart(digits, '0');
+    sel.appendChild(opt);
+  }
 }
+populateDigitSelect('lt-min', 10, 1);
+populateDigitSelect('lt-sec', 60, 2);
+populateDigitSelect('lt-ms', 1000, 3);
+
 function formatLapTime(ms){
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
@@ -1640,13 +1669,14 @@ document.getElementById('laptime-form').addEventListener('submit', async (e) => 
   const layout = document.getElementById('lt-layout').value;
   const carClass = document.getElementById('lt-class').selectedOptions[0]?.textContent || '';
   const carName = document.getElementById('lt-car').value;
-  const timeStr = document.getElementById('lt-time').value.trim();
   const date = document.getElementById('lt-date').value;
   const notes = document.getElementById('lt-notes').value.trim();
 
-  const ms = parseLapTime(timeStr);
-  if(ms === null){
-    showFormMessage('laptime-message', 'Zeitformat nicht erkannt — bitte z.B. 1:23.456 oder 23.456 eingeben.');
+  const ms = parseInt(document.getElementById('lt-min').value, 10) * 60000
+    + parseInt(document.getElementById('lt-sec').value, 10) * 1000
+    + parseInt(document.getElementById('lt-ms').value, 10);
+  if(ms <= 0){
+    showFormMessage('laptime-message', 'Bitte eine Rundenzeit größer als 0 wählen.');
     return;
   }
   const tracksBySlug = await loadTracksBySlug();
@@ -1804,11 +1834,22 @@ async function ensureTeamEventsForSpecialCards(cards){
   }
 }
 
-function formatSlotLabel(iso){
-  const d = new Date(iso);
-  const weekday = WEEKDAY_NAMES_DE[d.getDay()];
-  const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  return `${weekday} ${time}`;
+function formatSlotTime(iso){
+  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+function localDayKey(d){
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function formatDayHeader(d){
+  const weekday = d.toLocaleDateString('de-DE', { weekday: 'long' });
+  return `${weekday}, den ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
+function formatEventDateRange(slotTimes){
+  if(!slotTimes || !slotTimes.length) return '';
+  const dates = slotTimes.map(iso => new Date(iso)).sort((a, b) => a - b);
+  const first = dates[0], last = dates[dates.length - 1];
+  const fmtShort = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+  return localDayKey(first) === localDayKey(last) ? fmtShort(first) : `${fmtShort(first)} – ${fmtShort(last)}`;
 }
 
 document.getElementById('te-new-btn').addEventListener('click', () => {
@@ -1890,20 +1931,152 @@ async function leaveTeam(teamId){
   loadTeamEvents();
 }
 
-async function createTeamAtSlot(eventId, slotIso){
+async function createTeamAtSlot(eventId, slotIso, car){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
   const { data: team, error } = await pitwallClient
     .from('team_event_teams')
-    .insert({ event_id: eventId, slot_time: slotIso, created_by: session.user.id })
+    .insert({ event_id: eventId, slot_time: slotIso, created_by: session.user.id, car: car || null })
     .select()
     .single();
   if(error || !team) return;
   await pitwallClient.from('team_event_members').insert({ team_id: team.id, user_id: session.user.id });
+  teNewTeamOpen = null;
   loadTeamEvents();
 }
 
-function renderEventCard(ev, teams){
+let teNewTeamOpen = null; // "eventId::slotIso" of the currently-open "new team" mini-form, or null
+
+function renderNewTeamForm(eventId, slotIso, carData){
+  const wrap = document.createElement('div');
+  wrap.className = 'te-new-team-form';
+
+  const classSel = document.createElement('select');
+  const classPlaceholder = document.createElement('option');
+  classPlaceholder.value = '';
+  classPlaceholder.disabled = true;
+  classPlaceholder.selected = true;
+  classPlaceholder.textContent = 'Klasse wählen…';
+  classSel.appendChild(classPlaceholder);
+  carData.classes.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.class_id;
+    opt.textContent = c.display_name;
+    classSel.appendChild(opt);
+  });
+
+  const carSel = document.createElement('select');
+  carSel.disabled = true;
+  const carPlaceholder = document.createElement('option');
+  carPlaceholder.value = '';
+  carPlaceholder.disabled = true;
+  carPlaceholder.selected = true;
+  carPlaceholder.textContent = 'Fahrzeug wählen…';
+  carSel.appendChild(carPlaceholder);
+
+  classSel.addEventListener('change', () => {
+    carSel.innerHTML = '';
+    carSel.appendChild(carPlaceholder.cloneNode(true));
+    (carData.carsByClass[classSel.value] || []).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      carSel.appendChild(opt);
+    });
+    carSel.disabled = false;
+  });
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'te-team-btn';
+  confirmBtn.textContent = 'Team erstellen';
+  confirmBtn.addEventListener('click', () => {
+    if(!classSel.value || !carSel.value) return;
+    const carLabel = `${carSel.value} (${classSel.options[classSel.selectedIndex].textContent})`;
+    createTeamAtSlot(eventId, slotIso, carLabel);
+  });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'te-new-team-btn';
+  cancelBtn.textContent = 'Abbrechen';
+  cancelBtn.addEventListener('click', () => { teNewTeamOpen = null; loadTeamEvents(); });
+
+  wrap.appendChild(classSel);
+  wrap.appendChild(carSel);
+  wrap.appendChild(confirmBtn);
+  wrap.appendChild(cancelBtn);
+  return wrap;
+}
+
+function renderSlotDetail(ev, slotIso, teamsHere, carData){
+  const detail = document.createElement('div');
+  detail.className = 'te-slot-detail';
+
+  teamsHere.forEach((t, i) => {
+    const members = t.team_event_members || [];
+    const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
+
+    const row = document.createElement('div');
+    row.className = 'te-team';
+    const info = document.createElement('div');
+    const labelEl = document.createElement('div');
+    labelEl.className = 'te-team-label';
+    labelEl.textContent = `Team ${i + 1}`;
+    info.appendChild(labelEl);
+    if(t.car){
+      const carEl = document.createElement('div');
+      carEl.className = 'te-team-car';
+      carEl.textContent = t.car;
+      info.appendChild(carEl);
+    }
+    const membersEl = document.createElement('div');
+    membersEl.className = 'te-team-members';
+    membersEl.textContent = members.length
+      ? members.map(m => (m.profiles && m.profiles.username) || 'Unbekannt').join(', ')
+      : '';
+    if(!members.length){
+      membersEl.classList.add('empty');
+      membersEl.textContent = 'niemand mehr hier';
+    }
+    info.appendChild(membersEl);
+    row.appendChild(info);
+
+    if(currentProfile){
+      const actionBtn = document.createElement('button');
+      actionBtn.type = 'button';
+      actionBtn.className = 'te-team-btn' + (iAmIn ? ' leave' : '');
+      actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
+      actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id));
+      row.appendChild(actionBtn);
+    }
+    detail.appendChild(row);
+  });
+
+  if(!currentProfile){
+    const hint = document.createElement('div');
+    hint.className = 'te-login-hint';
+    hint.textContent = 'Zum Beitreten oder ein Team erstellen bitte im Logbuch-Tab anmelden.';
+    detail.appendChild(hint);
+    return detail;
+  }
+
+  const key = `${ev.id}::${slotIso}`;
+  if(teNewTeamOpen === key){
+    detail.appendChild(renderNewTeamForm(ev.id, slotIso, carData));
+  }else{
+    const newTeamBtn = document.createElement('button');
+    newTeamBtn.type = 'button';
+    newTeamBtn.className = 'te-new-team-btn';
+    newTeamBtn.textContent = '+ Neues Team';
+    newTeamBtn.addEventListener('click', () => { teNewTeamOpen = key; loadTeamEvents(); });
+    detail.appendChild(newTeamBtn);
+  }
+
+  return detail;
+}
+
+function renderEventCard(ev, teams, carData){
   const card = document.createElement('div');
   card.className = 'te-event';
 
@@ -1921,7 +2094,7 @@ function renderEventCard(ev, teams){
   }
   const dateEl = document.createElement('div');
   dateEl.className = 'te-event-date';
-  dateEl.textContent = new Date(ev.event_date + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  dateEl.textContent = formatEventDateRange(ev.slot_times);
   left.appendChild(nameEl);
   left.appendChild(dateEl);
   header.appendChild(left);
@@ -1937,84 +2110,57 @@ function renderEventCard(ev, teams){
   }
   card.appendChild(header);
 
-  const slotsRow = document.createElement('div');
-  slotsRow.className = 'te-slots';
   const slotTeams = {}; // slotIso -> [team, ...]
   teams.forEach(t => { (slotTeams[t.slot_time] = slotTeams[t.slot_time] || []).push(t); });
 
+  const dayGroups = {}; // localDayKey -> { date, slots: [isoString, ...] }
   (ev.slot_times || []).forEach(slotIso => {
-    const teamsHere = slotTeams[slotIso] || [];
-    const memberCount = teamsHere.reduce((sum, t) => sum + (t.team_event_members ? t.team_event_members.length : 0), 0);
-    const iAmIn = currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'te-slot' + (iAmIn ? ' has-me' : '');
-    const label = document.createElement('span');
-    label.textContent = formatSlotLabel(slotIso);
-    const count = document.createElement('span');
-    count.className = 'te-slot-count';
-    count.textContent = teamsHere.length
-      ? `${teamsHere.length} Team${teamsHere.length > 1 ? 's' : ''} · ${memberCount}`
-      : 'noch niemand';
-    btn.appendChild(label);
-    btn.appendChild(count);
-    btn.addEventListener('click', () => {
-      teOpenSlot[ev.id] = teOpenSlot[ev.id] === slotIso ? null : slotIso;
-      loadTeamEvents();
-    });
-    slotsRow.appendChild(btn);
+    const d = new Date(slotIso);
+    const key = localDayKey(d);
+    if(!dayGroups[key]) dayGroups[key] = { date: d, slots: [] };
+    dayGroups[key].slots.push(slotIso);
   });
-  card.appendChild(slotsRow);
 
   const openSlot = teOpenSlot[ev.id];
-  if(openSlot){
-    const detail = document.createElement('div');
-    detail.className = 'te-slot-detail';
-    const teamsHere = slotTeams[openSlot] || [];
+  Object.keys(dayGroups).sort().forEach(key => {
+    const group = dayGroups[key];
+    const dayHeader = document.createElement('div');
+    dayHeader.className = 'te-day-header';
+    dayHeader.textContent = formatDayHeader(group.date);
+    card.appendChild(dayHeader);
 
-    teamsHere.forEach((t, i) => {
-      const members = t.team_event_members || [];
-      const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
+    const slotsRow = document.createElement('div');
+    slotsRow.className = 'te-slots';
+    group.slots.forEach(slotIso => {
+      const teamsHere = slotTeams[slotIso] || [];
+      const memberCount = teamsHere.reduce((sum, t) => sum + (t.team_event_members ? t.team_event_members.length : 0), 0);
+      const iAmIn = currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
 
-      const row = document.createElement('div');
-      row.className = 'te-team';
-      const info = document.createElement('div');
-      const labelEl = document.createElement('div');
-      labelEl.className = 'te-team-label';
-      labelEl.textContent = `Team ${i + 1}`;
-      const membersEl = document.createElement('div');
-      membersEl.className = 'te-team-members';
-      membersEl.textContent = members.length
-        ? members.map(m => (m.profiles && m.profiles.username) || 'Unbekannt').join(', ')
-        : '';
-      if(!members.length){
-        membersEl.classList.add('empty');
-        membersEl.textContent = 'niemand mehr hier';
-      }
-      info.appendChild(labelEl);
-      info.appendChild(membersEl);
-
-      const actionBtn = document.createElement('button');
-      actionBtn.type = 'button';
-      actionBtn.className = 'te-team-btn' + (iAmIn ? ' leave' : '');
-      actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
-      actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id));
-
-      row.appendChild(info);
-      row.appendChild(actionBtn);
-      detail.appendChild(row);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'te-slot' + (iAmIn ? ' has-me' : '');
+      const label = document.createElement('span');
+      label.textContent = formatSlotTime(slotIso);
+      const count = document.createElement('span');
+      count.className = 'te-slot-count';
+      count.textContent = teamsHere.length
+        ? `${teamsHere.length} Team${teamsHere.length > 1 ? 's' : ''} · ${memberCount}`
+        : 'noch niemand';
+      btn.appendChild(label);
+      btn.appendChild(count);
+      btn.addEventListener('click', () => {
+        teOpenSlot[ev.id] = teOpenSlot[ev.id] === slotIso ? null : slotIso;
+        teNewTeamOpen = null;
+        loadTeamEvents();
+      });
+      slotsRow.appendChild(btn);
     });
+    card.appendChild(slotsRow);
 
-    const newTeamBtn = document.createElement('button');
-    newTeamBtn.type = 'button';
-    newTeamBtn.className = 'te-new-team-btn';
-    newTeamBtn.textContent = '+ Neues Team';
-    newTeamBtn.addEventListener('click', () => createTeamAtSlot(ev.id, openSlot));
-    detail.appendChild(newTeamBtn);
-
-    card.appendChild(detail);
-  }
+    if(openSlot && group.slots.includes(openSlot)){
+      card.appendChild(renderSlotDetail(ev, openSlot, slotTeams[openSlot] || [], carData));
+    }
+  });
 
   return card;
 }
@@ -2037,15 +2183,16 @@ async function loadTeamEvents(){
 
   const { data: teams } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,created_by,team_event_members(user_id,profiles(username))')
+    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,profiles(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true });
 
+  const carData = await loadCarsByClass();
   const teamsByEvent = {};
   (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
 
   container.innerHTML = '';
-  events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [])));
+  events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [], carData)));
 }
 
 let scheduleFirstLoadDone = false;
