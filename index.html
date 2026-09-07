@@ -2067,6 +2067,11 @@ async function joinTeam(teamId){
   loadTeamEvents();
 }
 
+async function deleteTeam(teamId){
+  await pitwallClient.from('team_event_teams').delete().eq('id', teamId);
+  loadTeamEvents();
+}
+
 async function leaveTeam(teamId){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
@@ -2192,6 +2197,16 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
       actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
       actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id));
       row.appendChild(actionBtn);
+
+      if(currentProfile.id === t.created_by || currentProfile.id === ev.created_by){
+        const delTeamBtn = document.createElement('button');
+        delTeamBtn.type = 'button';
+        delTeamBtn.className = 'te-team-btn leave';
+        delTeamBtn.textContent = '✕';
+        delTeamBtn.title = 'Team entfernen';
+        delTeamBtn.addEventListener('click', () => deleteTeam(t.id));
+        row.appendChild(delTeamBtn);
+      }
     }
     detail.appendChild(row);
   });
@@ -2333,6 +2348,12 @@ function renderEventCard(ev, teams, carData){
 
 async function loadTeamEvents(){
   const container = document.getElementById('te-list');
+  // Pulls every special-event schedule race up front (not just whichever
+  // ones the Schedule tab's own filter happens to have fetched already) so
+  // any that need a team are auto-created here too, not only when someone
+  // happens to click the Special Event pill in Schedule.
+  await fetchScheduleCards('special', 'all').catch(() => {});
+
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
     .select('id,name,event_date,slot_times,source,created_by,closed')
