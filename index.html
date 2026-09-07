@@ -112,6 +112,11 @@ body{
   border-color:var(--red);
   box-shadow:0 4px 16px rgba(232,92,74,0.28);
 }
+.tab.active.logbook{
+  background:var(--violet);
+  border-color:var(--violet);
+  box-shadow:0 4px 16px rgba(167,139,250,0.28);
+}
 .tab:hover:not(.active){
   color:var(--text);
   background:var(--panel-2);
@@ -362,6 +367,212 @@ body{
 }
 .sync-btn:hover{color:var(--text);border-color:var(--muted);background:var(--panel-2);}
 
+/* ---- Logbook tab ---- */
+.auth-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:22px 24px;
+  box-shadow:var(--shadow-md);
+  max-width:380px;
+}
+.auth-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.auth-tab{
+  flex:1;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  padding:9px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--muted);
+  cursor:pointer;
+  transition:all .2s var(--ease);
+}
+.auth-tab.active{background:var(--violet);border-color:var(--violet);color:var(--carbon);}
+.field{margin-bottom:14px;display:flex;flex-direction:column;gap:5px;}
+.field label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+input[type="text"], input[type="email"], input[type="password"], input[type="date"]{
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 12px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  width:100%;
+}
+input:focus{outline:none;border-color:var(--violet);}
+.form-message{
+  margin:12px 0;
+  font-size:12.5px;
+  color:var(--red);
+  background:rgba(232,92,74,0.1);
+  padding:8px 12px;
+  border-radius:8px;
+}
+.form-message.success{color:var(--violet);background:rgba(167,139,250,0.1);}
+
+.laptime-form{display:flex;flex-direction:column;gap:10px;margin-bottom:4px;max-width:420px;}
+
+.logbook-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--text);
+}
+
+.leaderboard-track{margin-bottom:18px;}
+.leaderboard-track-name{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:19px;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.leaderboard-list{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  background:var(--line);
+  border-radius:8px;
+  overflow:hidden;
+}
+.leaderboard-row{
+  background:var(--panel);
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.leaderboard-rank{font-family:'JetBrains Mono',monospace;color:var(--muted);width:18px;flex-shrink:0;}
+.leaderboard-rank.gold{color:var(--amber);}
+.leaderboard-info{flex:1;min-width:0;}
+.leaderboard-name{font-weight:600;color:var(--text);}
+.leaderboard-meta{font-size:11px;color:var(--muted);}
+.leaderboard-time{
+  font-family:'JetBrains Mono',monospace;
+  color:var(--violet);
+  white-space:nowrap;
+}
+.leaderboard-actions{display:flex;gap:6px;flex-shrink:0;}
+.leaderboard-actions button{
+  background:none;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+  padding:2px 4px;
+}
+.leaderboard-actions button:hover{color:var(--red);}
+.leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
+
+/* ---- Team Events tab ---- */
+.te-toolbar{margin-bottom:16px;}
+.te-event{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 18px;
+  margin-bottom:14px;
+}
+.te-event-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.te-event-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:var(--text);}
+.te-event-date{font-size:12px;color:var(--muted);margin-top:2px;}
+.te-badge-auto{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--amber);
+  border:1px solid var(--amber);
+  border-radius:6px;
+  padding:2px 6px;
+  margin-left:8px;
+}
+.te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;flex-shrink:0;}
+.te-delete-btn:hover{color:var(--red);}
+.te-slots{display:flex;flex-wrap:wrap;gap:8px;}
+.te-slot{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--text);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  transition:all .2s var(--ease);
+}
+.te-slot.has-me{border-color:var(--violet);color:var(--violet);}
+.te-slot:hover{border-color:var(--muted);}
+.te-slot-count{font-size:10px;color:var(--muted);}
+.te-slot.has-me .te-slot-count{color:var(--violet);}
+.te-slot-detail{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.te-team{
+  background:var(--panel-2);
+  border-radius:8px;
+  padding:10px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.te-team-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:3px;}
+.te-team-members{font-size:12.5px;color:var(--text);}
+.te-team-members .empty{color:var(--muted);}
+.te-team-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.3px;
+  text-transform:uppercase;
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px solid var(--violet);
+  background:none;
+  color:var(--violet);
+  cursor:pointer;
+  white-space:nowrap;
+}
+.te-team-btn.leave{border-color:var(--red);color:var(--red);}
+.te-team-btn:hover{background:rgba(167,139,250,0.1);}
+.te-team-btn.leave:hover{background:rgba(232,92,74,0.1);}
+.te-new-team-btn{
+  align-self:flex-start;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  text-transform:uppercase;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px dashed var(--line);
+  background:none;
+  color:var(--muted);
+  cursor:pointer;
+}
+.te-new-team-btn:hover{color:var(--text);border-color:var(--muted);}
+
 @media(max-width:640px){
   .header{padding:22px 18px 14px 18px;}
   .tabs, .panel{padding-left:18px;padding-right:18px;}
@@ -391,6 +602,8 @@ body{
 
 <div class="tabs">
   <div class="tab active schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
+  <div class="tab logbook" id="tab-logbook" onclick="showPanel('logbook')">Logbuch</div>
+  <div class="tab teamevents" id="tab-teamevents" onclick="showPanel('teamevents')">Team Events</div>
 </div>
 
 <!-- SCHEDULE -->
@@ -420,6 +633,93 @@ body{
 
 </div>
 
+<!-- LOGBOOK -->
+<div class="panel" id="panel-logbook">
+
+  <div id="auth-section">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="auth-tab-login" data-mode="login">Anmelden</button>
+        <button type="button" class="auth-tab" id="auth-tab-signup" data-mode="signup">Registrieren</button>
+      </div>
+      <form id="auth-form">
+        <div class="field" id="field-username" hidden>
+          <label for="auth-username">Benutzername</label>
+          <input type="text" id="auth-username" autocomplete="username" placeholder="Wird auf der Bestenliste angezeigt">
+        </div>
+        <div class="field">
+          <label for="auth-email">E-Mail</label>
+          <input type="email" id="auth-email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="auth-password">Passwort</label>
+          <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
+        </div>
+        <div class="form-message" id="auth-message" hidden></div>
+        <button type="submit" class="filter-pill active" id="auth-submit">Anmelden</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="logbook-section" hidden>
+    <div class="logbook-header">
+      <span id="logbook-user"></span>
+      <button type="button" class="sync-btn" id="logout-btn">Abmelden</button>
+    </div>
+
+    <p class="section-label">Neue Zeit eintragen</p>
+    <form id="laptime-form" class="laptime-form">
+      <input type="text" id="lt-track" placeholder="Strecke" required>
+      <input type="text" id="lt-car" placeholder="Auto / Klasse (optional)">
+      <input type="text" id="lt-time" placeholder="Zeit, z.B. 1:23.456" required pattern="^(\d+:)?\d{1,2}\.\d{1,3}$">
+      <input type="date" id="lt-date">
+      <input type="text" id="lt-notes" placeholder="Notiz (optional)">
+      <button type="submit" class="filter-pill active">Eintragen</button>
+    </form>
+    <div class="form-message" id="laptime-message" hidden></div>
+
+    <p class="section-label">Bestenliste</p>
+    <div id="leaderboard"></div>
+  </div>
+
+</div>
+
+<!-- TEAM EVENTS -->
+<div class="panel" id="panel-teamevents">
+
+  <div class="te-toolbar">
+    <button type="button" class="filter-pill" id="te-new-btn">+ Event erstellen</button>
+  </div>
+
+  <div class="auth-card" id="te-create-card" hidden style="max-width:460px;">
+    <p class="section-label" style="margin-top:0">Neues Team Event</p>
+    <div class="field">
+      <label for="te-name">Name</label>
+      <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
+    </div>
+    <div class="field">
+      <label for="te-date">Datum</label>
+      <input type="date" id="te-date">
+    </div>
+    <div class="field">
+      <label>Zeiten (mehrfach antippbar)</label>
+      <div class="filter-row" id="te-time-tiles">
+        <button type="button" class="filter-pill" data-time="18:00">18:00</button>
+        <button type="button" class="filter-pill" data-time="19:00">19:00</button>
+        <button type="button" class="filter-pill" data-time="20:00">20:00</button>
+        <button type="button" class="filter-pill" data-time="21:00">21:00</button>
+        <button type="button" class="filter-pill" data-time="22:00">22:00</button>
+      </div>
+    </div>
+    <div class="form-message" id="te-create-message" hidden></div>
+    <button type="button" class="filter-pill active" id="te-create-submit">Event erstellen</button>
+  </div>
+
+  <div id="te-list"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 document.getElementById('sync-btn').addEventListener('click', () => {
   Object.keys(scheduleCache).forEach(key => delete scheduleCache[key]);
@@ -677,6 +977,8 @@ async function fetchScheduleCards(type, difficulty){
     }
     return timeKeyOf(a) - timeKeyOf(b);
   });
+
+  if(type === 'special') ensureTeamEventsForSpecialCards(cards).catch(() => {});
 
   scheduleCache[cacheKey] = cards;
   return cards;
@@ -1105,13 +1407,530 @@ document.getElementById('difficulty-filter').addEventListener('click', (e) => {
 document.querySelector(`#race-type-filter .filter-pill[data-type="${scheduleFilters.type}"]`).classList.add('active');
 document.querySelector(`#difficulty-filter .filter-pill[data-difficulty="${scheduleFilters.difficulty}"]`).classList.add('active');
 
+// ---- Logbook tab: our own Supabase project (auth + shared lap-time
+// leaderboard) - separate from lmuportal's read-only Supabase above. ----
+const PITWALL_SUPABASE_URL = 'https://ieufpcrfvwacayrlieos.supabase.co';
+const PITWALL_SUPABASE_KEY = 'sb_publishable_nJjfh-bU2mQoJfn4AIYMHw_QRjRU9rq';
+const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABASE_KEY);
+
+let authMode = 'login';
+let currentProfile = null; // { id, username }
+
+function parseLapTime(str){
+  const m = /^(?:(\d+):)?(\d{1,2})\.(\d{1,3})$/.exec(String(str).trim());
+  if(!m) return null;
+  const min = m[1] ? parseInt(m[1], 10) : 0;
+  const sec = parseInt(m[2], 10);
+  const msPart = parseInt(m[3].padEnd(3, '0').slice(0, 3), 10);
+  return min * 60000 + sec * 1000 + msPart;
+}
+function formatLapTime(ms){
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const msPart = ms % 1000;
+  return `${m}:${String(s).padStart(2, '0')}.${String(msPart).padStart(3, '0')}`;
+}
+function escapeText(str){
+  return String(str).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+function showFormMessage(id, text, isSuccess){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.hidden = false;
+  el.classList.toggle('success', !!isSuccess);
+}
+function hideFormMessage(id){
+  document.getElementById(id).hidden = true;
+}
+
+function translateAuthError(msg){
+  if(/already registered|already exists/i.test(msg)) return 'Diese E-Mail ist bereits registriert.';
+  if(/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
+  if(/email not confirmed/i.test(msg)) return 'Bitte zuerst die E-Mail bestätigen (Link steht in deinem Postfach).';
+  if(/password.*(least|characters)/i.test(msg)) return 'Passwort muss mindestens 6 Zeichen haben.';
+  return msg;
+}
+
+document.querySelectorAll('.auth-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    authMode = btn.dataset.mode;
+    document.querySelectorAll('.auth-tab').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('field-username').hidden = authMode !== 'signup';
+    document.getElementById('auth-password').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
+    document.getElementById('auth-submit').textContent = authMode === 'signup' ? 'Registrieren' : 'Anmelden';
+    hideFormMessage('auth-message');
+  });
+});
+
+document.getElementById('auth-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideFormMessage('auth-message');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const submitBtn = document.getElementById('auth-submit');
+  submitBtn.disabled = true;
+  try{
+    if(authMode === 'signup'){
+      const username = document.getElementById('auth-username').value.trim();
+      if(!username){
+        showFormMessage('auth-message', 'Bitte einen Benutzernamen wählen.');
+        return;
+      }
+      const { data, error } = await pitwallClient.auth.signUp({
+        email, password,
+        options: { data: { username } },
+      });
+      if(error) throw error;
+      if(!data.session){
+        showFormMessage('auth-message',
+          'Fast fertig — bitte bestätige deine E-Mail-Adresse über den Link, den wir dir geschickt haben, und melde dich danach an.',
+          true);
+      }
+    }else{
+      const { error } = await pitwallClient.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    }
+  }catch(err){
+    showFormMessage('auth-message', translateAuthError(err.message));
+  }finally{
+    submitBtn.disabled = false;
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
+
+async function loadOwnProfile(userId){
+  const { data } = await pitwallClient.from('profiles').select('id,username').eq('id', userId).maybeSingle();
+  return data;
+}
+
+function updateAuthUI(session){
+  const authSection = document.getElementById('auth-section');
+  const logbookSection = document.getElementById('logbook-section');
+  if(session){
+    authSection.hidden = true;
+    logbookSection.hidden = false;
+    document.getElementById('logbook-user').textContent = currentProfile
+      ? `Angemeldet als ${currentProfile.username}`
+      : 'Angemeldet';
+    loadLeaderboard();
+  }else{
+    currentProfile = null;
+    authSection.hidden = false;
+    logbookSection.hidden = true;
+  }
+}
+
+pitwallClient.auth.onAuthStateChange(async (event, session) => {
+  currentProfile = session ? await loadOwnProfile(session.user.id) : null;
+  updateAuthUI(session);
+});
+
+document.getElementById('laptime-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideFormMessage('laptime-message');
+  const track = document.getElementById('lt-track').value.trim();
+  const car = document.getElementById('lt-car').value.trim();
+  const timeStr = document.getElementById('lt-time').value.trim();
+  const date = document.getElementById('lt-date').value;
+  const notes = document.getElementById('lt-notes').value.trim();
+
+  const ms = parseLapTime(timeStr);
+  if(ms === null){
+    showFormMessage('laptime-message', 'Zeitformat nicht erkannt — bitte z.B. 1:23.456 oder 23.456 eingeben.');
+    return;
+  }
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+
+  const payload = {
+    user_id: session.user.id,
+    track,
+    car: car || null,
+    lap_time_ms: ms,
+    notes: notes || null,
+  };
+  if(date) payload.set_at = date;
+
+  const { error } = await pitwallClient.from('laptimes').insert(payload);
+  if(error){
+    showFormMessage('laptime-message', 'Konnte nicht gespeichert werden: ' + error.message);
+    return;
+  }
+  document.getElementById('laptime-form').reset();
+  loadLeaderboard();
+});
+
+async function deleteLapTime(id){
+  await pitwallClient.from('laptimes').delete().eq('id', id);
+  loadLeaderboard();
+}
+
+async function loadLeaderboard(){
+  const container = document.getElementById('leaderboard');
+  container.innerHTML = '<div class="leaderboard-empty">Lade…</div>';
+  const { data, error } = await pitwallClient
+    .from('laptimes')
+    .select('id,track,car,lap_time_ms,notes,set_at,user_id,profiles(username)')
+    .order('lap_time_ms', { ascending: true });
+
+  if(error){
+    container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
+    return;
+  }
+  if(!data || data.length === 0){
+    container.innerHTML = '<div class="leaderboard-empty">Noch keine Zeiten eingetragen — sei der/die Erste.</div>';
+    return;
+  }
+
+  const byTrack = {};
+  data.forEach(row => {
+    (byTrack[row.track] = byTrack[row.track] || []).push(row);
+  });
+
+  container.innerHTML = '';
+  Object.keys(byTrack).sort().forEach(track => {
+    const trackEl = document.createElement('div');
+    trackEl.className = 'leaderboard-track';
+    const title = document.createElement('div');
+    title.className = 'leaderboard-track-name';
+    title.textContent = track;
+    const list = document.createElement('div');
+    list.className = 'leaderboard-list';
+
+    byTrack[track].forEach((row, i) => {
+      const line = document.createElement('div');
+      line.className = 'leaderboard-row';
+
+      const rank = document.createElement('span');
+      rank.className = 'leaderboard-rank' + (i === 0 ? ' gold' : '');
+      rank.textContent = (i + 1) + '.';
+
+      const info = document.createElement('div');
+      info.className = 'leaderboard-info';
+      const name = document.createElement('div');
+      name.className = 'leaderboard-name';
+      name.textContent = (row.profiles && row.profiles.username) || 'Unbekannt';
+      info.appendChild(name);
+      const metaParts = [];
+      if(row.car) metaParts.push(row.car);
+      if(row.set_at) metaParts.push(new Date(row.set_at + 'T00:00:00').toLocaleDateString('de-DE'));
+      if(row.notes) metaParts.push(row.notes);
+      if(metaParts.length){
+        const meta = document.createElement('div');
+        meta.className = 'leaderboard-meta';
+        meta.textContent = metaParts.join(' · ');
+        info.appendChild(meta);
+      }
+
+      const time = document.createElement('span');
+      time.className = 'leaderboard-time';
+      time.textContent = formatLapTime(row.lap_time_ms);
+
+      line.appendChild(rank);
+      line.appendChild(info);
+      line.appendChild(time);
+
+      if(currentProfile && row.user_id === currentProfile.id){
+        const actions = document.createElement('div');
+        actions.className = 'leaderboard-actions';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = '✕';
+        delBtn.title = 'Löschen';
+        delBtn.addEventListener('click', () => deleteLapTime(row.id));
+        actions.appendChild(delBtn);
+        line.appendChild(actions);
+      }
+
+      list.appendChild(line);
+    });
+
+    trackEl.appendChild(title);
+    trackEl.appendChild(list);
+    container.appendChild(trackEl);
+  });
+}
+
+// ---- Team Events tab: coordinate who's available when, for events that
+// need a full team. Special-event schedule races that need a team (flagged
+// by lmuportal's own driver_swap_enabled) get a matching team event
+// auto-created the first time a signed-in user loads the Schedule tab -
+// see ensureTeamEventsForSpecialCards(), called from fetchScheduleCards().
+// Real team assignment: several separate teams can exist for the same time
+// slot - tapping a slot lets you join one of the existing teams there or
+// start a new one. ----
+let teamEventsFirstLoadDone = false;
+let teOpenSlot = {}; // eventId -> slotIso currently expanded, per event card
+let teSelectedTimes = new Set();
+
+async function ensureTeamEventsForSpecialCards(cards){
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return; // RLS requires a signed-in user to create team events anyway
+
+  const needingTeam = cards.filter(c => c.driver_swap_enabled && c.times && c.times.length);
+  for(const card of needingTeam){
+    const payload = {
+      name: `${card.series_name || card.track_name} · ${card.track_name}`,
+      event_date: card.times[0].toISOString().slice(0, 10),
+      slot_times: card.times.map(d => d.toISOString()),
+      source: 'auto',
+      race_series_id: card.series_id,
+      week_key: card.week_key,
+      created_by: session.user.id,
+    };
+    await pitwallClient
+      .from('team_events')
+      .upsert(payload, { onConflict: 'race_series_id,week_key', ignoreDuplicates: true });
+  }
+}
+
+function formatSlotLabel(iso){
+  const d = new Date(iso);
+  const weekday = WEEKDAY_NAMES_DE[d.getDay()];
+  const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return `${weekday} ${time}`;
+}
+
+document.getElementById('te-new-btn').addEventListener('click', () => {
+  const card = document.getElementById('te-create-card');
+  card.hidden = !card.hidden;
+});
+
+document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('active');
+    if(btn.classList.contains('active')) teSelectedTimes.add(btn.dataset.time);
+    else teSelectedTimes.delete(btn.dataset.time);
+  });
+});
+
+document.getElementById('te-create-submit').addEventListener('click', async () => {
+  hideFormMessage('te-create-message');
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session){
+    showFormMessage('te-create-message', 'Bitte zuerst im Logbuch-Tab anmelden.');
+    return;
+  }
+  const name = document.getElementById('te-name').value.trim();
+  const date = document.getElementById('te-date').value;
+  if(!name || !date || teSelectedTimes.size === 0){
+    showFormMessage('te-create-message', 'Bitte Name, Datum und mindestens eine Zeit angeben.');
+    return;
+  }
+  const slotTimes = [...teSelectedTimes]
+    .map(t => new Date(`${date}T${t}:00`).toISOString())
+    .sort();
+
+  const { error } = await pitwallClient.from('team_events').insert({
+    name, event_date: date, slot_times: slotTimes,
+    source: 'manual', created_by: session.user.id,
+  });
+  if(error){
+    showFormMessage('te-create-message', 'Konnte nicht gespeichert werden: ' + error.message);
+    return;
+  }
+  document.getElementById('te-name').value = '';
+  document.getElementById('te-date').value = '';
+  teSelectedTimes.clear();
+  document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => b.classList.remove('active'));
+  document.getElementById('te-create-card').hidden = true;
+  loadTeamEvents();
+});
+
+async function deleteTeamEvent(id){
+  await pitwallClient.from('team_events').delete().eq('id', id);
+  loadTeamEvents();
+}
+
+async function joinTeam(teamId){
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id });
+  loadTeamEvents();
+}
+
+async function leaveTeam(teamId){
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  await pitwallClient.from('team_event_members').delete().eq('team_id', teamId).eq('user_id', session.user.id);
+  loadTeamEvents();
+}
+
+async function createTeamAtSlot(eventId, slotIso){
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  const { data: team, error } = await pitwallClient
+    .from('team_event_teams')
+    .insert({ event_id: eventId, slot_time: slotIso, created_by: session.user.id })
+    .select()
+    .single();
+  if(error || !team) return;
+  await pitwallClient.from('team_event_members').insert({ team_id: team.id, user_id: session.user.id });
+  loadTeamEvents();
+}
+
+function renderEventCard(ev, teams){
+  const card = document.createElement('div');
+  card.className = 'te-event';
+
+  const header = document.createElement('div');
+  header.className = 'te-event-header';
+  const left = document.createElement('div');
+  const nameEl = document.createElement('div');
+  nameEl.className = 'te-event-name';
+  nameEl.textContent = ev.name;
+  if(ev.source === 'auto'){
+    const badge = document.createElement('span');
+    badge.className = 'te-badge-auto';
+    badge.textContent = 'Aus Schedule';
+    nameEl.appendChild(badge);
+  }
+  const dateEl = document.createElement('div');
+  dateEl.className = 'te-event-date';
+  dateEl.textContent = new Date(ev.event_date + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  left.appendChild(nameEl);
+  left.appendChild(dateEl);
+  header.appendChild(left);
+
+  if(currentProfile && ev.created_by === currentProfile.id){
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'te-delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Event löschen';
+    delBtn.addEventListener('click', () => deleteTeamEvent(ev.id));
+    header.appendChild(delBtn);
+  }
+  card.appendChild(header);
+
+  const slotsRow = document.createElement('div');
+  slotsRow.className = 'te-slots';
+  const slotTeams = {}; // slotIso -> [team, ...]
+  teams.forEach(t => { (slotTeams[t.slot_time] = slotTeams[t.slot_time] || []).push(t); });
+
+  (ev.slot_times || []).forEach(slotIso => {
+    const teamsHere = slotTeams[slotIso] || [];
+    const memberCount = teamsHere.reduce((sum, t) => sum + (t.team_event_members ? t.team_event_members.length : 0), 0);
+    const iAmIn = currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'te-slot' + (iAmIn ? ' has-me' : '');
+    const label = document.createElement('span');
+    label.textContent = formatSlotLabel(slotIso);
+    const count = document.createElement('span');
+    count.className = 'te-slot-count';
+    count.textContent = teamsHere.length
+      ? `${teamsHere.length} Team${teamsHere.length > 1 ? 's' : ''} · ${memberCount}`
+      : 'noch niemand';
+    btn.appendChild(label);
+    btn.appendChild(count);
+    btn.addEventListener('click', () => {
+      teOpenSlot[ev.id] = teOpenSlot[ev.id] === slotIso ? null : slotIso;
+      loadTeamEvents();
+    });
+    slotsRow.appendChild(btn);
+  });
+  card.appendChild(slotsRow);
+
+  const openSlot = teOpenSlot[ev.id];
+  if(openSlot){
+    const detail = document.createElement('div');
+    detail.className = 'te-slot-detail';
+    const teamsHere = slotTeams[openSlot] || [];
+
+    teamsHere.forEach((t, i) => {
+      const members = t.team_event_members || [];
+      const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
+
+      const row = document.createElement('div');
+      row.className = 'te-team';
+      const info = document.createElement('div');
+      const labelEl = document.createElement('div');
+      labelEl.className = 'te-team-label';
+      labelEl.textContent = `Team ${i + 1}`;
+      const membersEl = document.createElement('div');
+      membersEl.className = 'te-team-members';
+      membersEl.textContent = members.length
+        ? members.map(m => (m.profiles && m.profiles.username) || 'Unbekannt').join(', ')
+        : '';
+      if(!members.length){
+        membersEl.classList.add('empty');
+        membersEl.textContent = 'niemand mehr hier';
+      }
+      info.appendChild(labelEl);
+      info.appendChild(membersEl);
+
+      const actionBtn = document.createElement('button');
+      actionBtn.type = 'button';
+      actionBtn.className = 'te-team-btn' + (iAmIn ? ' leave' : '');
+      actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
+      actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id));
+
+      row.appendChild(info);
+      row.appendChild(actionBtn);
+      detail.appendChild(row);
+    });
+
+    const newTeamBtn = document.createElement('button');
+    newTeamBtn.type = 'button';
+    newTeamBtn.className = 'te-new-team-btn';
+    newTeamBtn.textContent = '+ Neues Team';
+    newTeamBtn.addEventListener('click', () => createTeamAtSlot(ev.id, openSlot));
+    detail.appendChild(newTeamBtn);
+
+    card.appendChild(detail);
+  }
+
+  return card;
+}
+
+async function loadTeamEvents(){
+  const container = document.getElementById('te-list');
+  const { data: events, error } = await pitwallClient
+    .from('team_events')
+    .select('id,name,event_date,slot_times,source,created_by')
+    .order('event_date', { ascending: true });
+
+  if(error){
+    container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
+    return;
+  }
+  if(!events || events.length === 0){
+    container.innerHTML = '<div class="leaderboard-empty">Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.</div>';
+    return;
+  }
+
+  const { data: teams } = await pitwallClient
+    .from('team_event_teams')
+    .select('id,event_id,slot_time,created_by,team_event_members(user_id,profiles(username))')
+    .in('event_id', events.map(e => e.id))
+    .order('created_at', { ascending: true });
+
+  const teamsByEvent = {};
+  (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
+
+  container.innerHTML = '';
+  events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [])));
+}
+
 let scheduleFirstLoadDone = false;
 function showPanel(name){
   document.getElementById('panel-schedule').classList.toggle('active', name==='schedule');
   document.getElementById('tab-schedule').classList.toggle('active', name==='schedule');
+  document.getElementById('panel-logbook').classList.toggle('active', name==='logbook');
+  document.getElementById('tab-logbook').classList.toggle('active', name==='logbook');
+  document.getElementById('panel-teamevents').classList.toggle('active', name==='teamevents');
+  document.getElementById('tab-teamevents').classList.toggle('active', name==='teamevents');
   if(name === 'schedule' && !scheduleFirstLoadDone){
     scheduleFirstLoadDone = true;
     loadScheduleView();
+  }
+  if(name === 'teamevents' && !teamEventsFirstLoadDone){
+    teamEventsFirstLoadDone = true;
+    loadTeamEvents();
   }
 }
 
