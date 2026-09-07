@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#111317">
-<meta name="description" content="Pitwall — LMU Tipps & Rennplan Fahrer-Briefing">
+<meta name="description" content="Pitwall — LMU Rennplan Fahrer-Briefing">
 <title>Pitwall — Quanschi</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
@@ -20,13 +20,8 @@
   --text:#E9E7E1;
   --muted:#8B9099;
   --amber:#FFB020;
-  --amber-dim:#8A5F1A;
-  --teal:#3ED6C4;
-  --teal-dim:#1F5F58;
   --red:#E85C4A;
   --violet:#A78BFA;
-  --violet-dim:#4C3E82;
-  --shadow-sm:0 2px 10px rgba(0,0,0,0.25);
   --shadow-md:0 8px 24px rgba(0,0,0,0.3);
   --ease:cubic-bezier(.4,0,.2,1);
 }
@@ -77,7 +72,6 @@ body{
   text-align:right;
   line-height:1.6;
 }
-.stamp b{color:var(--teal);}
 .raceline{
   width:100%;
   height:14px;
@@ -113,11 +107,6 @@ body{
   box-shadow:0 4px 16px rgba(255,176,32,0.28);
   transform:translateY(-2px);
 }
-.tab.active.weekly{
-  background:var(--teal);
-  border-color:var(--teal);
-  box-shadow:0 4px 16px rgba(62,214,196,0.28);
-}
 .tab.active.schedule{
   background:var(--red);
   border-color:var(--red);
@@ -144,61 +133,6 @@ body{
   margin:26px 0 10px 0;
 }
 .section-label:first-child{margin-top:0;}
-
-.tip-card{
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-left:4px solid var(--amber);
-  border-radius:12px;
-  padding:22px 24px;
-  box-shadow:var(--shadow-md);
-}
-.tip-card.weekly-card{border-left-color:var(--teal);}
-.tip-kicker{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;
-  color:var(--amber);
-  letter-spacing:1px;
-  text-transform:uppercase;
-  margin-bottom:8px;
-}
-.weekly-card .tip-kicker{color:var(--teal);}
-.tip-headline{
-  font-family:'Rajdhani',sans-serif;
-  font-weight:700;
-  font-size:22px;
-  margin:0 0 10px 0;
-  color:var(--text);
-  line-height:1.25;
-}
-.tip-body{
-  font-size:14.5px;
-  line-height:1.65;
-  color:#CBCBC5;
-}
-.tip-body b{color:var(--text);}
-.tip-body code{
-  font-family:'JetBrains Mono',monospace;
-  background:var(--panel-2);
-  padding:1px 6px;
-  border-radius:3px;
-  color:var(--amber);
-  font-size:13px;
-}
-.weekly-card .tip-body code{color:var(--teal);}
-
-.drill{
-  margin-top:16px;
-  background:var(--panel-2);
-  border-radius:8px;
-  padding:14px 16px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:12.5px;
-  color:var(--muted);
-  border-left:2px solid var(--amber-dim);
-}
-.weekly-card .drill{border-left-color:var(--teal-dim);}
-.drill b{color:var(--text);font-family:'Inter',sans-serif;}
 
 /* ---- Schedule tab ---- */
 .filter-row{
@@ -413,50 +347,6 @@ body{
   padding:10px 12px;
 }
 
-/* ---- Weekly deep dive structure ---- */
-.deepdive-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:12px;
-  margin-top:16px;
-}
-.dd-box{
-  background:var(--panel-2);
-  border-radius:10px;
-  padding:14px 16px;
-  border-top:2px solid var(--teal-dim);
-  box-shadow:var(--shadow-sm);
-}
-.dd-box h4{
-  font-family:'Rajdhani',sans-serif;
-  font-size:14px;
-  letter-spacing:0.5px;
-  text-transform:uppercase;
-  margin:0 0 6px 0;
-  color:var(--teal);
-}
-.dd-box p{
-  font-size:12.5px;
-  line-height:1.55;
-  color:var(--muted);
-  margin:0;
-}
-
-.footer-note{
-  margin-top:30px;
-  padding-top:16px;
-  border-top:1px solid var(--line);
-  font-size:12px;
-  color:var(--muted);
-  line-height:1.6;
-}
-
-.sync-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-top:8px;
-}
 .sync-btn{
   font-family:'JetBrains Mono',monospace;
   font-size:10.5px;
@@ -471,14 +361,11 @@ body{
   transition:all .2s var(--ease);
 }
 .sync-btn:hover{color:var(--text);border-color:var(--muted);background:var(--panel-2);}
-.sync-state{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);}
-.sync-state.stale{color:var(--amber);}
 
 @media(max-width:640px){
   .header{padding:22px 18px 14px 18px;}
   .tabs, .panel{padding-left:18px;padding-right:18px;}
   .title{font-size:26px;}
-  .deepdive-grid{grid-template-columns:1fr;}
   .header-top{flex-direction:column;align-items:flex-start;}
   .stamp{text-align:left;}
 }
@@ -490,14 +377,10 @@ body{
   <div class="header-top">
     <div>
       <p class="title">Pit<span>wall</span></p>
-      <p class="subtitle">LMU · Tipps · Schedule</p>
+      <p class="subtitle">LMU · Schedule</p>
     </div>
     <div class="stamp">
-      STAND <b id="stamp-date">—</b><br>
-      <span id="sync-state" class="sync-state">wird geladen…</span>
-      <div class="sync-row">
-        <button class="sync-btn" id="sync-btn" type="button">Jetzt aktualisieren</button>
-      </div>
+      <button class="sync-btn" id="sync-btn" type="button">Jetzt aktualisieren</button>
     </div>
   </div>
   <svg class="raceline" viewBox="0 0 800 14" preserveAspectRatio="none">
@@ -507,48 +390,11 @@ body{
 </div>
 
 <div class="tabs">
-  <div class="tab active" id="tab-daily" onclick="showPanel('daily')">Daily</div>
-  <div class="tab weekly" id="tab-weekly" onclick="showPanel('weekly')">Weekly</div>
-  <div class="tab schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
-</div>
-
-<!-- DAILY -->
-<div class="panel active" id="panel-daily">
-
-  <p class="section-label" id="daily-section-label">Tipp des Tages · LMGT3</p>
-  <div class="tip-card">
-    <div class="tip-kicker" id="daily-tip-kicker"></div>
-    <p class="tip-headline" id="daily-tip-headline"></p>
-    <div class="tip-body" id="daily-tip-body"></div>
-    <div class="drill">
-      <b id="daily-drill-label"></b> <span id="daily-drill-body"></span>
-    </div>
-  </div>
-
-</div>
-
-<!-- WEEKLY -->
-<div class="panel" id="panel-weekly">
-
-  <p class="section-label" id="weekly-section-label">Strategie der Woche · LMGT3</p>
-  <div class="tip-card weekly-card">
-    <div class="tip-kicker" id="weekly-tip-kicker"></div>
-    <p class="tip-headline" id="weekly-tip-headline"></p>
-    <div class="tip-body" id="weekly-tip-body"></div>
-    <div class="drill">
-      <b id="weekly-drill-label"></b> <span id="weekly-drill-body"></span>
-    </div>
-  </div>
-
-  <p class="section-label" id="deepdive-label"></p>
-  <div class="deepdive-grid" id="deepdive-grid"></div>
-
-  <div class="footer-note" id="footer-note"></div>
-
+  <div class="tab active schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
 </div>
 
 <!-- SCHEDULE -->
-<div class="panel" id="panel-schedule">
+<div class="panel active" id="panel-schedule">
 
   <p class="section-label">Rennart</p>
   <div class="filter-row" id="race-type-filter">
@@ -575,102 +421,7 @@ body{
 </div>
 
 <script>
-const DATA_URL = 'data.json';
-
-function escapeHtml(str){
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
-
-// Minimal markdown-lite: escapes everything first, then allows **bold** and `code`.
-function mdLite(str){
-  let out = escapeHtml(str);
-  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
-  out = out.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
-  return out;
-}
-
-function setText(id, value){
-  const el = document.getElementById(id);
-  if(el) el.textContent = value || '';
-}
-function setHtml(id, value){
-  const el = document.getElementById(id);
-  if(el) el.innerHTML = mdLite(value || '');
-}
-
-function renderDeepdive(boxes){
-  const grid = document.getElementById('deepdive-grid');
-  grid.innerHTML = '';
-  (boxes || []).forEach(box => {
-    const el = document.createElement('div');
-    el.className = 'dd-box';
-    const h4 = document.createElement('h4');
-    h4.textContent = box.title || '';
-    const p = document.createElement('p');
-    p.innerHTML = mdLite(box.text || '');
-    el.appendChild(h4);
-    el.appendChild(p);
-    grid.appendChild(el);
-  });
-}
-
-function render(data){
-  setText('stamp-date', data.stamp_date);
-
-  setText('daily-section-label', data.daily.section_label);
-  setText('daily-tip-kicker', data.daily.tip.kicker);
-  setText('daily-tip-headline', data.daily.tip.headline);
-  setHtml('daily-tip-body', data.daily.tip.body);
-  setText('daily-drill-label', data.daily.tip.drill_label);
-  setHtml('daily-drill-body', data.daily.tip.drill);
-
-  setText('weekly-section-label', data.weekly.section_label);
-  setText('weekly-tip-kicker', data.weekly.strategy.kicker);
-  setText('weekly-tip-headline', data.weekly.strategy.headline);
-  setHtml('weekly-tip-body', data.weekly.strategy.body);
-  setText('weekly-drill-label', data.weekly.strategy.drill_label);
-  setHtml('weekly-drill-body', data.weekly.strategy.drill);
-  setText('deepdive-label', data.weekly.deepdive_label);
-  renderDeepdive(data.weekly.deepdive);
-  setText('footer-note', data.weekly.footer_note);
-}
-
-function setSyncState(text, stale){
-  const el = document.getElementById('sync-state');
-  el.textContent = text;
-  el.classList.toggle('stale', !!stale);
-}
-
-const CACHE_KEY = 'pitwall-data-cache';
-
-async function loadData(force){
-  try{
-    const res = await fetch(DATA_URL + (force ? ('?t=' + Date.now()) : ''), { cache: force ? 'no-store' : 'default' });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-    render(data);
-    const ts = data.generated_at ? new Date(data.generated_at) : new Date();
-    setSyncState('aktuell · generiert ' + ts.toLocaleString('de-DE'), false);
-  }catch(err){
-    const cached = localStorage.getItem(CACHE_KEY);
-    if(cached){
-      render(JSON.parse(cached));
-      setSyncState('offline · zeige letzten Stand', true);
-    }else{
-      setSyncState('Fehler beim Laden der Daten', true);
-    }
-  }
-}
-
 document.getElementById('sync-btn').addEventListener('click', () => {
-  loadData(true);
-  // The button should refresh everything "live", not just the daily/weekly
-  // tip text - clear the schedule cache too and reload it if that tab is open.
   Object.keys(scheduleCache).forEach(key => delete scheduleCache[key]);
   if(document.getElementById('panel-schedule').classList.contains('active')){
     loadScheduleView();
@@ -1356,11 +1107,7 @@ document.querySelector(`#difficulty-filter .filter-pill[data-difficulty="${sched
 
 let scheduleFirstLoadDone = false;
 function showPanel(name){
-  document.getElementById('panel-daily').classList.toggle('active', name==='daily');
-  document.getElementById('panel-weekly').classList.toggle('active', name==='weekly');
   document.getElementById('panel-schedule').classList.toggle('active', name==='schedule');
-  document.getElementById('tab-daily').classList.toggle('active', name==='daily');
-  document.getElementById('tab-weekly').classList.toggle('active', name==='weekly');
   document.getElementById('tab-schedule').classList.toggle('active', name==='schedule');
   if(name === 'schedule' && !scheduleFirstLoadDone){
     scheduleFirstLoadDone = true;
@@ -1368,7 +1115,7 @@ function showPanel(name){
   }
 }
 
-loadData(false);
+showPanel('schedule');
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {

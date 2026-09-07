@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pitwall-shell-v25';
+const CACHE_NAME = 'pitwall-shell-v26';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -22,19 +22,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-  if(url.pathname.endsWith('data.json')){
-    // Network-first for content data, so a device that's online always sees fresh data.
-    event.respondWith(
-      fetch(event.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return res;
-      }).catch(() => caches.match(event.request))
-    );
-    return;
-  }
-  // Cache-first for the app shell.
+  // Cache-first for the app shell. All live data (Schedule, and later the
+  // logbook) is fetched directly by the page from Supabase, not through here.
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request))
   );
