@@ -625,7 +625,7 @@ input:focus{outline:none;border-color:var(--violet);}
   </svg>
 </div>
 
-<div class="tabs">
+<div class="tabs" id="tabs-nav">
   <div class="tab active schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
   <div class="tab logbook" id="tab-logbook" onclick="showPanel('logbook')">Logbuch</div>
   <div class="tab teamevents" id="tab-teamevents" onclick="showPanel('teamevents')">Team Events</div>
@@ -1646,11 +1646,11 @@ document.getElementById('recovery-form').addEventListener('submit', async (e) =>
     showFormMessage('recovery-message', translateAuthError(error.message));
     return;
   }
-  document.getElementById('recovery-section').hidden = true;
   document.getElementById('recovery-form').reset();
-  const { data: { session } } = await pitwallClient.auth.getSession();
-  currentProfile = session ? await loadOwnProfile(session.user.id) : null;
-  updateAuthUI(session);
+  document.getElementById('tabs-nav').hidden = false;
+  await pitwallClient.auth.signOut();
+  document.getElementById('recovery-section').hidden = true;
+  showFormMessage('auth-message', 'Passwort erfolgreich geändert — bitte melde dich damit an.', true);
 });
 
 
@@ -1684,6 +1684,8 @@ function updateAuthUI(session){
 
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
   if(event === 'PASSWORD_RECOVERY'){
+    showPanel('logbook');
+    document.getElementById('tabs-nav').hidden = true;
     document.getElementById('auth-section').hidden = true;
     document.getElementById('logbook-section').hidden = true;
     document.getElementById('recovery-section').hidden = false;
