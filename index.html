@@ -773,7 +773,7 @@ input:focus{outline:none;border-color:var(--violet);}
       <input type="date" id="te-date-end">
     </div>
     <div class="field">
-      <label>Renndauer (optional)</label>
+      <label>Renndauer</label>
       <div class="laptime-inputs">
         <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std" style="width:70px;">
         <span>h</span>
@@ -1999,8 +1999,11 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
   const name = document.getElementById('te-name').value.trim();
   const startStr = document.getElementById('te-date-start').value;
   const endStr = document.getElementById('te-date-end').value || startStr;
-  if(!name || !startStr || teSelectedTimes.size === 0){
-    showFormMessage('te-create-message', 'Bitte Name, Datum und mindestens eine Uhrzeit angeben.');
+  const durationH = parseInt(document.getElementById('te-duration-h').value, 10) || 0;
+  const durationM = parseInt(document.getElementById('te-duration-m').value, 10) || 0;
+  const durationMinutes = durationH * 60 + durationM;
+  if(!name || !startStr || teSelectedTimes.size === 0 || durationMinutes <= 0){
+    showFormMessage('te-create-message', 'Bitte Name, Datum, Renndauer und mindestens eine Uhrzeit angeben.');
     return;
   }
   const start = new Date(startStr + 'T00:00:00');
@@ -2022,10 +2025,6 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
     teSelectedTimes.forEach(t => slotTimes.push(new Date(`${day}T${t}:00`).toISOString()));
   });
   slotTimes.sort();
-
-  const durationH = parseInt(document.getElementById('te-duration-h').value, 10) || 0;
-  const durationM = parseInt(document.getElementById('te-duration-m').value, 10) || 0;
-  const durationMinutes = (durationH * 60 + durationM) || null;
 
   const { error } = await pitwallClient.from('team_events').insert({
     name, event_date: startStr, slot_times: slotTimes,
