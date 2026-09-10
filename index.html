@@ -1689,7 +1689,7 @@ pitwallClient.auth.onAuthStateChange(async (event, session) => {
 // ---- Logbook form: track/layout and class/car are chosen from lmuportal's
 // own reference data (same source as the Schedule tab), not free text - so
 // entries stay consistent and match the game's actual roster. ----
-const CLASS_COLOR_OVERRIDES = { LMGT3: '#22c55e', GTE: '#eab308' };
+const CLASS_COLOR_OVERRIDES = { LMGT3: '#22c55e', GTE: '#eab308', LMP2: '#60a5fa' };
 
 let carsByClassPromise = null;
 function loadCarsByClass(){
@@ -1717,7 +1717,10 @@ function loadCarsByClass(){
 function renderClassBadges(classNames, colorByClassName){
   const row = document.createElement('div');
   row.className = 'class-badges';
-  (classNames || []).forEach(name => {
+  (classNames || []).forEach(rawName => {
+    // lmuportal names ELMS-specific entries e.g. "LMP2_ELMS" - show it the
+    // same as the regular class, same color included.
+    const name = rawName.replace(/_ELMS$/i, '');
     const color = (colorByClassName || {})[name];
     const chip = document.createElement('span');
     chip.className = 'class-badge';
