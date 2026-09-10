@@ -2458,7 +2458,7 @@ async function loadTeamEvents(){
 
   const { data: teams } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,profiles(username))')
+    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true });
 
