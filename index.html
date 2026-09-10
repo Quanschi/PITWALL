@@ -773,6 +773,15 @@ input:focus{outline:none;border-color:var(--violet);}
       <input type="date" id="te-date-end">
     </div>
     <div class="field">
+      <label>Renndauer (optional)</label>
+      <div class="laptime-inputs">
+        <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std" style="width:70px;">
+        <span>h</span>
+        <input type="number" id="te-duration-m" min="0" max="59" placeholder="Min" style="width:70px;">
+        <span>min</span>
+      </div>
+    </div>
+    <div class="field">
       <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
       <div class="filter-row" id="te-time-tiles">
         <button type="button" class="filter-pill" data-time="00:00">00:00</button>
@@ -1921,6 +1930,7 @@ async function ensureTeamEventsForSpecialCards(cards){
       source: 'auto',
       race_series_id: card.series_id,
       week_key: card.week_key,
+      duration_minutes: card.race_duration_minutes || null,
       created_by: session.user.id,
     };
     const { error } = await pitwallClient
@@ -1954,6 +1964,14 @@ function formatEventDateRange(slotTimes){
   const first = dates[0], last = dates[dates.length - 1];
   const fmtShort = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
   return localDayKey(first) === localDayKey(last) ? fmtShort(first) : `${fmtShort(first)} – ${fmtShort(last)}`;
+}
+function formatDuration(totalMinutes){
+  if(!totalMinutes) return '';
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if(h === 0) return `${m}min`;
+  if(m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
 }
 
 document.getElementById('te-new-btn').addEventListener('click', () => {
@@ -2005,9 +2023,14 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
   });
   slotTimes.sort();
 
+  const durationH = parseInt(document.getElementById('te-duration-h').value, 10) || 0;
+  const durationM = parseInt(document.getElementById('te-duration-m').value, 10) || 0;
+  const durationMinutes = (durationH * 60 + durationM) || null;
+
   const { error } = await pitwallClient.from('team_events').insert({
     name, event_date: startStr, slot_times: slotTimes,
     source: 'manual', created_by: session.user.id,
+    duration_minutes: durationMinutes,
   });
   if(error){
     showFormMessage('te-create-message', 'Konnte nicht gespeichert werden: ' + error.message);
@@ -2016,6 +2039,8 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
   document.getElementById('te-name').value = '';
   document.getElementById('te-date-start').value = '';
   document.getElementById('te-date-end').value = '';
+  document.getElementById('te-duration-h').value = '';
+  document.getElementById('te-duration-m').value = '';
   teSelectedTimes.clear();
   document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => b.classList.remove('active'));
   document.getElementById('te-create-card').hidden = true;
@@ -2237,7 +2262,8 @@ function renderEventCard(ev, teams, carData){
   nameEl.textContent = ev.name;
   const dateEl = document.createElement('div');
   dateEl.className = 'te-event-date';
-  dateEl.textContent = formatEventDateRange(ev.slot_times);
+  const duration = formatDuration(ev.duration_minutes);
+  dateEl.textContent = formatEventDateRange(ev.slot_times) + (duration ? ` · ${duration}` : '');
   left.appendChild(nameEl);
   left.appendChild(dateEl);
   header.appendChild(left);
@@ -2335,7 +2361,7 @@ async function loadTeamEvents(){
 
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,created_by,closed')
+    .select('id,name,event_date,slot_times,source,created_by,closed,duration_minutes')
     .order('event_date', { ascending: true });
 
   if(error){
