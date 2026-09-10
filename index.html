@@ -501,6 +501,7 @@ input:focus{outline:none;border-color:var(--violet);}
 .te-event-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
 .te-event-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:var(--text);}
 .te-event-date{font-size:12px;color:var(--muted);margin-top:2px;}
+.te-badges-row{display:flex;gap:6px;margin-bottom:6px;}
 .te-badge-auto{
   font-family:'JetBrains Mono',monospace;
   font-size:10px;
@@ -510,7 +511,6 @@ input:focus{outline:none;border-color:var(--violet);}
   border:1px solid var(--amber);
   border-radius:6px;
   padding:2px 6px;
-  margin-left:8px;
 }
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;flex-shrink:0;}
@@ -2216,21 +2216,25 @@ function renderEventCard(ev, teams, carData){
   const header = document.createElement('div');
   header.className = 'te-event-header';
   const left = document.createElement('div');
+
+  const badges = [];
+  if(ev.source === 'auto') badges.push('Aus Schedule');
+  if(ev.closed) badges.push('Abgeschlossen');
+  if(badges.length){
+    const badgesRow = document.createElement('div');
+    badgesRow.className = 'te-badges-row';
+    badges.forEach(text => {
+      const badge = document.createElement('span');
+      badge.className = 'te-badge-auto';
+      badge.textContent = text;
+      badgesRow.appendChild(badge);
+    });
+    left.appendChild(badgesRow);
+  }
+
   const nameEl = document.createElement('div');
   nameEl.className = 'te-event-name';
   nameEl.textContent = ev.name;
-  if(ev.source === 'auto'){
-    const badge = document.createElement('span');
-    badge.className = 'te-badge-auto';
-    badge.textContent = 'Aus Schedule';
-    nameEl.appendChild(badge);
-  }
-  if(ev.closed){
-    const badge = document.createElement('span');
-    badge.className = 'te-badge-auto';
-    badge.textContent = 'Abgeschlossen';
-    nameEl.appendChild(badge);
-  }
   const dateEl = document.createElement('div');
   dateEl.className = 'te-event-date';
   dateEl.textContent = formatEventDateRange(ev.slot_times);
