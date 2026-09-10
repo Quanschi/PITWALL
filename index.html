@@ -246,6 +246,17 @@ body{
   margin-bottom:2px;
 }
 .schedule-meta{font-size:13px;color:var(--muted);margin-bottom:12px;}
+.class-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+.class-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.3px;
+  padding:2px 8px;
+  border-radius:20px;
+  border:1px solid var(--muted);
+  color:var(--muted);
+  white-space:nowrap;
+}
 .schedule-times-label{
   display:flex;
   justify-content:space-between;
@@ -558,6 +569,7 @@ input:focus{outline:none;border-color:var(--violet);}
   border-radius:8px;
   padding:10px 12px;
   display:flex;
+  flex-wrap:wrap;
   justify-content:space-between;
   align-items:center;
   gap:10px;
@@ -1313,7 +1325,7 @@ function buildTimesByDate(cardTimes, now){
   return wrap;
 }
 
-function renderScheduleCards(cards){
+function renderScheduleCards(cards, colorByClassName){
   const carousel = document.getElementById('schedule-carousel');
   const statusText = document.getElementById('schedule-status-text');
   const counter = document.getElementById('schedule-counter');
@@ -1356,8 +1368,11 @@ function renderScheduleCards(cards){
     series.className = 'schedule-series';
     series.textContent = card.series_name || '';
 
+    const classBadges = card.car_classes && card.car_classes.length
+      ? renderClassBadges(card.car_classes, colorByClassName)
+      : null;
+
     const metaParts = [];
-    if(card.car_classes && card.car_classes.length) metaParts.push(card.car_classes.join(' · '));
     if(card.race_duration_minutes) metaParts.push(`${card.race_duration_minutes} Min`);
     if(card.seasonLabel) metaParts.push(card.seasonLabel);
     const meta = document.createElement('div');
@@ -1429,6 +1444,7 @@ function renderScheduleCards(cards){
     el.appendChild(head);
     if(location.textContent) el.appendChild(location);
     el.appendChild(series);
+    if(classBadges) el.appendChild(classBadges);
     el.appendChild(meta);
     el.appendChild(timesLabel);
     el.appendChild(times);
@@ -1476,9 +1492,12 @@ async function loadScheduleView(){
 
   document.getElementById('schedule-status-text').textContent = 'Lade Rennplan…';
   try{
-    const cards = await fetchScheduleCards(requestType, requestDifficulty);
+    const [cards, { colorByClassName }] = await Promise.all([
+      fetchScheduleCards(requestType, requestDifficulty),
+      loadCarsByClass(),
+    ]);
     if(isStale()) return;
-    renderScheduleCards(cards);
+    renderScheduleCards(cards, colorByClassName);
     bindScheduleScrollCounter();
   }catch(err){
     if(isStale()) return;
@@ -1673,15 +1692,38 @@ let carsByClassPromise = null;
 function loadCarsByClass(){
   if(!carsByClassPromise){
     carsByClassPromise = Promise.all([
-      supabaseSelect('car_class', 'select=class_id,display_name,sort_order&order=sort_order.asc'),
+      supabaseSelect('car_class', 'select=class_id,display_name,sort_order,badge_colour&order=sort_order.asc'),
       supabaseSelect('car', 'select=friendly,class_id&order=friendly.asc'),
     ]).then(([classes, cars]) => {
       const carsByClass = {};
       cars.forEach(c => { (carsByClass[c.class_id] = carsByClass[c.class_id] || []).push(c.friendly); });
-      return { classes, carsByClass };
-    }).catch(() => ({ classes: [], carsByClass: {} }));
+      const colorByClassName = {};
+      classes.forEach(c => { colorByClassName[c.display_name] = c.badge_colour; });
+      return { classes, carsByClass, colorByClassName };
+    }).catch(() => ({ classes: [], carsByClass: {}, colorByClassName: {} }));
   }
   return carsByClassPromise;
+}
+
+// lmuportal's own official per-class badge color (e.g. GTE green, LMP2
+// blue) - shared between Schedule and Team Events so a class always shows
+// in the same color everywhere.
+function renderClassBadges(classNames, colorByClassName){
+  const row = document.createElement('div');
+  row.className = 'class-badges';
+  (classNames || []).forEach(name => {
+    const color = (colorByClassName || {})[name];
+    const chip = document.createElement('span');
+    chip.className = 'class-badge';
+    chip.textContent = name;
+    if(color){
+      chip.style.color = color;
+      chip.style.borderColor = color;
+      chip.style.background = color + '22';
+    }
+    row.appendChild(chip);
+  });
+  return row;
 }
 
 function trackLabel(track, layout){
@@ -1931,6 +1973,7 @@ async function ensureTeamEventsForSpecialCards(cards){
       race_series_id: card.series_id,
       week_key: card.week_key,
       duration_minutes: card.race_duration_minutes || null,
+      car_classes: card.car_classes && card.car_classes.length ? card.car_classes : null,
       created_by: session.user.id,
     };
     const { error } = await pitwallClient
@@ -2058,10 +2101,10 @@ async function setTeamEventClosed(id, closed){
   loadTeamEvents();
 }
 
-async function joinTeam(teamId){
+async function joinTeam(teamId, note){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
-  await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id });
+  await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id, note: note || null });
   loadTeamEvents();
 }
 
@@ -2078,7 +2121,7 @@ async function leaveTeam(teamId){
   loadTeamEvents();
 }
 
-async function createTeamAtSlot(eventId, slotIso, car){
+async function createTeamAtSlot(eventId, slotIso, car, note){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
   const { data: team, error } = await pitwallClient
@@ -2087,7 +2130,7 @@ async function createTeamAtSlot(eventId, slotIso, car){
     .select()
     .single();
   if(error || !team) return;
-  await pitwallClient.from('team_event_members').insert({ team_id: team.id, user_id: session.user.id });
+  await pitwallClient.from('team_event_members').insert({ team_id: team.id, user_id: session.user.id, note: note || null });
   teNewTeamOpen = null;
   loadTeamEvents();
 }
@@ -2133,6 +2176,12 @@ function renderNewTeamForm(eventId, slotIso, carData){
     carSel.disabled = false;
   });
 
+  const noteInput = document.createElement('input');
+  noteInput.type = 'text';
+  noteInput.placeholder = 'Notiz (optional, z.B. "erst ab der Hälfte")';
+  noteInput.style.width = 'auto';
+  noteInput.style.minWidth = '220px';
+
   const confirmBtn = document.createElement('button');
   confirmBtn.type = 'button';
   confirmBtn.className = 'te-team-btn';
@@ -2140,7 +2189,7 @@ function renderNewTeamForm(eventId, slotIso, carData){
   confirmBtn.addEventListener('click', () => {
     if(!classSel.value || !carSel.value) return;
     const carLabel = `${carSel.value} (${classSel.options[classSel.selectedIndex].textContent})`;
-    createTeamAtSlot(eventId, slotIso, carLabel);
+    createTeamAtSlot(eventId, slotIso, carLabel, noteInput.value.trim());
   });
 
   const cancelBtn = document.createElement('button');
@@ -2151,6 +2200,7 @@ function renderNewTeamForm(eventId, slotIso, carData){
 
   wrap.appendChild(classSel);
   wrap.appendChild(carSel);
+  wrap.appendChild(noteInput);
   wrap.appendChild(confirmBtn);
   wrap.appendChild(cancelBtn);
   return wrap;
@@ -2180,7 +2230,10 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     const membersEl = document.createElement('div');
     membersEl.className = 'te-team-members';
     membersEl.textContent = members.length
-      ? members.map(m => (m.profiles && m.profiles.username) || 'Unbekannt').join(', ')
+      ? members.map(m => {
+          const name = (m.profiles && m.profiles.username) || 'Unbekannt';
+          return m.note ? `${name} (${m.note})` : name;
+        }).join(', ')
       : '';
     if(!members.length){
       membersEl.classList.add('empty');
@@ -2190,11 +2243,21 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     row.appendChild(info);
 
     if(currentProfile){
+      let noteInput = null;
+      if(!iAmIn){
+        noteInput = document.createElement('input');
+        noteInput.type = 'text';
+        noteInput.placeholder = 'Notiz (optional)';
+        noteInput.style.width = 'auto';
+        noteInput.style.minWidth = '140px';
+        row.appendChild(noteInput);
+      }
+
       const actionBtn = document.createElement('button');
       actionBtn.type = 'button';
       actionBtn.className = 'te-team-btn' + (iAmIn ? ' leave' : '');
       actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
-      actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id));
+      actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id, noteInput.value.trim()));
       row.appendChild(actionBtn);
 
       if(currentProfile.id === t.created_by || currentProfile.id === ev.created_by){
@@ -2265,6 +2328,11 @@ function renderEventCard(ev, teams, carData){
   dateEl.textContent = formatEventDateRange(ev.slot_times) + (duration ? ` · ${duration}` : '');
   left.appendChild(nameEl);
   left.appendChild(dateEl);
+  if(ev.car_classes && ev.car_classes.length){
+    const classRow = renderClassBadges(ev.car_classes, carData.colorByClassName);
+    classRow.style.marginTop = '6px';
+    left.appendChild(classRow);
+  }
   header.appendChild(left);
 
   if(currentProfile && ev.created_by === currentProfile.id){
@@ -2360,7 +2428,7 @@ async function loadTeamEvents(){
 
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,created_by,closed,duration_minutes')
+    .select('id,name,event_date,slot_times,source,created_by,closed,duration_minutes,car_classes')
     .order('event_date', { ascending: true });
 
   if(error){
