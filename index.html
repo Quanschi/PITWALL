@@ -1979,6 +1979,7 @@ async function ensureTeamEventsForSpecialCards(cards){
       week_key: card.week_key,
       duration_minutes: card.race_duration_minutes || null,
       car_classes: card.car_classes && card.car_classes.length ? card.car_classes : null,
+      sr_requirement: card.sr_requirement || null,
       created_by: session.user.id,
     };
     const { error } = await pitwallClient
@@ -2330,7 +2331,10 @@ function renderEventCard(ev, teams, carData){
   const dateEl = document.createElement('div');
   dateEl.className = 'te-event-date';
   const duration = formatDuration(ev.duration_minutes);
-  dateEl.textContent = formatEventDateRange(ev.slot_times) + (duration ? ` · ${duration}` : '');
+  const dateParts = [formatEventDateRange(ev.slot_times)];
+  if(duration) dateParts.push(duration);
+  if(ev.sr_requirement) dateParts.push(`SR ${ev.sr_requirement}`);
+  dateEl.textContent = dateParts.join(' · ');
   left.appendChild(nameEl);
   left.appendChild(dateEl);
   if(ev.car_classes && ev.car_classes.length){
@@ -2433,7 +2437,7 @@ async function loadTeamEvents(){
 
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,created_by,closed,duration_minutes,car_classes')
+    .select('id,name,event_date,slot_times,source,created_by,closed,duration_minutes,car_classes,sr_requirement')
     .order('event_date', { ascending: true });
 
   if(error){
