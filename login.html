@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anmelden — Pitwall</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --carbon:#111317;
+  --panel:#1B1E24;
+  --panel-2:#22262E;
+  --line:#2E333C;
+  --text:#E9E7E1;
+  --muted:#8B9099;
+  --amber:#FFB020;
+  --red:#E85C4A;
+  --violet:#A78BFA;
+  --shadow-md:0 8px 24px rgba(0,0,0,0.3);
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--carbon);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  padding:20px;
+}
+.auth-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:26px 28px;
+  box-shadow:var(--shadow-md);
+  max-width:380px;
+  width:100%;
+}
+.title{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:22px;
+  margin:0 0 4px 0;
+}
+.title span{color:var(--amber);}
+.subtitle{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:var(--muted);
+  margin:0 0 20px 0;
+}
+.auth-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.auth-tab{
+  flex:1;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  padding:9px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--muted);
+  cursor:pointer;
+  transition:all .2s var(--ease);
+}
+.auth-tab.active{background:var(--violet);border-color:var(--violet);color:var(--carbon);}
+.field{margin-bottom:14px;display:flex;flex-direction:column;gap:5px;}
+.field label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+input[type="text"], input[type="email"], input[type="password"]{
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 12px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  width:100%;
+}
+input:focus{outline:none;border-color:var(--violet);}
+.form-message{
+  margin:12px 0;
+  font-size:12.5px;
+  color:var(--red);
+  background:rgba(232,92,74,0.1);
+  padding:8px 12px;
+  border-radius:8px;
+}
+.form-message.success{color:var(--violet);background:rgba(167,139,250,0.1);}
+button[type="submit"], .primary-btn{
+  width:100%;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  padding:11px;
+  border-radius:8px;
+  border:1px solid var(--amber);
+  background:var(--amber);
+  color:var(--carbon);
+  cursor:pointer;
+  transition:all .2s var(--ease);
+}
+button[type="submit"]:hover, .primary-btn:hover{filter:brightness(1.08);}
+button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default;}
+.link-btn{background:none;border:none;padding:0;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif;text-decoration:underline;cursor:pointer;}
+.link-btn:hover{color:var(--text);}
+.back-link{display:inline-block;margin-bottom:16px;color:var(--muted);font-size:13px;text-decoration:none;font-family:'JetBrains Mono',monospace;}
+.back-link:hover{color:var(--text);}
+[hidden]{display:none!important;}
+</style>
+</head>
+<body>
+
+<div class="auth-card">
+  <a class="back-link" href="index.html">← Zurück zu Pitwall</a>
+  <p class="title">Pit<span>wall</span></p>
+  <p class="subtitle">Anmelden oder registrieren</p>
+
+  <div class="auth-tabs">
+    <button type="button" class="auth-tab active" id="auth-tab-login" data-mode="login">Anmelden</button>
+    <button type="button" class="auth-tab" id="auth-tab-signup" data-mode="signup">Registrieren</button>
+  </div>
+  <form id="auth-form">
+    <div class="field" id="field-username" hidden>
+      <label for="auth-username">Benutzername</label>
+      <input type="text" id="auth-username" autocomplete="username" placeholder="Wird auf der Bestenliste angezeigt">
+    </div>
+    <div class="field" id="field-invite" hidden>
+      <label for="auth-invite-code">Einladungscode</label>
+      <input type="text" id="auth-invite-code" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="auth-email">E-Mail</label>
+      <input type="email" id="auth-email" autocomplete="email" required>
+    </div>
+    <div class="field">
+      <label for="auth-password">Passwort</label>
+      <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
+    </div>
+    <div class="form-message" id="auth-message" hidden></div>
+    <button type="submit" id="auth-submit">Anmelden</button>
+  </form>
+  <button type="button" class="link-btn" id="forgot-password-btn" style="margin-top:12px;">Passwort vergessen?</button>
+  <div id="forgot-password-card" hidden style="margin-top:14px;">
+    <div class="field">
+      <label for="forgot-email">E-Mail</label>
+      <input type="email" id="forgot-email" autocomplete="email">
+    </div>
+    <div class="form-message" id="forgot-message" hidden></div>
+    <button type="button" class="primary-btn" id="forgot-submit">Link senden</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const PITWALL_SUPABASE_URL = 'https://ieufpcrfvwacayrlieos.supabase.co';
+const PITWALL_SUPABASE_KEY = 'sb_publishable_nJjfh-bU2mQoJfn4AIYMHw_QRjRU9rq';
+const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABASE_KEY);
+
+let authMode = 'login';
+
+function showFormMessage(id, text, isSuccess){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.hidden = false;
+  el.classList.toggle('success', !!isSuccess);
+}
+function hideFormMessage(id){
+  document.getElementById(id).hidden = true;
+}
+
+function translateAuthError(msg){
+  if(/already registered|already exists/i.test(msg)) return 'Diese E-Mail ist bereits registriert.';
+  if(/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
+  if(/email not confirmed/i.test(msg)) return 'Bitte zuerst die E-Mail bestätigen (Link steht in deinem Postfach).';
+  if(/password.*(least|characters)/i.test(msg)) return 'Passwort muss mindestens 6 Zeichen haben.';
+  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Ungültiger Einladungscode.';
+  return msg;
+}
+
+// Already signed in (e.g. came here by mistake, or session still valid) -
+// no need to log in again.
+(async () => {
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(session) window.location.href = 'index.html';
+})();
+
+document.querySelectorAll('.auth-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    authMode = btn.dataset.mode;
+    document.querySelectorAll('.auth-tab').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('field-username').hidden = authMode !== 'signup';
+    document.getElementById('field-invite').hidden = authMode !== 'signup';
+    document.getElementById('auth-password').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
+    document.getElementById('auth-submit').textContent = authMode === 'signup' ? 'Registrieren' : 'Anmelden';
+    hideFormMessage('auth-message');
+  });
+});
+
+document.getElementById('auth-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideFormMessage('auth-message');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const submitBtn = document.getElementById('auth-submit');
+  submitBtn.disabled = true;
+  try{
+    if(authMode === 'signup'){
+      const username = document.getElementById('auth-username').value.trim();
+      const inviteCode = document.getElementById('auth-invite-code').value.trim();
+      if(!username){
+        showFormMessage('auth-message', 'Bitte einen Benutzernamen wählen.');
+        return;
+      }
+      if(!inviteCode){
+        showFormMessage('auth-message', 'Bitte einen Einladungscode angeben.');
+        return;
+      }
+      const { data, error } = await pitwallClient.auth.signUp({
+        email, password,
+        options: { data: { username, invite_code: inviteCode } },
+      });
+      if(error) throw error;
+      if(!data.session){
+        showFormMessage('auth-message',
+          'Fast fertig — bitte bestätige deine E-Mail-Adresse über den Link, den wir dir geschickt haben, und melde dich danach an.',
+          true);
+        return;
+      }
+    }else{
+      const { error } = await pitwallClient.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    }
+    window.location.href = 'index.html';
+  }catch(err){
+    showFormMessage('auth-message', translateAuthError(err.message));
+  }finally{
+    submitBtn.disabled = false;
+  }
+});
+
+document.getElementById('forgot-password-btn').addEventListener('click', () => {
+  const card = document.getElementById('forgot-password-card');
+  card.hidden = !card.hidden;
+});
+
+document.getElementById('forgot-submit').addEventListener('click', async () => {
+  hideFormMessage('forgot-message');
+  const email = document.getElementById('forgot-email').value.trim();
+  if(!email){
+    showFormMessage('forgot-message', 'Bitte E-Mail-Adresse angeben.');
+    return;
+  }
+  const resetUrl = new URL('reset-password.html', window.location.href).href;
+  const { error } = await pitwallClient.auth.resetPasswordForEmail(email, { redirectTo: resetUrl });
+  if(error){
+    showFormMessage('forgot-message', translateAuthError(error.message));
+    return;
+  }
+  showFormMessage('forgot-message', 'Falls diese E-Mail registriert ist, wurde ein Link zum Zurücksetzen verschickt.', true);
+});
+</script>
+
+</body>
+</html>

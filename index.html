@@ -387,22 +387,6 @@ body{
   box-shadow:var(--shadow-md);
   max-width:380px;
 }
-.auth-tabs{display:flex;gap:8px;margin-bottom:18px;}
-.auth-tab{
-  flex:1;
-  font-family:'JetBrains Mono',monospace;
-  font-size:12px;
-  letter-spacing:0.5px;
-  text-transform:uppercase;
-  padding:9px;
-  border-radius:8px;
-  border:1px solid var(--line);
-  background:var(--panel-2);
-  color:var(--muted);
-  cursor:pointer;
-  transition:all .2s var(--ease);
-}
-.auth-tab.active{background:var(--violet);border-color:var(--violet);color:var(--carbon);}
 .field{margin-bottom:14px;display:flex;flex-direction:column;gap:5px;}
 [hidden]{display:none!important;}
 .field label{
@@ -437,16 +421,6 @@ input:focus{outline:none;border-color:var(--violet);}
 .laptime-inputs{display:flex;align-items:center;gap:5px;}
 .laptime-inputs select, .laptime-inputs input{width:auto;min-width:60px;text-align:center;}
 .laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
-
-.logbook-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:13px;
-  color:var(--text);
-}
 
 .leaderboard-track{margin-bottom:18px;}
 .leaderboard-track-name{
@@ -611,6 +585,85 @@ input:focus{outline:none;border-color:var(--violet);}
 .te-new-team-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
 .te-new-team-form select{width:auto;min-width:150px;}
 
+/* ---- Account area (header, top-right) ---- */
+.account-login-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--carbon);
+  background:var(--amber);
+  border:1px solid var(--amber);
+  padding:6px 14px;
+  border-radius:20px;
+  text-decoration:none;
+  display:inline-block;
+  transition:all .2s var(--ease);
+}
+.account-login-btn:hover{filter:brightness(1.08);}
+#account-profile{position:relative;display:inline-block;}
+.account-profile-btn{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:none;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:4px 12px 4px 4px;
+  cursor:pointer;
+  color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  transition:all .2s var(--ease);
+}
+.account-profile-btn:hover{border-color:var(--muted);}
+.account-avatar, .account-avatar-fallback{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  object-fit:cover;
+  flex-shrink:0;
+}
+.account-avatar-fallback{
+  background:var(--violet);
+  color:var(--carbon);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-family:'Rajdhani',sans-serif;
+  font-size:13px;
+}
+.account-dropdown{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:var(--shadow-md);
+  padding:6px;
+  min-width:180px;
+  z-index:20;
+  text-align:left;
+}
+.account-dropdown-item{
+  display:block;
+  width:100%;
+  background:none;
+  border:none;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:8px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  text-align:left;
+  box-sizing:border-box;
+}
+.account-dropdown-item:hover{background:var(--panel-2);}
+.account-dropdown .form-message{margin:4px 10px;font-size:11.5px;}
+
 @media(max-width:640px){
   .header{padding:22px 18px 14px 18px;}
   .tabs, .panel{padding-left:18px;padding-right:18px;}
@@ -630,6 +683,22 @@ input:focus{outline:none;border-color:var(--violet);}
     </div>
     <div class="stamp">
       <button class="sync-btn" id="sync-btn" type="button">Jetzt aktualisieren</button>
+      <div id="account-area" style="margin-top:8px;">
+        <a href="login.html" id="account-login-link" class="account-login-btn" hidden>Login</a>
+        <div id="account-profile" hidden>
+          <button type="button" id="account-profile-btn" class="account-profile-btn">
+            <img id="account-avatar-img" class="account-avatar" hidden alt="">
+            <span id="account-avatar-fallback" class="account-avatar-fallback"></span>
+            <span id="account-username-label"></span>
+          </button>
+          <div id="account-dropdown" class="account-dropdown" hidden>
+            <label class="account-dropdown-item" for="account-avatar-input">Profilbild ändern</label>
+            <input type="file" id="account-avatar-input" accept="image/*" hidden>
+            <div class="form-message" id="account-avatar-message" hidden></div>
+            <button type="button" class="account-dropdown-item" id="account-logout-btn">Abmelden</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <svg class="raceline" viewBox="0 0 800 14" preserveAspectRatio="none">
@@ -676,48 +745,13 @@ input:focus{outline:none;border-color:var(--violet);}
 
   <div id="auth-section">
     <div class="auth-card">
-      <div class="auth-tabs">
-        <button type="button" class="auth-tab active" id="auth-tab-login" data-mode="login">Anmelden</button>
-        <button type="button" class="auth-tab" id="auth-tab-signup" data-mode="signup">Registrieren</button>
-      </div>
-      <form id="auth-form">
-        <div class="field" id="field-username" hidden>
-          <label for="auth-username">Benutzername</label>
-          <input type="text" id="auth-username" autocomplete="username" placeholder="Wird auf der Bestenliste angezeigt">
-        </div>
-        <div class="field" id="field-invite" hidden>
-          <label for="auth-invite-code">Einladungscode</label>
-          <input type="text" id="auth-invite-code" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="auth-email">E-Mail</label>
-          <input type="email" id="auth-email" autocomplete="email" required>
-        </div>
-        <div class="field">
-          <label for="auth-password">Passwort</label>
-          <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
-        </div>
-        <div class="form-message" id="auth-message" hidden></div>
-        <button type="submit" class="filter-pill active" id="auth-submit">Anmelden</button>
-      </form>
-      <button type="button" class="link-btn" id="forgot-password-btn" style="margin-top:12px;">Passwort vergessen?</button>
-      <div id="forgot-password-card" hidden style="margin-top:14px;">
-        <div class="field">
-          <label for="forgot-email">E-Mail</label>
-          <input type="email" id="forgot-email" autocomplete="email">
-        </div>
-        <div class="form-message" id="forgot-message" hidden></div>
-        <button type="button" class="filter-pill active" id="forgot-submit">Link senden</button>
-      </div>
+      <p class="section-label" style="margin-top:0">Nicht angemeldet</p>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 16px 0;">Melde dich an, um eigene Rundenzeiten einzutragen.</p>
+      <a href="login.html" class="filter-pill active" style="display:inline-block;text-decoration:none;">Zum Login</a>
     </div>
   </div>
 
   <div id="logbook-section" hidden>
-    <div class="logbook-header">
-      <span id="logbook-user"></span>
-      <button type="button" class="sync-btn" id="logout-btn">Abmelden</button>
-    </div>
-
     <p class="section-label">Neue Zeit eintragen</p>
     <form id="laptime-form" class="laptime-form">
       <select id="lt-track" required>
@@ -763,7 +797,11 @@ input:focus{outline:none;border-color:var(--violet);}
 <!-- TEAM EVENTS -->
 <div class="panel" id="panel-teamevents">
 
-  <div id="te-login-gate" class="leaderboard-empty">Bitte zuerst im Logbuch-Tab anmelden, um Team Events zu sehen.</div>
+  <div id="te-login-gate" class="auth-card" style="max-width:380px;">
+    <p class="section-label" style="margin-top:0">Nicht angemeldet</p>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px 0;">Melde dich an, um Team Events zu sehen und mitzumachen.</p>
+    <a href="login.html" class="filter-pill active" style="display:inline-block;text-decoration:none;">Zum Login</a>
+  </div>
 
   <div id="te-content" hidden>
   <div class="te-toolbar">
@@ -1533,8 +1571,7 @@ const PITWALL_SUPABASE_URL = 'https://ieufpcrfvwacayrlieos.supabase.co';
 const PITWALL_SUPABASE_KEY = 'sb_publishable_nJjfh-bU2mQoJfn4AIYMHw_QRjRU9rq';
 const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABASE_KEY);
 
-let authMode = 'login';
-let currentProfile = null; // { id, username }
+let currentProfile = null; // { id, username, avatar_url }
 
 function populateDigitSelect(id, count, digits){
   const sel = document.getElementById(id);
@@ -1569,109 +1606,89 @@ function hideFormMessage(id){
   document.getElementById(id).hidden = true;
 }
 
-function translateAuthError(msg){
-  if(/already registered|already exists/i.test(msg)) return 'Diese E-Mail ist bereits registriert.';
-  if(/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
-  if(/email not confirmed/i.test(msg)) return 'Bitte zuerst die E-Mail bestätigen (Link steht in deinem Postfach).';
-  if(/password.*(least|characters)/i.test(msg)) return 'Passwort muss mindestens 6 Zeichen haben.';
-  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Ungültiger Einladungscode.';
-  return msg;
+async function loadOwnProfile(userId){
+  const { data } = await pitwallClient.from('profiles').select('id,username,avatar_url').eq('id', userId).maybeSingle();
+  return data;
 }
 
-document.querySelectorAll('.auth-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    authMode = btn.dataset.mode;
-    document.querySelectorAll('.auth-tab').forEach(b => b.classList.toggle('active', b === btn));
-    document.getElementById('field-username').hidden = authMode !== 'signup';
-    document.getElementById('field-invite').hidden = authMode !== 'signup';
-    document.getElementById('auth-password').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
-    document.getElementById('auth-submit').textContent = authMode === 'signup' ? 'Registrieren' : 'Anmelden';
-    hideFormMessage('auth-message');
-  });
+document.getElementById('account-profile-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('account-dropdown');
+  dropdown.hidden = !dropdown.hidden;
+});
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('account-dropdown');
+  if(!dropdown.hidden && !e.target.closest('#account-profile')) dropdown.hidden = true;
 });
 
-document.getElementById('auth-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  hideFormMessage('auth-message');
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const submitBtn = document.getElementById('auth-submit');
-  submitBtn.disabled = true;
-  try{
-    if(authMode === 'signup'){
-      const username = document.getElementById('auth-username').value.trim();
-      const inviteCode = document.getElementById('auth-invite-code').value.trim();
-      if(!username){
-        showFormMessage('auth-message', 'Bitte einen Benutzernamen wählen.');
-        return;
-      }
-      if(!inviteCode){
-        showFormMessage('auth-message', 'Bitte einen Einladungscode angeben.');
-        return;
-      }
-      const { data, error } = await pitwallClient.auth.signUp({
-        email, password,
-        options: { data: { username, invite_code: inviteCode } },
-      });
-      if(error) throw error;
-      if(!data.session){
-        showFormMessage('auth-message',
-          'Fast fertig — bitte bestätige deine E-Mail-Adresse über den Link, den wir dir geschickt haben, und melde dich danach an.',
-          true);
-      }
-    }else{
-      const { error } = await pitwallClient.auth.signInWithPassword({ email, password });
-      if(error) throw error;
-    }
-  }catch(err){
-    showFormMessage('auth-message', translateAuthError(err.message));
-  }finally{
-    submitBtn.disabled = false;
-  }
-});
+document.getElementById('account-logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
 
-document.getElementById('forgot-password-btn').addEventListener('click', () => {
-  const card = document.getElementById('forgot-password-card');
-  card.hidden = !card.hidden;
-});
-
-document.getElementById('forgot-submit').addEventListener('click', async () => {
-  hideFormMessage('forgot-message');
-  const email = document.getElementById('forgot-email').value.trim();
-  if(!email){
-    showFormMessage('forgot-message', 'Bitte E-Mail-Adresse angeben.');
+document.getElementById('account-avatar-input').addEventListener('change', async () => {
+  const file = document.getElementById('account-avatar-input').files[0];
+  if(!file) return;
+  hideFormMessage('account-avatar-message');
+  if(!file.type.startsWith('image/')){
+    showFormMessage('account-avatar-message', 'Bitte eine Bilddatei wählen.');
     return;
   }
-  const resetUrl = new URL('reset-password.html', window.location.href).href;
-  const { error } = await pitwallClient.auth.resetPasswordForEmail(email, {
-    redirectTo: resetUrl,
-  });
-  if(error){
-    showFormMessage('forgot-message', translateAuthError(error.message));
+  if(file.size > 3 * 1024 * 1024){
+    showFormMessage('account-avatar-message', 'Bild darf höchstens 3 MB groß sein.');
     return;
   }
-  showFormMessage('forgot-message', 'Falls diese E-Mail registriert ist, wurde ein Link zum Zurücksetzen verschickt.', true);
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${session.user.id}/avatar.${ext}`;
+  const { error: uploadError } = await pitwallClient.storage.from('avatars').upload(path, file, { upsert: true });
+  if(uploadError){
+    showFormMessage('account-avatar-message', 'Hochladen fehlgeschlagen: ' + uploadError.message);
+    return;
+  }
+  const { data: { publicUrl } } = pitwallClient.storage.from('avatars').getPublicUrl(path);
+  const avatarUrl = publicUrl + '?t=' + Date.now();
+  const { error: updateError } = await pitwallClient.from('profiles').update({ avatar_url: avatarUrl }).eq('id', session.user.id);
+  if(updateError){
+    showFormMessage('account-avatar-message', 'Speichern fehlgeschlagen: ' + updateError.message);
+    return;
+  }
+  currentProfile = { ...currentProfile, avatar_url: avatarUrl };
+  updateAccountArea();
+  showFormMessage('account-avatar-message', 'Profilbild aktualisiert.', true);
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
-
-async function loadOwnProfile(userId){
-  const { data } = await pitwallClient.from('profiles').select('id,username').eq('id', userId).maybeSingle();
-  return data;
+function updateAccountArea(){
+  const loginLink = document.getElementById('account-login-link');
+  const profileArea = document.getElementById('account-profile');
+  if(!currentProfile){
+    loginLink.hidden = false;
+    profileArea.hidden = true;
+    return;
+  }
+  loginLink.hidden = true;
+  profileArea.hidden = false;
+  document.getElementById('account-username-label').textContent = currentProfile.username;
+  const img = document.getElementById('account-avatar-img');
+  const fallback = document.getElementById('account-avatar-fallback');
+  if(currentProfile.avatar_url){
+    img.src = currentProfile.avatar_url;
+    img.hidden = false;
+    fallback.hidden = true;
+  }else{
+    img.hidden = true;
+    fallback.hidden = false;
+    fallback.textContent = (currentProfile.username || '?').charAt(0).toUpperCase();
+  }
 }
 
 function updateAuthUI(session){
   const authSection = document.getElementById('auth-section');
   const logbookSection = document.getElementById('logbook-section');
+  updateAccountArea();
   if(session){
     authSection.hidden = true;
     logbookSection.hidden = false;
-    document.getElementById('logbook-user').textContent = currentProfile
-      ? `Angemeldet als ${currentProfile.username}`
-      : 'Angemeldet';
     loadLeaderboard();
   }else{
-    currentProfile = null;
     authSection.hidden = false;
     logbookSection.hidden = true;
   }
