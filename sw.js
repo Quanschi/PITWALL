@@ -1,10 +1,9 @@
-const CACHE_NAME = 'pitwall-shell-v78';
+const CACHE_NAME = 'pitwall-shell-v79';
 const SHELL_FILES = [
   './',
   './index.html',
   './login.html',
   './reset-password.html',
-  './datenschutz.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
