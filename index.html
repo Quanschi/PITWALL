@@ -266,6 +266,16 @@ body{
   color:var(--muted);
   white-space:nowrap;
 }
+.sr-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:0.3px;
+  padding:3px 9px;
+  border-radius:20px;
+  color:var(--carbon);
+  white-space:nowrap;
+}
 .schedule-times-label{
   display:flex;
   justify-content:space-between;
@@ -1782,6 +1792,30 @@ function renderClassBadges(classNames, colorByClassName){
   return row;
 }
 
+// lmuportal's sr_requirement is inconsistent - sometimes a full tier name
+// ("Bronze", "Gold", ...), sometimes an already-short code with the
+// sub-rank digit ("B0", "S2", ...), sometimes "None". Normalize both into
+// a "SR <letter><digit?>" badge, solid-filled per tier (not the outlined
+// style used for class badges), dark text for contrast on the light tiers.
+const SR_TIER_COLORS = { B: '#CD7F32', S: '#C0C0C0', G: '#FFD700', P: '#E5E4E2' };
+function parseSrRequirement(raw){
+  if(!raw || /^none$/i.test(raw.trim())) return null;
+  const short = /^([BSGP])(\d)$/i.exec(raw.trim());
+  if(short) return { letter: short[1].toUpperCase(), digit: short[2] };
+  const word = /^(bronze|silver|silber|gold|platinum|platin)/i.exec(raw.trim());
+  if(word) return { letter: word[1][0].toUpperCase(), digit: null };
+  return null;
+}
+function renderSrBadge(raw){
+  const sr = parseSrRequirement(raw);
+  if(!sr) return null;
+  const badge = document.createElement('span');
+  badge.className = 'sr-badge';
+  badge.textContent = `SR ${sr.letter}${sr.digit || ''}`;
+  badge.style.background = SR_TIER_COLORS[sr.letter] || 'var(--muted)';
+  return badge;
+}
+
 function trackLabel(track, layout){
   if(!layout || GENERIC_LAYOUT_WORDS.has(layout.toLowerCase()) || foldAccents(layout) === foldAccents(track.short_name)){
     return track.short_name;
@@ -2378,12 +2412,13 @@ function renderEventCard(ev, teams, carData){
   const duration = formatDuration(ev.duration_minutes);
   const dateParts = [formatEventDateRange(ev.slot_times)];
   if(duration) dateParts.push(duration);
-  if(ev.sr_requirement) dateParts.push(`SR ${ev.sr_requirement}`);
   dateEl.textContent = dateParts.join(' · ');
   left.appendChild(nameEl);
   left.appendChild(dateEl);
-  if(ev.car_classes && ev.car_classes.length){
+  const srBadge = renderSrBadge(ev.sr_requirement);
+  if((ev.car_classes && ev.car_classes.length) || srBadge){
     const classRow = renderClassBadges(ev.car_classes, carData.colorByClassName);
+    if(srBadge) classRow.appendChild(srBadge);
     classRow.style.marginTop = '6px';
     left.appendChild(classRow);
   }
