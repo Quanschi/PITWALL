@@ -1753,19 +1753,31 @@ document.getElementById('account-avatar-input').addEventListener('change', async
     showFormMessage('account-avatar-message', 'Hochladen fehlgeschlagen: ' + uploadError.message);
     return;
   }
-  const { data: { publicUrl } } = pitwallClient.storage.from('avatars').getPublicUrl(path);
-  const avatarUrl = publicUrl + '?t=' + Date.now();
-  const { error: updateError } = await pitwallClient.from('profiles').update({ avatar_url: avatarUrl }).eq('id', session.user.id);
+  const { error: updateError } = await pitwallClient.from('profiles').update({ avatar_url: path }).eq('id', session.user.id);
   if(updateError){
     showFormMessage('account-avatar-message', 'Speichern fehlgeschlagen: ' + updateError.message);
     return;
   }
-  currentProfile = { ...currentProfile, avatar_url: avatarUrl };
+  currentProfile = { ...currentProfile, avatar_url: path };
   updateAccountArea();
   showFormMessage('account-avatar-message', 'Profilbild aktualisiert.', true);
 });
 
-function updateAccountArea(){
+// avatar_url may still hold an old full public URL from before the avatars
+// bucket became private - pull out just the storage path either way, since
+// a signed URL request needs the bare path.
+function extractAvatarPath(value){
+  if(!value) return null;
+  let path = value;
+  const marker = '/avatars/';
+  const idx = path.indexOf(marker);
+  if(idx !== -1) path = path.slice(idx + marker.length);
+  const qIdx = path.indexOf('?');
+  if(qIdx !== -1) path = path.slice(0, qIdx);
+  return path;
+}
+
+async function updateAccountArea(){
   const loginLink = document.getElementById('account-login-link');
   const profileArea = document.getElementById('account-profile');
   if(!currentProfile){
@@ -1778,15 +1790,19 @@ function updateAccountArea(){
   document.getElementById('account-username-label').textContent = currentProfile.username;
   const img = document.getElementById('account-avatar-img');
   const fallback = document.getElementById('account-avatar-fallback');
-  if(currentProfile.avatar_url){
-    img.src = currentProfile.avatar_url;
-    img.hidden = false;
-    fallback.hidden = true;
-  }else{
-    img.hidden = true;
-    fallback.hidden = false;
-    fallback.textContent = (currentProfile.username || '?').charAt(0).toUpperCase();
+  const path = extractAvatarPath(currentProfile.avatar_url);
+  if(path){
+    const { data, error } = await pitwallClient.storage.from('avatars').createSignedUrl(path, 3600);
+    if(!error && data){
+      img.src = data.signedUrl;
+      img.hidden = false;
+      fallback.hidden = true;
+      return;
+    }
   }
+  img.hidden = true;
+  fallback.hidden = false;
+  fallback.textContent = (currentProfile.username || '?').charAt(0).toUpperCase();
 }
 
 function updateAuthUI(session){
