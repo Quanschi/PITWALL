@@ -363,21 +363,6 @@ body{
   padding:10px 12px;
 }
 
-.sync-btn{
-  font-family:'JetBrains Mono',monospace;
-  font-size:10.5px;
-  letter-spacing:0.5px;
-  text-transform:uppercase;
-  background:none;
-  border:1px solid var(--line);
-  color:var(--muted);
-  padding:4px 10px;
-  border-radius:20px;
-  cursor:pointer;
-  transition:all .2s var(--ease);
-}
-.sync-btn:hover{color:var(--text);border-color:var(--muted);background:var(--panel-2);}
-
 /* ---- Logbook tab ---- */
 .auth-card{
   background:var(--panel);
@@ -665,11 +650,20 @@ input:focus{outline:none;border-color:var(--violet);}
 .account-dropdown .form-message{margin:4px 10px;font-size:11.5px;}
 
 @media(max-width:640px){
-  .header{padding:22px 18px 14px 18px;}
-  .tabs, .panel{padding-left:18px;padding-right:18px;}
-  .title{font-size:26px;}
+  .header{padding:16px 16px 10px 16px;}
+  .tabs, .panel{padding-left:16px;padding-right:16px;}
+  .title{font-size:24px;}
+  .subtitle{font-size:10.5px;margin-top:2px;}
   .header-top{flex-direction:column;align-items:flex-start;}
   .stamp{text-align:left;}
+  .raceline{margin-top:10px;height:10px;}
+  .tabs{margin-top:14px;gap:5px;}
+  .tab{padding:9px 14px;font-size:12.5px;}
+  .panel{padding-top:16px;}
+  .section-label{margin:16px 0 8px 0;}
+  .filter-row{margin:2px 0 12px 0;gap:6px;}
+  .filter-pill{padding:6px 11px;font-size:10.5px;}
+  .schedule-card{padding:14px 18px;}
 }
 </style>
 </head>
@@ -682,8 +676,7 @@ input:focus{outline:none;border-color:var(--violet);}
       <p class="subtitle">LMU · Schedule · Logbuch · Team Events</p>
     </div>
     <div class="stamp">
-      <button class="sync-btn" id="sync-btn" type="button">Jetzt aktualisieren</button>
-      <div id="account-area" style="margin-top:8px;">
+      <div id="account-area">
         <a href="login.html" id="account-login-link" class="account-login-btn" hidden>Login</a>
         <div id="account-profile" hidden>
           <button type="button" id="account-profile-btn" class="account-profile-btn">
@@ -872,13 +865,6 @@ input:focus{outline:none;border-color:var(--violet);}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-document.getElementById('sync-btn').addEventListener('click', () => {
-  Object.keys(scheduleCache).forEach(key => delete scheduleCache[key]);
-  if(document.getElementById('panel-schedule').classList.contains('active')){
-    loadScheduleView();
-  }
-});
-
 // ---- Schedule tab: own cards rendered from lmuportal.com's public Supabase
 // data (their anon key + open REST API are meant for direct client use,
 // unlike lmuschedule.com's origin-locked API) ----
