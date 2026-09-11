@@ -681,7 +681,7 @@ input:focus{outline:none;border-color:var(--violet);}
 @media(min-width:900px){
   /* Schedule stays one column (like mobile) but only uses the left/center
      of the screen instead of stretching edge to edge. */
-  .schedule-carousel{max-width:640px;}
+  .schedule-carousel{max-width:700px;}
 
   /* Logbook and Team Events: form/create-panel on the left, the list on
      the right - same order/grouping as the stacked mobile layout, just
@@ -690,35 +690,9 @@ input:focus{outline:none;border-color:var(--violet);}
   .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
   .split-col-left{flex:0 0 460px;}
   .split-col-right{flex:1;max-width:560px;}
+  #te-content .split-col-right{max-width:640px;}
 }
 
-/* Preview: conditions open as a flyout to the right of the card instead of
-   pushing the card's own content down - needs its own, wider breakpoint
-   (640px card + 20px gap + 280px panel + padding) so it doesn't get cut
-   off/pushed off-screen on a merely-900px window. */
-@media(min-width:1150px){
-  .schedule-carousel{overflow-x:visible;}
-  .schedule-card{overflow:visible;}
-  .schedule-details{
-    position:absolute;
-    top:18px;
-    left:100%;
-    margin-left:20px;
-    width:280px;
-    max-height:calc(100% - 36px);
-    overflow-y:auto;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-top:none;
-    border-radius:12px;
-    padding:16px 18px;
-    margin-top:0;
-    padding-top:16px;
-    box-shadow:var(--shadow-md);
-    grid-template-columns:1fr;
-    z-index:5;
-  }
-}
 </style>
 </head>
 <body>
@@ -1550,12 +1524,7 @@ function renderScheduleCards(cards, colorByClassName){
       // The card's own scrollbar is hidden (still scrollable, just no
       // visible track/thumb), so without this there's no visual hint that
       // newly-opened conditions sit below the fold - scroll them into view.
-      // Only below the flyout breakpoint - at ≥1150px the details render
-      // beside the card (not clipped), and scrolling there would instead
-      // disrupt the carousel's own card-to-card scroll-snap position.
-      if(!isOpen && window.innerWidth < 1150){
-        detailsBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
+      if(!isOpen) detailsBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 
     if(i < cards.length - 1){
