@@ -425,6 +425,23 @@ input:focus{outline:none;border-color:var(--violet);}
 .split-columns{display:flex;flex-direction:column;}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
+.mobile-toggle-btn{
+  display:none;
+  width:100%;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12.5px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  padding:11px 14px;
+  border-radius:8px;
+  border:1px dashed var(--line);
+  background:var(--panel-2);
+  color:var(--text);
+  cursor:pointer;
+  margin-bottom:14px;
+  transition:all .2s var(--ease);
+}
+.mobile-toggle-btn:hover{border-color:var(--muted);}
 .laptime-inputs{display:flex;align-items:center;gap:5px;}
 .laptime-inputs select, .laptime-inputs input{width:auto;min-width:60px;text-align:center;}
 .laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
@@ -689,6 +706,8 @@ input:focus{outline:none;border-color:var(--violet);}
   .filter-row{margin:2px 0 12px 0;gap:6px;}
   .filter-pill{padding:6px 11px;font-size:10.5px;}
   .schedule-card{padding:14px 18px;}
+  .mobile-toggle-btn{display:block;}
+  .mobile-collapsible.collapsed{display:none;}
 }
 
 /* ---- Wide desktop ---- */
@@ -789,6 +808,8 @@ input:focus{outline:none;border-color:var(--violet);}
   <div id="logbook-section" hidden>
   <div class="split-columns">
     <div class="split-col-left">
+    <button type="button" class="mobile-toggle-btn" id="lt-mobile-toggle">+ Neue Zeit eintragen</button>
+    <div class="mobile-collapsible collapsed" id="lt-create-card">
     <p class="section-label" style="margin-top:0">Neue Zeit eintragen</p>
     <form id="laptime-form" class="laptime-form">
       <select id="lt-track" required>
@@ -819,6 +840,7 @@ input:focus{outline:none;border-color:var(--violet);}
     </form>
     <div class="form-message" id="laptime-message" hidden></div>
     </div>
+    </div>
 
     <div class="split-col-right">
     <p class="section-label" style="margin-top:0">Bestenliste</p>
@@ -847,7 +869,8 @@ input:focus{outline:none;border-color:var(--violet);}
   <div id="te-content" hidden>
   <div class="split-columns">
     <div class="split-col-left">
-    <div class="auth-card" id="te-create-card">
+    <button type="button" class="mobile-toggle-btn" id="te-mobile-toggle">+ Event erstellen</button>
+    <div class="auth-card mobile-collapsible collapsed" id="te-create-card">
       <p class="section-label" style="margin-top:0">Neues Team Event</p>
       <div class="field">
         <label for="te-name">Name</label>
@@ -2571,6 +2594,17 @@ function showPanel(name){
 }
 
 showPanel('schedule');
+
+function setupMobileToggle(btnId, cardId, openText, closeText){
+  const btn = document.getElementById(btnId);
+  const card = document.getElementById(cardId);
+  btn.addEventListener('click', () => {
+    const collapsed = card.classList.toggle('collapsed');
+    btn.textContent = collapsed ? openText : closeText;
+  });
+}
+setupMobileToggle('lt-mobile-toggle', 'lt-create-card', '+ Neue Zeit eintragen', '− Formular ausblenden');
+setupMobileToggle('te-mobile-toggle', 'te-create-card', '+ Event erstellen', '− Formular ausblenden');
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
