@@ -491,7 +491,8 @@ input:focus{outline:none;border-color:var(--violet);}
   margin-bottom:16px;
 }
 .te-event-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;}
-.te-event-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:21px;color:var(--text);}
+.te-event-name{display:flex;align-items:center;flex-wrap:wrap;gap:9px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:21px;color:var(--text);}
+.te-event-name .sr-badge{font-family:'JetBrains Mono',monospace;}
 .te-event-date{font-size:13.5px;color:var(--muted);margin-top:3px;}
 .te-badges-row{display:flex;gap:6px;margin-bottom:7px;}
 .te-badge-auto{
@@ -1797,7 +1798,7 @@ function renderClassBadges(classNames, colorByClassName){
 // sub-rank digit ("B0", "S2", ...), sometimes "None". Normalize both into
 // a "SR <letter><digit?>" badge, solid-filled per tier (not the outlined
 // style used for class badges), dark text for contrast on the light tiers.
-const SR_TIER_COLORS = { B: '#CD7F32', S: '#C0C0C0', G: '#FFD700', P: '#E5E4E2' };
+const SR_TIER_COLORS = { B: '#C97C3D', S: '#ADB2B8', G: '#F2C230', P: '#6FC3DF' };
 function parseSrRequirement(raw){
   if(!raw || /^none$/i.test(raw.trim())) return null;
   const short = /^([BSGP])(\d)$/i.exec(raw.trim());
@@ -2406,7 +2407,11 @@ function renderEventCard(ev, teams, carData){
 
   const nameEl = document.createElement('div');
   nameEl.className = 'te-event-name';
-  nameEl.textContent = ev.name;
+  const nameText = document.createElement('span');
+  nameText.textContent = ev.name;
+  nameEl.appendChild(nameText);
+  const srBadge = renderSrBadge(ev.sr_requirement);
+  if(srBadge) nameEl.appendChild(srBadge);
   const dateEl = document.createElement('div');
   dateEl.className = 'te-event-date';
   const duration = formatDuration(ev.duration_minutes);
@@ -2415,10 +2420,8 @@ function renderEventCard(ev, teams, carData){
   dateEl.textContent = dateParts.join(' · ');
   left.appendChild(nameEl);
   left.appendChild(dateEl);
-  const srBadge = renderSrBadge(ev.sr_requirement);
-  if((ev.car_classes && ev.car_classes.length) || srBadge){
+  if(ev.car_classes && ev.car_classes.length){
     const classRow = renderClassBadges(ev.car_classes, carData.colorByClassName);
-    if(srBadge) classRow.appendChild(srBadge);
     classRow.style.marginTop = '6px';
     left.appendChild(classRow);
   }
