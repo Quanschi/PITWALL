@@ -212,6 +212,8 @@ body{
   cursor:pointer;
 }
 .schedule-card:last-child{border-bottom:none;}
+.schedule-carousel, .schedule-card{scrollbar-width:none;-ms-overflow-style:none;}
+.schedule-carousel::-webkit-scrollbar, .schedule-card::-webkit-scrollbar{display:none;}
 .schedule-card-head{
   padding-right:92px;
   margin-bottom:2px;
@@ -377,7 +379,7 @@ body{
   border-radius:12px;
   padding:22px 24px;
   box-shadow:var(--shadow-md);
-  max-width:380px;
+  max-width:460px;
 }
 .field{margin-bottom:14px;display:flex;flex-direction:column;gap:5px;}
 [hidden]{display:none!important;}
@@ -677,17 +679,41 @@ input:focus{outline:none;border-color:var(--violet);}
 
 /* ---- Wide desktop ---- */
 @media(min-width:900px){
-  /* Schedule stays one column (like mobile) but only uses the center of
-     the screen instead of stretching edge to edge. */
-  .schedule-carousel{max-width:640px;margin:0 auto;}
+  /* Schedule stays one column (like mobile) but only uses the left/center
+     of the screen instead of stretching edge to edge. */
+  .schedule-carousel{max-width:640px;overflow-x:visible;}
+
+  /* Preview: conditions open as a flyout to the right of the card (using
+     the empty space next to the now-narrower carousel) instead of
+     pushing the card's own content down. */
+  .schedule-card{overflow:visible;}
+  .schedule-details{
+    position:absolute;
+    top:18px;
+    left:100%;
+    margin-left:20px;
+    width:280px;
+    max-height:calc(100% - 36px);
+    overflow-y:auto;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:none;
+    border-radius:12px;
+    padding:16px 18px;
+    margin-top:0;
+    padding-top:16px;
+    box-shadow:var(--shadow-md);
+    grid-template-columns:1fr;
+    z-index:5;
+  }
 
   /* Logbook and Team Events: form/create-panel on the left, the list on
      the right - same order/grouping as the stacked mobile layout, just
-     arranged as columns. The right column is capped so its rows don't
-     stretch wide enough to push name and time far apart. */
+     arranged as columns. The right column is still capped so its rows
+     don't stretch wide enough to push name and time far apart. */
   .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
-  .split-col-left{flex:0 0 340px;}
-  .split-col-right{flex:1;max-width:440px;}
+  .split-col-left{flex:0 0 460px;}
+  .split-col-right{flex:1;max-width:560px;}
 }
 </style>
 </head>
