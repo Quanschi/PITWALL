@@ -1547,6 +1547,15 @@ function renderScheduleCards(cards, colorByClassName){
       const isOpen = detailsBlock.style.display !== 'none';
       detailsBlock.style.display = isOpen ? 'none' : 'grid';
       toggle.textContent = isOpen ? 'Tippen für Bedingungen ▾' : 'Weniger anzeigen ▴';
+      // The card's own scrollbar is hidden (still scrollable, just no
+      // visible track/thumb), so without this there's no visual hint that
+      // newly-opened conditions sit below the fold - scroll them into view.
+      // Only below the flyout breakpoint - at ≥1150px the details render
+      // beside the card (not clipped), and scrolling there would instead
+      // disrupt the carousel's own card-to-card scroll-snap position.
+      if(!isOpen && window.innerWidth < 1150){
+        detailsBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     });
 
     if(i < cards.length - 1){
