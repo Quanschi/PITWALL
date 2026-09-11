@@ -219,7 +219,7 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
 
 <div class="success-overlay" id="success-overlay" hidden>
   <div class="success-content">
-    <p class="success-message" id="success-message">Anmeldung erfolgreich</p>
+    <p class="success-message" id="success-message">Anmeldung erfolgreich!</p>
     <div class="success-tire">
       <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
         <circle cx="20" cy="20" r="18" fill="#F5F5F0" stroke="#000" stroke-width="1"/>
@@ -316,7 +316,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
       const { error } = await pitwallClient.auth.signInWithPassword({ email, password });
       if(error) throw error;
     }
-    showSuccessAndRedirect(authMode === 'signup' ? 'Registrierung erfolgreich' : 'Anmeldung erfolgreich');
+    showSuccessAndRedirect(authMode === 'signup' ? 'Registrierung erfolgreich!' : 'Anmeldung erfolgreich!');
   }catch(err){
     showFormMessage('auth-message', translateAuthError(err.message));
   }finally{
