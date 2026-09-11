@@ -1798,7 +1798,7 @@ function renderClassBadges(classNames, colorByClassName){
 // sub-rank digit ("B0", "S2", ...), sometimes "None". Normalize both into
 // a "SR <letter><digit?>" badge, solid-filled per tier (not the outlined
 // style used for class badges), dark text for contrast on the light tiers.
-const SR_TIER_COLORS = { B: '#8F6F3C', S: '#B0B0B0', G: '#E6B917', P: '#6EB5FF' };
+const SR_TIER_COLORS = { B: '#755D35', S: '#B0B0B0', G: '#E6B917', P: '#6EB5FF' };
 function parseSrRequirement(raw){
   if(!raw || /^none$/i.test(raw.trim())) return null;
   const short = /^([BSGP])(\d)$/i.exec(raw.trim());
