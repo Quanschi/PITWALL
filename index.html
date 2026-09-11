@@ -611,9 +611,11 @@ input:focus{outline:none;border-color:var(--violet);}
   margin-bottom:8px;
 }
 .stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.stint-row.dragging{opacity:0.4;}
+.stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
 .stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
 .stint-plan select, .stint-plan input[type="number"]{width:auto;}
-.stint-driver-select{flex:1;min-width:120px;}
+.stint-driver-select, .stint-spotter-select{flex:1;min-width:110px;}
 .stint-driver-text{flex:1;font-size:13px;color:var(--text);min-width:0;}
 .stint-duration-input{width:60px !important;flex-shrink:0;text-align:center;}
 .stint-duration-unit{font-size:12px;color:var(--muted);flex-shrink:0;}
@@ -2303,6 +2305,24 @@ function renderStintPlan(team, ev){
     wrap.appendChild(empty);
   }
 
+  function makePersonSelect(cls, placeholder, currentUserId, onPick){
+    const sel = document.createElement('select');
+    sel.className = cls;
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '';
+    noneOpt.textContent = placeholder;
+    sel.appendChild(noneOpt);
+    members.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.user_id;
+      opt.textContent = (m.profiles && m.profiles.username) || 'Unbekannt';
+      if(m.user_id === currentUserId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => onPick(sel.value || null));
+    return sel;
+  }
+
   stints.forEach(stint => {
     const stintStart = new Date(startMs + cumMinutes * 60000);
     cumMinutes += stint.duration_minutes || 0;
@@ -2310,6 +2330,28 @@ function renderStintPlan(team, ev){
 
     const row = document.createElement('div');
     row.className = 'stint-row';
+    row.dataset.stintId = stint.id;
+
+    if(iAmIn){
+      row.draggable = true;
+      row.addEventListener('dragstart', () => {
+        draggedStintId = stint.id;
+        row.classList.add('dragging');
+      });
+      row.addEventListener('dragend', () => row.classList.remove('dragging'));
+      row.addEventListener('dragover', e => e.preventDefault());
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        if(!draggedStintId || draggedStintId === stint.id) return;
+        reorderStints(stints, draggedStintId, stint.id);
+      });
+
+      const handle = document.createElement('span');
+      handle.className = 'stint-drag-handle';
+      handle.textContent = '⠿';
+      handle.title = 'Ziehen zum Umsortieren';
+      row.appendChild(handle);
+    }
 
     const timeEl = document.createElement('span');
     timeEl.className = 'stint-time';
@@ -2317,21 +2359,13 @@ function renderStintPlan(team, ev){
     row.appendChild(timeEl);
 
     if(iAmIn){
-      const driverSel = document.createElement('select');
-      driverSel.className = 'stint-driver-select';
-      const noneOpt = document.createElement('option');
-      noneOpt.value = '';
-      noneOpt.textContent = 'Fahrer offen';
-      driverSel.appendChild(noneOpt);
-      members.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.user_id;
-        opt.textContent = (m.profiles && m.profiles.username) || 'Unbekannt';
-        if(m.user_id === stint.user_id) opt.selected = true;
-        driverSel.appendChild(opt);
-      });
-      driverSel.addEventListener('change', () => updateStint(stint.id, { user_id: driverSel.value || null }));
+      const driverSel = makePersonSelect('stint-driver-select', 'Fahrer offen', stint.user_id,
+        val => updateStint(stint.id, { user_id: val }));
       row.appendChild(driverSel);
+
+      const spotterSel = makePersonSelect('stint-spotter-select', 'Spotter offen', stint.spotter_id,
+        val => updateStint(stint.id, { spotter_id: val }));
+      row.appendChild(spotterSel);
 
       const durationInput = document.createElement('input');
       durationInput.type = 'number';
@@ -2359,8 +2393,9 @@ function renderStintPlan(team, ev){
     }else{
       const driverText = document.createElement('span');
       driverText.className = 'stint-driver-text';
-      const driverName = (stint.profiles && stint.profiles.username) || 'Fahrer offen';
-      driverText.textContent = `${driverName} · ${stint.duration_minutes} min`;
+      const driverName = (stint.driver && stint.driver.username) || 'Fahrer offen';
+      const spotterName = (stint.spotter && stint.spotter.username) || 'Spotter offen';
+      driverText.textContent = `${driverName} · ${spotterName} · ${stint.duration_minutes} min`;
       row.appendChild(driverText);
     }
 
@@ -2385,6 +2420,23 @@ function renderStintPlan(team, ev){
   }
 
   return wrap;
+}
+
+let draggedStintId = null;
+
+async function reorderStints(stints, draggedId, targetId){
+  const fromIdx = stints.findIndex(s => s.id === draggedId);
+  const toIdx = stints.findIndex(s => s.id === targetId);
+  draggedStintId = null;
+  if(fromIdx === -1 || toIdx === -1) return;
+  const reordered = stints.slice();
+  const [moved] = reordered.splice(fromIdx, 1);
+  reordered.splice(toIdx, 0, moved);
+  const { error } = await Promise.all(
+    reordered.map((s, i) => pitwallClient.from('team_stints').update({ position: i }).eq('id', s.id))
+  ).then(results => ({ error: results.find(r => r.error)?.error }));
+  if(error) console.error('Reorder stints failed:', error.message);
+  loadTeamEvents();
 }
 
 async function addStint(teamId, position){
@@ -2747,7 +2799,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,duration_minutes,profiles(username))')
+    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver:profiles!team_stints_user_id_fkey(username),spotter:profiles!team_stints_spotter_id_fkey(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
