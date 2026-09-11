@@ -2740,12 +2740,17 @@ async function loadTeamEvents(){
     return;
   }
 
-  const { data: teams } = await pitwallClient
+  const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
     .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,duration_minutes,profiles(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
+
+  if(teamsError){
+    container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden der Teams: ${escapeText(teamsError.message)}</div>`;
+    return;
+  }
 
   const carData = await loadCarsByClass();
   const teamsByEvent = {};
