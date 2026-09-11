@@ -150,7 +150,7 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
   color:var(--text);
   margin:0;
   z-index:1;
-  animation:message-wipe 2s ease forwards;
+  animation:message-reveal 2s ease forwards;
 }
 .success-tire{
   position:absolute;
@@ -167,11 +167,11 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
   0%{left:-15%;transform:translateY(-50%) rotate(0deg);}
   100%{left:112%;transform:translateY(-50%) rotate(720deg);}
 }
-@keyframes message-wipe{
-  0%{opacity:0;clip-path:inset(0 0 0 0);}
-  15%{opacity:1;clip-path:inset(0 0 0 0);}
-  75%{opacity:1;clip-path:inset(0 0 0 100%);}
-  100%{opacity:1;clip-path:inset(0 0 0 100%);}
+@keyframes message-reveal{
+  0%{clip-path:inset(0 0 0 100%);}
+  15%{clip-path:inset(0 0 0 100%);}
+  75%{clip-path:inset(0 0 0 0);}
+  100%{clip-path:inset(0 0 0 0);}
 }
 </style>
 </head>
