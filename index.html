@@ -212,9 +212,6 @@ body{
   cursor:pointer;
 }
 .schedule-card:last-child{border-bottom:none;}
-.schedule-card-top{display:flex;flex-direction:column;}
-.schedule-card-info{min-width:0;}
-.schedule-card-times-col{min-width:0;}
 .schedule-card-head{
   padding-right:92px;
   margin-bottom:2px;
@@ -413,9 +410,9 @@ input:focus{outline:none;border-color:var(--violet);}
 .form-message.success{color:var(--violet);background:rgba(167,139,250,0.1);}
 
 .laptime-form{display:flex;flex-direction:column;gap:10px;margin-bottom:4px;max-width:420px;}
-.logbook-columns{display:flex;flex-direction:column;}
-.logbook-col-entry{min-width:0;}
-.logbook-col-board{min-width:0;}
+.split-columns{display:flex;flex-direction:column;}
+.split-col-left{min-width:0;}
+.split-col-right{min-width:0;}
 .laptime-inputs{display:flex;align-items:center;gap:5px;}
 .laptime-inputs select, .laptime-inputs input{width:auto;min-width:60px;text-align:center;}
 .laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
@@ -472,8 +469,7 @@ input:focus{outline:none;border-color:var(--violet);}
 #lb-track-filter{width:auto;max-width:220px;}
 
 /* ---- Team Events tab ---- */
-.te-toolbar{margin-bottom:16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
-#te-create-card{margin-bottom:20px;}
+.te-toolbar{margin-bottom:16px;}
 .te-login-hint{color:var(--muted);font-size:13px;}
 .te-event{
   background:var(--panel);
@@ -679,17 +675,19 @@ input:focus{outline:none;border-color:var(--violet);}
   .schedule-card{padding:14px 18px;}
 }
 
-/* ---- Wide desktop: info/times and form/board side by side instead of
-   stacked, so more fits in view at once. Same order/grouping as the
-   narrow layout below 900px - just arranged as columns instead of rows,
-   so switching screen sizes doesn't mean hunting for things. ---- */
+/* ---- Wide desktop ---- */
 @media(min-width:900px){
-  .schedule-card-top{flex-direction:row;gap:32px;align-items:flex-start;}
-  .schedule-card-info{flex:0 0 300px;}
-  .schedule-card-times-col{flex:1;}
-  .logbook-columns{flex-direction:row;gap:40px;align-items:flex-start;}
-  .logbook-col-entry{flex:0 0 340px;}
-  .logbook-col-board{flex:1;}
+  /* Schedule stays one column (like mobile) but only uses the center of
+     the screen instead of stretching edge to edge. */
+  .schedule-carousel{max-width:640px;margin:0 auto;}
+
+  /* Logbook and Team Events: form/create-panel on the left, the list on
+     the right - same order/grouping as the stacked mobile layout, just
+     arranged as columns. The right column is capped so its rows don't
+     stretch wide enough to push name and time far apart. */
+  .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
+  .split-col-left{flex:0 0 340px;}
+  .split-col-right{flex:1;max-width:440px;}
 }
 </style>
 </head>
@@ -771,8 +769,8 @@ input:focus{outline:none;border-color:var(--violet);}
   </div>
 
   <div id="logbook-section" hidden>
-  <div class="logbook-columns">
-    <div class="logbook-col-entry">
+  <div class="split-columns">
+    <div class="split-col-left">
     <p class="section-label" style="margin-top:0">Neue Zeit eintragen</p>
     <form id="laptime-form" class="laptime-form">
       <select id="lt-track" required>
@@ -804,7 +802,7 @@ input:focus{outline:none;border-color:var(--violet);}
     <div class="form-message" id="laptime-message" hidden></div>
     </div>
 
-    <div class="logbook-col-board">
+    <div class="split-col-right">
     <p class="section-label" style="margin-top:0">Bestenliste</p>
     <div class="leaderboard-filters">
       <label class="lb-filter-toggle"><input type="checkbox" id="lb-only-mine"> Nur meine Zeiten</label>
@@ -829,68 +827,72 @@ input:focus{outline:none;border-color:var(--violet);}
   </div>
 
   <div id="te-content" hidden>
-  <div class="te-toolbar">
-    <button type="button" class="filter-pill" id="te-new-btn">+ Event erstellen</button>
-    <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
-  </div>
-
-  <div class="auth-card" id="te-create-card" hidden style="max-width:460px;">
-    <p class="section-label" style="margin-top:0">Neues Team Event</p>
-    <div class="field">
-      <label for="te-name">Name</label>
-      <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
-    </div>
-    <div class="field">
-      <label for="te-date-start">Von</label>
-      <input type="date" id="te-date-start">
-    </div>
-    <div class="field">
-      <label for="te-date-end">Bis (optional, für mehrtägige Events)</label>
-      <input type="date" id="te-date-end">
-    </div>
-    <div class="field">
-      <label>Renndauer</label>
-      <div class="laptime-inputs">
-        <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std">
-        <span>h</span>
-        <input type="number" id="te-duration-m" min="0" max="59" placeholder="Min">
-        <span>min</span>
+  <div class="split-columns">
+    <div class="split-col-left">
+    <div class="auth-card" id="te-create-card">
+      <p class="section-label" style="margin-top:0">Neues Team Event</p>
+      <div class="field">
+        <label for="te-name">Name</label>
+        <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
       </div>
-    </div>
-    <div class="field">
-      <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
-      <div class="filter-row" id="te-time-tiles">
-        <button type="button" class="filter-pill" data-time="00:00">00:00</button>
-        <button type="button" class="filter-pill" data-time="01:00">01:00</button>
-        <button type="button" class="filter-pill" data-time="02:00">02:00</button>
-        <button type="button" class="filter-pill" data-time="03:00">03:00</button>
-        <button type="button" class="filter-pill" data-time="04:00">04:00</button>
-        <button type="button" class="filter-pill" data-time="05:00">05:00</button>
-        <button type="button" class="filter-pill" data-time="06:00">06:00</button>
-        <button type="button" class="filter-pill" data-time="07:00">07:00</button>
-        <button type="button" class="filter-pill" data-time="08:00">08:00</button>
-        <button type="button" class="filter-pill" data-time="09:00">09:00</button>
-        <button type="button" class="filter-pill" data-time="10:00">10:00</button>
-        <button type="button" class="filter-pill" data-time="11:00">11:00</button>
-        <button type="button" class="filter-pill" data-time="12:00">12:00</button>
-        <button type="button" class="filter-pill" data-time="13:00">13:00</button>
-        <button type="button" class="filter-pill" data-time="14:00">14:00</button>
-        <button type="button" class="filter-pill" data-time="15:00">15:00</button>
-        <button type="button" class="filter-pill" data-time="16:00">16:00</button>
-        <button type="button" class="filter-pill" data-time="17:00">17:00</button>
-        <button type="button" class="filter-pill" data-time="18:00">18:00</button>
-        <button type="button" class="filter-pill" data-time="19:00">19:00</button>
-        <button type="button" class="filter-pill" data-time="20:00">20:00</button>
-        <button type="button" class="filter-pill" data-time="21:00">21:00</button>
-        <button type="button" class="filter-pill" data-time="22:00">22:00</button>
-        <button type="button" class="filter-pill" data-time="23:00">23:00</button>
+      <div class="field">
+        <label for="te-date-start">Von</label>
+        <input type="date" id="te-date-start">
       </div>
+      <div class="field">
+        <label for="te-date-end">Bis (optional, für mehrtägige Events)</label>
+        <input type="date" id="te-date-end">
+      </div>
+      <div class="field">
+        <label>Renndauer</label>
+        <div class="laptime-inputs">
+          <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std">
+          <span>h</span>
+          <input type="number" id="te-duration-m" min="0" max="59" placeholder="Min">
+          <span>min</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
+        <div class="filter-row" id="te-time-tiles">
+          <button type="button" class="filter-pill" data-time="00:00">00:00</button>
+          <button type="button" class="filter-pill" data-time="01:00">01:00</button>
+          <button type="button" class="filter-pill" data-time="02:00">02:00</button>
+          <button type="button" class="filter-pill" data-time="03:00">03:00</button>
+          <button type="button" class="filter-pill" data-time="04:00">04:00</button>
+          <button type="button" class="filter-pill" data-time="05:00">05:00</button>
+          <button type="button" class="filter-pill" data-time="06:00">06:00</button>
+          <button type="button" class="filter-pill" data-time="07:00">07:00</button>
+          <button type="button" class="filter-pill" data-time="08:00">08:00</button>
+          <button type="button" class="filter-pill" data-time="09:00">09:00</button>
+          <button type="button" class="filter-pill" data-time="10:00">10:00</button>
+          <button type="button" class="filter-pill" data-time="11:00">11:00</button>
+          <button type="button" class="filter-pill" data-time="12:00">12:00</button>
+          <button type="button" class="filter-pill" data-time="13:00">13:00</button>
+          <button type="button" class="filter-pill" data-time="14:00">14:00</button>
+          <button type="button" class="filter-pill" data-time="15:00">15:00</button>
+          <button type="button" class="filter-pill" data-time="16:00">16:00</button>
+          <button type="button" class="filter-pill" data-time="17:00">17:00</button>
+          <button type="button" class="filter-pill" data-time="18:00">18:00</button>
+          <button type="button" class="filter-pill" data-time="19:00">19:00</button>
+          <button type="button" class="filter-pill" data-time="20:00">20:00</button>
+          <button type="button" class="filter-pill" data-time="21:00">21:00</button>
+          <button type="button" class="filter-pill" data-time="22:00">22:00</button>
+          <button type="button" class="filter-pill" data-time="23:00">23:00</button>
+        </div>
+      </div>
+      <div class="form-message" id="te-create-message" hidden></div>
+      <button type="button" class="filter-pill active" id="te-create-submit">Event erstellen</button>
     </div>
-    <div class="form-message" id="te-create-message" hidden></div>
-    <button type="button" class="filter-pill active" id="te-create-submit">Event erstellen</button>
-  </div>
+    </div>
 
-  <div id="te-list"></div>
+    <div class="split-col-right">
+    <div class="te-toolbar">
+      <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
+    </div>
+    <div id="te-list"></div>
+    </div>
+  </div>
   </div>
 
 </div>
@@ -1498,28 +1500,13 @@ function renderScheduleCards(cards, colorByClassName){
       });
     }
 
-    // Wrapped as two columns (info / times) so a wide desktop screen shows
-    // both side by side instead of everything stacked in one long column -
-    // same order/grouping as the narrow layout, just arranged differently.
-    const infoCol = document.createElement('div');
-    infoCol.className = 'schedule-card-info';
-    infoCol.appendChild(head);
-    if(location.textContent) infoCol.appendChild(location);
-    infoCol.appendChild(series);
-    if(classBadges) infoCol.appendChild(classBadges);
-    infoCol.appendChild(meta);
-
-    const timesCol = document.createElement('div');
-    timesCol.className = 'schedule-card-times-col';
-    timesCol.appendChild(timesLabel);
-    timesCol.appendChild(times);
-
-    const topRow = document.createElement('div');
-    topRow.className = 'schedule-card-top';
-    topRow.appendChild(infoCol);
-    topRow.appendChild(timesCol);
-
-    el.appendChild(topRow);
+    el.appendChild(head);
+    if(location.textContent) el.appendChild(location);
+    el.appendChild(series);
+    if(classBadges) el.appendChild(classBadges);
+    el.appendChild(meta);
+    el.appendChild(timesLabel);
+    el.appendChild(times);
     el.appendChild(toggle);
     el.appendChild(detailsBlock);
 
@@ -1728,7 +1715,6 @@ function updateAuthUI(session){
   document.getElementById('te-login-gate').hidden = !!session;
   document.getElementById('te-content').hidden = !session;
   if(session) loadTeamEvents();
-  else document.getElementById('te-create-card').hidden = true;
 }
 
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
@@ -2077,11 +2063,6 @@ function formatDuration(totalMinutes){
   return `${h}h ${m}min`;
 }
 
-document.getElementById('te-new-btn').addEventListener('click', () => {
-  const card = document.getElementById('te-create-card');
-  card.hidden = !card.hidden;
-});
-
 document.getElementById('te-show-closed').addEventListener('change', loadTeamEvents);
 
 document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
@@ -2145,7 +2126,6 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
   document.getElementById('te-duration-m').value = '';
   teSelectedTimes.clear();
   document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => b.classList.remove('active'));
-  document.getElementById('te-create-card').hidden = true;
   loadTeamEvents();
 });
 
