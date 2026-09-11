@@ -681,11 +681,23 @@ input:focus{outline:none;border-color:var(--violet);}
 @media(min-width:900px){
   /* Schedule stays one column (like mobile) but only uses the left/center
      of the screen instead of stretching edge to edge. */
-  .schedule-carousel{max-width:640px;overflow-x:visible;}
+  .schedule-carousel{max-width:640px;}
 
-  /* Preview: conditions open as a flyout to the right of the card (using
-     the empty space next to the now-narrower carousel) instead of
-     pushing the card's own content down. */
+  /* Logbook and Team Events: form/create-panel on the left, the list on
+     the right - same order/grouping as the stacked mobile layout, just
+     arranged as columns. The right column is still capped so its rows
+     don't stretch wide enough to push name and time far apart. */
+  .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
+  .split-col-left{flex:0 0 460px;}
+  .split-col-right{flex:1;max-width:560px;}
+}
+
+/* Preview: conditions open as a flyout to the right of the card instead of
+   pushing the card's own content down - needs its own, wider breakpoint
+   (640px card + 20px gap + 280px panel + padding) so it doesn't get cut
+   off/pushed off-screen on a merely-900px window. */
+@media(min-width:1150px){
+  .schedule-carousel{overflow-x:visible;}
   .schedule-card{overflow:visible;}
   .schedule-details{
     position:absolute;
@@ -706,14 +718,6 @@ input:focus{outline:none;border-color:var(--violet);}
     grid-template-columns:1fr;
     z-index:5;
   }
-
-  /* Logbook and Team Events: form/create-panel on the left, the list on
-     the right - same order/grouping as the stacked mobile layout, just
-     arranged as columns. The right column is still capped so its rows
-     don't stretch wide enough to push name and time far apart. */
-  .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
-  .split-col-left{flex:0 0 460px;}
-  .split-col-right{flex:1;max-width:560px;}
 }
 </style>
 </head>
@@ -931,7 +935,9 @@ input:focus{outline:none;border-color:var(--violet);}
 const SUPABASE_URL = 'https://db.lmuportal.space';
 const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3Njg3MDc4MCwiZXhwIjo0OTMyNTQ0MzgwLCJyb2xlIjoiYW5vbiJ9.aE59DqdkNMhjsD82MmAc2AYnwp2KENVjzoHTyWmUx3Y';
 
-let scheduleFilters = { type: 'daily', difficulty: 'beginner' };
+let storedDifficulty = 'all';
+try{ storedDifficulty = localStorage.getItem('pitwall-difficulty') || 'all'; }catch(e){}
+let scheduleFilters = { type: 'daily', difficulty: storedDifficulty };
 const scheduleCache = {};
 
 function mostRecentTuesdayUtc(date){
@@ -1604,6 +1610,7 @@ document.getElementById('difficulty-filter').addEventListener('click', (e) => {
   const btn = e.target.closest('.filter-pill');
   if(!btn) return;
   scheduleFilters.difficulty = btn.dataset.difficulty;
+  try{ localStorage.setItem('pitwall-difficulty', btn.dataset.difficulty); }catch(e){}
   document.querySelectorAll('#difficulty-filter .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
   loadScheduleView();
 });
