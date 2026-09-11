@@ -593,6 +593,45 @@ input:focus{outline:none;border-color:var(--violet);}
 .te-team-btn.leave{border-color:var(--red);color:var(--red);}
 .te-team-btn:hover{background:rgba(167,139,250,0.1);}
 .te-team-btn.leave:hover{background:rgba(232,92,74,0.1);}
+.stint-plan{
+  flex-basis:100%;
+  margin-top:6px;
+  padding-top:10px;
+  border-top:1px dashed var(--line);
+}
+.stint-plan-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
+.stint-plan select, .stint-plan input[type="number"]{width:auto;}
+.stint-driver-select{flex:1;min-width:120px;}
+.stint-driver-text{flex:1;font-size:13px;color:var(--text);min-width:0;}
+.stint-duration-input{width:60px !important;flex-shrink:0;text-align:center;}
+.stint-duration-unit{font-size:12px;color:var(--muted);flex-shrink:0;}
+.stint-remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0;line-height:1;}
+.stint-remove-btn:hover{color:var(--red);}
+.stint-add-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  letter-spacing:0.3px;
+  text-transform:uppercase;
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px dashed var(--muted);
+  background:none;
+  color:var(--muted);
+  cursor:pointer;
+  margin-top:2px;
+}
+.stint-add-btn:hover{color:var(--text);border-color:var(--text);}
+.stint-total{font-size:11.5px;color:var(--muted);margin-top:8px;}
+.stint-total.over{color:var(--red);}
 .te-new-team-btn{
   align-self:flex-start;
   font-family:'JetBrains Mono',monospace;
@@ -1997,7 +2036,18 @@ function renderLeaderboard(){
   }
 
   const byTrack = {};
+  const bestSeenPerTrack = {};
   data.forEach(row => {
+    // Data is pre-sorted by lap_time_ms ascending, so per track the first
+    // row seen for a given user is already their fastest - skip any slower
+    // duplicates so only the best time per person counts on the board.
+    // Skipped when "Nur meine Zeiten" is active so someone can still see
+    // (and delete) every one of their own logged times.
+    if(!onlyMine && row.user_id){
+      const seen = bestSeenPerTrack[row.track] || (bestSeenPerTrack[row.track] = new Set());
+      if(seen.has(row.user_id)) return;
+      seen.add(row.user_id);
+    }
     (byTrack[row.track] = byTrack[row.track] || []).push(row);
   });
 
@@ -2226,6 +2276,130 @@ async function deleteTeam(teamId){
   loadTeamEvents();
 }
 
+function renderStintPlan(team, ev){
+  const wrap = document.createElement('div');
+  wrap.className = 'stint-plan';
+
+  const title = document.createElement('div');
+  title.className = 'stint-plan-title';
+  title.textContent = 'Stintplan';
+  wrap.appendChild(title);
+
+  const members = team.team_event_members || [];
+  const stints = team.team_stints || [];
+  const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
+  const startMs = new Date(team.slot_time).getTime();
+
+  let cumMinutes = 0;
+  if(!stints.length){
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:12.5px;color:var(--muted);margin-bottom:6px;';
+    empty.textContent = 'Noch kein Stintplan.';
+    wrap.appendChild(empty);
+  }
+
+  stints.forEach(stint => {
+    const stintStart = new Date(startMs + cumMinutes * 60000);
+    cumMinutes += stint.duration_minutes || 0;
+    const stintEnd = new Date(startMs + cumMinutes * 60000);
+
+    const row = document.createElement('div');
+    row.className = 'stint-row';
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'stint-time';
+    timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
+    row.appendChild(timeEl);
+
+    if(iAmIn){
+      const driverSel = document.createElement('select');
+      driverSel.className = 'stint-driver-select';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = 'Fahrer offen';
+      driverSel.appendChild(noneOpt);
+      members.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.user_id;
+        opt.textContent = (m.profiles && m.profiles.username) || 'Unbekannt';
+        if(m.user_id === stint.user_id) opt.selected = true;
+        driverSel.appendChild(opt);
+      });
+      driverSel.addEventListener('change', () => updateStint(stint.id, { user_id: driverSel.value || null }));
+      row.appendChild(driverSel);
+
+      const durationInput = document.createElement('input');
+      durationInput.type = 'number';
+      durationInput.className = 'stint-duration-input';
+      durationInput.min = '1';
+      durationInput.value = stint.duration_minutes;
+      durationInput.addEventListener('change', () => {
+        const val = parseInt(durationInput.value, 10);
+        if(val > 0) updateStint(stint.id, { duration_minutes: val });
+      });
+      row.appendChild(durationInput);
+
+      const unit = document.createElement('span');
+      unit.className = 'stint-duration-unit';
+      unit.textContent = 'min';
+      row.appendChild(unit);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'stint-remove-btn';
+      removeBtn.textContent = '✕';
+      removeBtn.title = 'Stint entfernen';
+      removeBtn.addEventListener('click', () => deleteStint(stint.id));
+      row.appendChild(removeBtn);
+    }else{
+      const driverText = document.createElement('span');
+      driverText.className = 'stint-driver-text';
+      const driverName = (stint.profiles && stint.profiles.username) || 'Fahrer offen';
+      driverText.textContent = `${driverName} · ${stint.duration_minutes} min`;
+      row.appendChild(driverText);
+    }
+
+    wrap.appendChild(row);
+  });
+
+  if(iAmIn){
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'stint-add-btn';
+    addBtn.textContent = '+ Stint hinzufügen';
+    const nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
+    addBtn.addEventListener('click', () => addStint(team.id, nextPosition));
+    wrap.appendChild(addBtn);
+  }
+
+  if(ev.duration_minutes){
+    const total = document.createElement('div');
+    total.className = 'stint-total' + (cumMinutes > ev.duration_minutes ? ' over' : '');
+    total.textContent = `${cumMinutes} von ${ev.duration_minutes} min geplant`;
+    wrap.appendChild(total);
+  }
+
+  return wrap;
+}
+
+async function addStint(teamId, position){
+  const { error } = await pitwallClient.from('team_stints').insert({ team_id: teamId, position, duration_minutes: 30 });
+  if(error) console.error('Add stint failed:', error.message);
+  loadTeamEvents();
+}
+
+async function updateStint(stintId, patch){
+  const { error } = await pitwallClient.from('team_stints').update(patch).eq('id', stintId);
+  if(error) console.error('Update stint failed:', error.message);
+  loadTeamEvents();
+}
+
+async function deleteStint(stintId){
+  const { error } = await pitwallClient.from('team_stints').delete().eq('id', stintId);
+  if(error) console.error('Delete stint failed:', error.message);
+  loadTeamEvents();
+}
+
 async function leaveTeam(teamId){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
@@ -2382,6 +2556,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         row.appendChild(delTeamBtn);
       }
     }
+    row.appendChild(renderStintPlan(t, ev));
     detail.appendChild(row);
   });
 
@@ -2567,9 +2742,10 @@ async function loadTeamEvents(){
 
   const { data: teams } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username))')
+    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,duration_minutes,profiles(username))')
     .in('event_id', events.map(e => e.id))
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .order('position', { foreignTable: 'team_stints', ascending: true });
 
   const carData = await loadCarsByClass();
   const teamsByEvent = {};
