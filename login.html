@@ -120,9 +120,10 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
 .back-link:hover{color:var(--text);}
 [hidden]{display:none!important;}
 
-/* ---- Success overlay: a sticker-style burst of clipart icons pops out
-   around the message (like YouTube's like-button animation), the message
-   fades, then we redirect. ---- */
+/* ---- Success overlay: a tire drives across the message (same line, so
+   it visually passes over the text), a couple of small dust puffs trail
+   behind it, the message fades out right as the tire crosses it, then we
+   redirect. Kept minimal on purpose - just the tire + two puffs. ---- */
 .success-overlay{
   position:fixed;
   inset:0;
@@ -136,55 +137,59 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
 .success-content{
   position:relative;
   width:min(88vw, 420px);
-  text-align:center;
+  height:60px;
 }
 .success-message{
-  font-family:'Rajdhani',sans-serif;
-  font-weight:700;
-  font-size:28px;
-  color:var(--text);
-  margin:0;
-  padding:24px 0;
-  position:relative;
-  z-index:2;
-  animation:message-life 1.9s cubic-bezier(.34,1.56,.64,1) forwards;
-}
-.success-burst{
   position:absolute;
   inset:0;
-  pointer-events:none;
-  z-index:1;
-}
-.burst-item{
-  position:absolute;
-  left:50%;
-  top:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
   font-size:26px;
+  color:var(--text);
+  margin:0;
+  z-index:1;
+  animation:message-fade-mid 2s ease forwards;
+}
+.success-tire{
+  position:absolute;
+  top:50%;
+  left:-15%;
+  font-size:32px;
+  line-height:1;
+  transform:translateY(-50%);
+  z-index:2;
+  animation:tire-cross 2s cubic-bezier(.4,0,.2,1) forwards;
+}
+.dust{
+  position:absolute;
+  top:50%;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(139,144,153,0.75), transparent 70%);
   opacity:0;
-  transform:translate(-50%,-50%) scale(0);
-  animation:burst-pop 1.3s cubic-bezier(.2,.8,.3,1) forwards;
+  animation:dust-puff 0.6s ease-out forwards;
 }
-.burst-item:nth-child(1){--dx:130px;--dy:0px;--rot:60deg;animation-delay:0.10s;}
-.burst-item:nth-child(2){--dx:105px;--dy:76px;--rot:-50deg;animation-delay:0.15s;}
-.burst-item:nth-child(3){--dx:40px;--dy:123px;--rot:70deg;animation-delay:0.20s;}
-.burst-item:nth-child(4){--dx:-40px;--dy:123px;--rot:-60deg;animation-delay:0.12s;}
-.burst-item:nth-child(5){--dx:-105px;--dy:76px;--rot:80deg;animation-delay:0.22s;}
-.burst-item:nth-child(6){--dx:-130px;--dy:0px;--rot:-70deg;animation-delay:0.08s;}
-.burst-item:nth-child(7){--dx:-105px;--dy:-76px;--rot:55deg;animation-delay:0.18s;}
-.burst-item:nth-child(8){--dx:-40px;--dy:-123px;--rot:-65deg;animation-delay:0.25s;}
-.burst-item:nth-child(9){--dx:40px;--dy:-123px;--rot:75deg;animation-delay:0.05s;}
-.burst-item:nth-child(10){--dx:105px;--dy:-76px;--rot:-55deg;animation-delay:0.28s;}
-@keyframes burst-pop{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(0deg);}
-  20%{opacity:1;transform:translate(-50%,-50%) scale(1.4) rotate(var(--rot));}
-  100%{opacity:0;transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.6) rotate(var(--rot));}
+.dust:nth-child(2){left:-8px;animation-delay:0.15s;}
+.dust:nth-child(3){left:-20px;animation-delay:0.32s;}
+@keyframes tire-cross{
+  0%{left:-15%;transform:translateY(-50%) rotate(0deg);}
+  100%{left:112%;transform:translateY(-50%) rotate(720deg);}
 }
-@keyframes message-life{
-  0%{transform:scale(0.5);opacity:0;}
-  20%{transform:scale(1.05);opacity:1;}
-  30%{transform:scale(1);opacity:1;}
-  60%{opacity:1;}
+@keyframes message-fade-mid{
+  0%{opacity:0;}
+  15%{opacity:1;}
+  46%{opacity:1;}
+  58%{opacity:0;}
   100%{opacity:0;}
+}
+@keyframes dust-puff{
+  0%{opacity:0;transform:translateY(-50%) scale(0.3);}
+  40%{opacity:0.7;}
+  100%{opacity:0;transform:translateY(-30%) scale(1.6);}
 }
 </style>
 </head>
@@ -233,17 +238,10 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
 <div class="success-overlay" id="success-overlay" hidden>
   <div class="success-content">
     <p class="success-message" id="success-message">Anmeldung erfolgreich</p>
-    <div class="success-burst">
-      <span class="burst-item">🏁</span>
-      <span class="burst-item">🎉</span>
-      <span class="burst-item">✨</span>
-      <span class="burst-item">🏆</span>
-      <span class="burst-item">🔥</span>
-      <span class="burst-item">🛞</span>
-      <span class="burst-item">⭐</span>
-      <span class="burst-item">💨</span>
-      <span class="burst-item">🎊</span>
-      <span class="burst-item">🚦</span>
+    <div class="success-tire">
+      🛞
+      <span class="dust"></span>
+      <span class="dust"></span>
     </div>
   </div>
 </div>

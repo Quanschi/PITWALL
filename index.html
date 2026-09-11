@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#111317">
 <meta name="description" content="Pitwall — LMU Rennplan Fahrer-Briefing">
-<title>Pitwall — Quanschi</title>
+<title>Pitwall</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -39,6 +39,7 @@ body{
 
 /* ---- Header / signature: racing line divider ---- */
 .header{
+  position:relative;
   padding:28px 32px 18px 32px;
   border-bottom:1px solid var(--line);
 }
@@ -48,6 +49,12 @@ body{
   align-items:flex-end;
   flex-wrap:wrap;
   gap:12px;
+  padding-right:110px;
+}
+#account-area{
+  position:absolute;
+  top:28px;
+  right:32px;
 }
 .title{
   font-family:'Rajdhani',sans-serif;
@@ -205,6 +212,9 @@ body{
   cursor:pointer;
 }
 .schedule-card:last-child{border-bottom:none;}
+.schedule-card-top{display:flex;flex-direction:column;}
+.schedule-card-info{min-width:0;}
+.schedule-card-times-col{min-width:0;}
 .schedule-card-head{
   padding-right:92px;
   margin-bottom:2px;
@@ -403,6 +413,9 @@ input:focus{outline:none;border-color:var(--violet);}
 .form-message.success{color:var(--violet);background:rgba(167,139,250,0.1);}
 
 .laptime-form{display:flex;flex-direction:column;gap:10px;margin-bottom:4px;max-width:420px;}
+.logbook-columns{display:flex;flex-direction:column;}
+.logbook-col-entry{min-width:0;}
+.logbook-col-board{min-width:0;}
 .laptime-inputs{display:flex;align-items:center;gap:5px;}
 .laptime-inputs select, .laptime-inputs input{width:auto;min-width:60px;text-align:center;}
 .laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
@@ -654,8 +667,8 @@ input:focus{outline:none;border-color:var(--violet);}
   .tabs, .panel{padding-left:16px;padding-right:16px;}
   .title{font-size:24px;}
   .subtitle{font-size:10.5px;margin-top:2px;}
-  .header-top{flex-direction:column;align-items:flex-start;}
-  .stamp{text-align:left;}
+  .header-top{padding-right:78px;}
+  #account-area{top:16px;right:16px;}
   .raceline{margin-top:10px;height:10px;}
   .tabs{margin-top:14px;gap:5px;}
   .tab{padding:9px 14px;font-size:12.5px;}
@@ -664,6 +677,19 @@ input:focus{outline:none;border-color:var(--violet);}
   .filter-row{margin:2px 0 12px 0;gap:6px;}
   .filter-pill{padding:6px 11px;font-size:10.5px;}
   .schedule-card{padding:14px 18px;}
+}
+
+/* ---- Wide desktop: info/times and form/board side by side instead of
+   stacked, so more fits in view at once. Same order/grouping as the
+   narrow layout below 900px - just arranged as columns instead of rows,
+   so switching screen sizes doesn't mean hunting for things. ---- */
+@media(min-width:900px){
+  .schedule-card-top{flex-direction:row;gap:32px;align-items:flex-start;}
+  .schedule-card-info{flex:0 0 300px;}
+  .schedule-card-times-col{flex:1;}
+  .logbook-columns{flex-direction:row;gap:40px;align-items:flex-start;}
+  .logbook-col-entry{flex:0 0 340px;}
+  .logbook-col-board{flex:1;}
 }
 </style>
 </head>
@@ -745,7 +771,9 @@ input:focus{outline:none;border-color:var(--violet);}
   </div>
 
   <div id="logbook-section" hidden>
-    <p class="section-label">Neue Zeit eintragen</p>
+  <div class="logbook-columns">
+    <div class="logbook-col-entry">
+    <p class="section-label" style="margin-top:0">Neue Zeit eintragen</p>
     <form id="laptime-form" class="laptime-form">
       <select id="lt-track" required>
         <option value="" disabled selected>Strecke wählen…</option>
@@ -774,8 +802,10 @@ input:focus{outline:none;border-color:var(--violet);}
       <button type="submit" class="filter-pill active">Eintragen</button>
     </form>
     <div class="form-message" id="laptime-message" hidden></div>
+    </div>
 
-    <p class="section-label">Bestenliste</p>
+    <div class="logbook-col-board">
+    <p class="section-label" style="margin-top:0">Bestenliste</p>
     <div class="leaderboard-filters">
       <label class="lb-filter-toggle"><input type="checkbox" id="lb-only-mine"> Nur meine Zeiten</label>
       <select id="lb-track-filter">
@@ -783,6 +813,8 @@ input:focus{outline:none;border-color:var(--violet);}
       </select>
     </div>
     <div id="leaderboard"></div>
+    </div>
+  </div>
   </div>
 
 </div>
@@ -1466,13 +1498,28 @@ function renderScheduleCards(cards, colorByClassName){
       });
     }
 
-    el.appendChild(head);
-    if(location.textContent) el.appendChild(location);
-    el.appendChild(series);
-    if(classBadges) el.appendChild(classBadges);
-    el.appendChild(meta);
-    el.appendChild(timesLabel);
-    el.appendChild(times);
+    // Wrapped as two columns (info / times) so a wide desktop screen shows
+    // both side by side instead of everything stacked in one long column -
+    // same order/grouping as the narrow layout, just arranged differently.
+    const infoCol = document.createElement('div');
+    infoCol.className = 'schedule-card-info';
+    infoCol.appendChild(head);
+    if(location.textContent) infoCol.appendChild(location);
+    infoCol.appendChild(series);
+    if(classBadges) infoCol.appendChild(classBadges);
+    infoCol.appendChild(meta);
+
+    const timesCol = document.createElement('div');
+    timesCol.className = 'schedule-card-times-col';
+    timesCol.appendChild(timesLabel);
+    timesCol.appendChild(times);
+
+    const topRow = document.createElement('div');
+    topRow.className = 'schedule-card-top';
+    topRow.appendChild(infoCol);
+    topRow.appendChild(timesCol);
+
+    el.appendChild(topRow);
     el.appendChild(toggle);
     el.appendChild(detailsBlock);
 
