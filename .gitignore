@@ -1,2 +1,11 @@
 __pycache__/
 *.pyc
+
+# Kept locally only - not needed to serve the site, and easier to keep off
+# a public repo (setup notes, DB schema/migrations, draft legal pages, dev
+# scripts, reference email templates for the Supabase dashboard).
+README.md
+docs/
+scripts/
+supabase/
+datenschutz.html
