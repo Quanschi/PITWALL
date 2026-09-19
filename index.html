@@ -413,8 +413,10 @@ input:focus{outline:none;border-color:var(--violet);}
   border-radius:8px;
 }
 .form-message.success{color:var(--violet);background:rgba(167,139,250,0.1);}
+.laptime-inputs{display:flex;align-items:center;gap:5px;}
+.laptime-inputs select, .laptime-inputs input{width:auto;min-width:60px;text-align:center;}
+.laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
 
-.laptime-form{display:flex;flex-direction:column;gap:10px;margin-bottom:4px;max-width:420px;}
 .split-columns{display:flex;flex-direction:column;gap:24px;}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
@@ -435,68 +437,11 @@ input:focus{outline:none;border-color:var(--violet);}
   transition:all .2s var(--ease);
 }
 .mobile-toggle-btn:hover{border-color:var(--muted);}
-.laptime-inputs{display:flex;align-items:center;gap:5px;}
-.laptime-inputs select, .laptime-inputs input{width:auto;min-width:60px;text-align:center;}
-.laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
 
-.leaderboard-track{margin-bottom:18px;}
-.leaderboard-track-name{
-  font-family:'Rajdhani',sans-serif;
-  font-weight:700;
-  font-size:19px;
-  color:var(--text);
-  margin-bottom:8px;
-}
-.leaderboard-list{
-  display:flex;
-  flex-direction:column;
-  gap:1px;
-  background:var(--line);
-  border-radius:8px;
-  overflow:hidden;
-}
-.leaderboard-row{
-  background:var(--panel);
-  padding:10px 14px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-.leaderboard-rank{font-family:'JetBrains Mono',monospace;color:var(--muted);width:18px;flex-shrink:0;}
-.leaderboard-rank.gold{color:var(--amber);}
-.leaderboard-info{flex:1;min-width:0;}
-.leaderboard-name{font-weight:600;color:var(--text);}
-.leaderboard-meta{font-size:11px;color:var(--muted);}
-.leaderboard-time{
-  font-family:'JetBrains Mono',monospace;
-  color:var(--violet);
-  white-space:nowrap;
-}
-.leaderboard-actions{display:flex;gap:6px;flex-shrink:0;}
-.leaderboard-actions button{
-  background:none;
-  border:none;
-  color:var(--muted);
-  cursor:pointer;
-  font-size:12px;
-  padding:2px 4px;
-}
-.leaderboard-actions button:hover{color:var(--red);}
 .leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
-.leaderboard-filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
-.lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
-.link-btn{background:none;border:none;padding:0;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif;text-decoration:underline;cursor:pointer;}
-.link-btn:hover{color:var(--text);}
-.lb-filter-toggle input{width:auto;}
-#lb-track-filter{width:auto;max-width:220px;}
 
-.ref-times-section{
-  margin-top:32px;
-  padding-top:24px;
-  border-top:1px solid var(--line);
-  max-width:720px;
-}
-#ref-track-filter, #ref-class-filter{width:auto;max-width:220px;}
+.ref-times-section{max-width:720px;}
+#ref-track-filter{width:auto;max-width:280px;margin-bottom:4px;}
 .ref-times-table{
   display:grid;
   grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
@@ -918,76 +863,26 @@ input:focus{outline:none;border-color:var(--violet);}
   <div id="auth-section">
     <div class="auth-card">
       <p class="section-label" style="margin-top:0">Nicht angemeldet</p>
-      <p style="color:var(--muted);font-size:13px;margin:0 0 16px 0;">Melde dich an, um eigene Rundenzeiten einzutragen.</p>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 16px 0;">Melde dich an, um die Referenz-Rundenzeiten zu sehen.</p>
       <a href="login.html" class="filter-pill active" style="display:inline-block;text-decoration:none;">Zum Login</a>
     </div>
   </div>
 
-  <div id="logbook-section" hidden>
-  <div class="split-columns">
-    <div class="split-col-left">
-    <button type="button" class="mobile-toggle-btn" id="lt-mobile-toggle">+ Neue Zeit eintragen</button>
-    <div class="mobile-collapsible collapsed" id="lt-create-card">
-    <p class="section-label" style="margin-top:0">Neue Zeit eintragen</p>
-    <form id="laptime-form" class="laptime-form">
-      <select id="lt-track" required>
-        <option value="" disabled selected>Strecke wählen…</option>
-      </select>
-      <select id="lt-layout" required disabled>
-        <option value="" disabled selected>Layout wählen…</option>
-      </select>
-      <select id="lt-class" required>
-        <option value="" disabled selected>Klasse wählen…</option>
-      </select>
-      <select id="lt-car" required disabled>
-        <option value="" disabled selected>Fahrzeug wählen…</option>
-      </select>
-      <div class="field">
-        <label>Rundenzeit</label>
-        <div class="laptime-inputs">
-          <select id="lt-min"></select>
-          <span>:</span>
-          <select id="lt-sec"></select>
-          <span>.</span>
-          <select id="lt-ms"></select>
-        </div>
-      </div>
-      <input type="date" id="lt-date">
-      <input type="text" id="lt-notes" placeholder="Notiz (optional)">
-      <button type="submit" class="filter-pill active">Eintragen</button>
-    </form>
-    <div class="form-message" id="laptime-message" hidden></div>
-    </div>
-    </div>
+  <div id="logbook-section" hidden class="ref-times-section">
+    <p class="section-label" style="margin-top:0">Strecke</p>
+    <select id="ref-track-filter">
+      <option value="">Strecke wählen…</option>
+    </select>
 
-    <div class="split-col-right">
-    <p class="section-label" style="margin-top:0">Bestenliste</p>
-    <div class="leaderboard-filters">
-      <label class="lb-filter-toggle"><input type="checkbox" id="lb-only-mine"> Nur meine Zeiten</label>
-      <select id="lb-track-filter">
-        <option value="">Alle Strecken</option>
-      </select>
-    </div>
-    <div id="leaderboard"></div>
-    </div>
-  </div>
+    <p class="section-label">Klasse</p>
+    <div class="filter-row" id="ref-class-filter"></div>
 
-  <div class="ref-times-section">
-    <p class="section-label">Referenz-Rundenzeiten (LMU)</p>
-    <div class="leaderboard-filters">
-      <select id="ref-track-filter">
-        <option value="">Strecke wählen…</option>
-      </select>
-      <select id="ref-class-filter">
-        <option value="">Klasse wählen…</option>
-      </select>
-    </div>
     <div id="ref-times-table"></div>
     <p class="ref-times-credit">
-      Quelle: <a href="https://discord.com/invite/dFAqhnuSXH" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
+      Quelle: <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
+      · <a href="https://discord.com/invite/dFAqhnuSXH" target="_blank" rel="noopener">Discord</a>
       · <a href="https://www.youtube.com/@ohne_speed" target="_blank" rel="noopener">YouTube</a>
     </p>
-  </div>
   </div>
 
 </div>
@@ -1784,25 +1679,6 @@ const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABA
 
 let currentProfile = null; // { id, username, avatar_url }
 
-function populateDigitSelect(id, count, digits){
-  const sel = document.getElementById(id);
-  for(let i = 0; i < count; i++){
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = String(i).padStart(digits, '0');
-    sel.appendChild(opt);
-  }
-}
-populateDigitSelect('lt-min', 10, 1);
-populateDigitSelect('lt-sec', 60, 2);
-populateDigitSelect('lt-ms', 1000, 3);
-
-function formatLapTime(ms){
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  const msPart = ms % 1000;
-  return `${m}:${String(s).padStart(2, '0')}.${String(msPart).padStart(3, '0')}`;
-}
 function escapeText(str){
   return String(str).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }
@@ -1914,7 +1790,6 @@ function updateAuthUI(session){
   if(session){
     authSection.hidden = true;
     logbookSection.hidden = false;
-    loadLeaderboard();
     loadReferenceLapTimes();
   }else{
     authSection.hidden = false;
@@ -2003,239 +1878,6 @@ function renderSrBadge(raw){
   return badge;
 }
 
-function trackLabel(track, layout){
-  if(!layout || GENERIC_LAYOUT_WORDS.has(layout.toLowerCase()) || foldAccents(layout) === foldAccents(track.short_name)){
-    return track.short_name;
-  }
-  return `${track.short_name} – ${layout}`;
-}
-
-(async () => {
-  const tracksBySlug = await loadTracksBySlug();
-  const trackSelect = document.getElementById('lt-track');
-  Object.keys(tracksBySlug).sort((a, b) => tracksBySlug[a].short_name.localeCompare(tracksBySlug[b].short_name)).forEach(slug => {
-    const opt = document.createElement('option');
-    opt.value = slug;
-    opt.textContent = tracksBySlug[slug].short_name;
-    trackSelect.appendChild(opt);
-  });
-  trackSelect.addEventListener('change', () => {
-    const track = tracksBySlug[trackSelect.value];
-    const layoutSelect = document.getElementById('lt-layout');
-    layoutSelect.innerHTML = '';
-    (track.variants || [track.short_name]).forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = v;
-      layoutSelect.appendChild(opt);
-    });
-    layoutSelect.disabled = false;
-  });
-
-  const { classes, carsByClass } = await loadCarsByClass();
-  const classSelect = document.getElementById('lt-class');
-  classes.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.class_id;
-    opt.textContent = c.display_name;
-    classSelect.appendChild(opt);
-  });
-  classSelect.addEventListener('change', () => {
-    const carSelect = document.getElementById('lt-car');
-    carSelect.innerHTML = '';
-    (carsByClass[classSelect.value] || []).forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      carSelect.appendChild(opt);
-    });
-    carSelect.disabled = false;
-  });
-})();
-
-document.getElementById('laptime-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  hideFormMessage('laptime-message');
-  const trackSlug = document.getElementById('lt-track').value;
-  const layout = document.getElementById('lt-layout').value;
-  const carClass = document.getElementById('lt-class').selectedOptions[0]?.textContent || '';
-  const carName = document.getElementById('lt-car').value;
-  const date = document.getElementById('lt-date').value;
-  const notes = document.getElementById('lt-notes').value.trim();
-
-  const ms = parseInt(document.getElementById('lt-min').value, 10) * 60000
-    + parseInt(document.getElementById('lt-sec').value, 10) * 1000
-    + parseInt(document.getElementById('lt-ms').value, 10);
-  if(ms <= 0){
-    showFormMessage('laptime-message', 'Bitte eine Rundenzeit größer als 0 wählen.');
-    return;
-  }
-  const tracksBySlug = await loadTracksBySlug();
-  const track = tracksBySlug[trackSlug] ? trackLabel(tracksBySlug[trackSlug], layout) : trackSlug;
-  const car = carName ? `${carName} (${carClass})` : null;
-
-  const { data: { session } } = await pitwallClient.auth.getSession();
-  if(!session) return;
-
-  const payload = {
-    user_id: session.user.id,
-    track,
-    car,
-    lap_time_ms: ms,
-    notes: notes || null,
-  };
-  if(date) payload.set_at = date;
-
-  const { error } = await pitwallClient.from('laptimes').insert(payload);
-  if(error){
-    showFormMessage('laptime-message', 'Konnte nicht gespeichert werden: ' + error.message);
-    return;
-  }
-  document.getElementById('laptime-form').reset();
-  const layoutSelect = document.getElementById('lt-layout');
-  layoutSelect.innerHTML = '<option value="" disabled selected>Layout wählen…</option>';
-  layoutSelect.disabled = true;
-  const carSelect = document.getElementById('lt-car');
-  carSelect.innerHTML = '<option value="" disabled selected>Fahrzeug wählen…</option>';
-  carSelect.disabled = true;
-  loadLeaderboard();
-});
-
-async function deleteLapTime(id){
-  await pitwallClient.from('laptimes').delete().eq('id', id);
-  loadLeaderboard();
-}
-
-let lastLeaderboardData = [];
-
-async function loadLeaderboard(){
-  const container = document.getElementById('leaderboard');
-  container.innerHTML = '<div class="leaderboard-empty">Lade…</div>';
-  const { data, error } = await pitwallClient
-    .from('laptimes')
-    .select('id,track,car,lap_time_ms,notes,set_at,user_id,profiles(username)')
-    .order('lap_time_ms', { ascending: true });
-
-  if(error){
-    container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
-    return;
-  }
-  lastLeaderboardData = data || [];
-
-  const trackFilter = document.getElementById('lb-track-filter');
-  const previousValue = trackFilter.value;
-  const tracks = [...new Set(lastLeaderboardData.map(row => row.track))].sort();
-  trackFilter.innerHTML = '<option value="">Alle Strecken</option>';
-  tracks.forEach(track => {
-    const opt = document.createElement('option');
-    opt.value = track;
-    opt.textContent = track;
-    trackFilter.appendChild(opt);
-  });
-  if(tracks.includes(previousValue)) trackFilter.value = previousValue;
-
-  renderLeaderboard();
-}
-
-document.getElementById('lb-only-mine').addEventListener('change', renderLeaderboard);
-document.getElementById('lb-track-filter').addEventListener('change', renderLeaderboard);
-
-function renderLeaderboard(){
-  const container = document.getElementById('leaderboard');
-  const onlyMine = document.getElementById('lb-only-mine').checked;
-  const trackFilterValue = document.getElementById('lb-track-filter').value;
-
-  let data = lastLeaderboardData;
-  if(onlyMine) data = data.filter(row => currentProfile && row.user_id === currentProfile.id);
-  if(trackFilterValue) data = data.filter(row => row.track === trackFilterValue);
-
-  if(data.length === 0){
-    container.innerHTML = lastLeaderboardData.length === 0
-      ? '<div class="leaderboard-empty">Noch keine Zeiten eingetragen — sei der/die Erste.</div>'
-      : '<div class="leaderboard-empty">Keine Zeiten für diese Auswahl.</div>';
-    return;
-  }
-
-  const byTrack = {};
-  const bestSeenPerTrack = {};
-  data.forEach(row => {
-    // Data is pre-sorted by lap_time_ms ascending, so per track the first
-    // row seen for a given user is already their fastest - skip any slower
-    // duplicates so only the best time per person counts on the board.
-    // Skipped when "Nur meine Zeiten" is active so someone can still see
-    // (and delete) every one of their own logged times.
-    if(!onlyMine && row.user_id){
-      const seen = bestSeenPerTrack[row.track] || (bestSeenPerTrack[row.track] = new Set());
-      if(seen.has(row.user_id)) return;
-      seen.add(row.user_id);
-    }
-    (byTrack[row.track] = byTrack[row.track] || []).push(row);
-  });
-
-  container.innerHTML = '';
-  Object.keys(byTrack).sort().forEach(track => {
-    const trackEl = document.createElement('div');
-    trackEl.className = 'leaderboard-track';
-    const title = document.createElement('div');
-    title.className = 'leaderboard-track-name';
-    title.textContent = track;
-    const list = document.createElement('div');
-    list.className = 'leaderboard-list';
-
-    byTrack[track].forEach((row, i) => {
-      const line = document.createElement('div');
-      line.className = 'leaderboard-row';
-
-      const rank = document.createElement('span');
-      rank.className = 'leaderboard-rank' + (i === 0 ? ' gold' : '');
-      rank.textContent = (i + 1) + '.';
-
-      const info = document.createElement('div');
-      info.className = 'leaderboard-info';
-      const name = document.createElement('div');
-      name.className = 'leaderboard-name';
-      name.textContent = (row.profiles && row.profiles.username) || 'Unbekannt';
-      info.appendChild(name);
-      const metaParts = [];
-      if(row.car) metaParts.push(row.car);
-      if(row.set_at) metaParts.push(new Date(row.set_at + 'T00:00:00').toLocaleDateString('de-DE'));
-      if(row.notes) metaParts.push(row.notes);
-      if(metaParts.length){
-        const meta = document.createElement('div');
-        meta.className = 'leaderboard-meta';
-        meta.textContent = metaParts.join(' · ');
-        info.appendChild(meta);
-      }
-
-      const time = document.createElement('span');
-      time.className = 'leaderboard-time';
-      time.textContent = formatLapTime(row.lap_time_ms);
-
-      line.appendChild(rank);
-      line.appendChild(info);
-      line.appendChild(time);
-
-      if(currentProfile && row.user_id === currentProfile.id){
-        const actions = document.createElement('div');
-        actions.className = 'leaderboard-actions';
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.textContent = '✕';
-        delBtn.title = 'Löschen';
-        delBtn.addEventListener('click', () => deleteLapTime(row.id));
-        actions.appendChild(delBtn);
-        line.appendChild(actions);
-      }
-
-      list.appendChild(line);
-    });
-
-    trackEl.appendChild(title);
-    trackEl.appendChild(list);
-    container.appendChild(trackEl);
-  });
-}
-
 // ---- Reference lap times (Logbuch): pulls a public, actively-maintained
 // pace-tier spreadsheet ("Ohne Speed's LMU laptimes spreadsheet", published
 // via Google Sheets' own "Publish to the web" CSV export, which sets
@@ -2300,23 +1942,37 @@ async function loadReferenceLapTimes(){
   return referenceLapTimesCache;
 }
 
+let refSelectedClass = '';
+
 function populateReferenceFilters(rows){
   const trackSelect = document.getElementById('ref-track-filter');
-  const classSelect = document.getElementById('ref-class-filter');
-  if(!trackSelect || !classSelect) return;
+  const classFilter = document.getElementById('ref-class-filter');
+  if(!trackSelect || !classFilter) return;
   const tracks = [...new Set(rows.map(r => r.track))].sort();
   const classes = [...new Set(rows.map(r => r.class))].sort();
   trackSelect.innerHTML = '<option value="">Strecke wählen…</option>' +
     tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
-  classSelect.innerHTML = '<option value="">Klasse wählen…</option>' +
-    classes.map(c => `<option value="${escapeText(c)}">${escapeText(c)}</option>`).join('');
+  classFilter.innerHTML = '';
+  classes.forEach(c => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-pill';
+    btn.dataset.class = c;
+    btn.textContent = c;
+    btn.addEventListener('click', () => {
+      refSelectedClass = refSelectedClass === c ? '' : c;
+      classFilter.querySelectorAll('.filter-pill').forEach(b => b.classList.toggle('active', b.dataset.class === refSelectedClass));
+      renderReferenceTimes();
+    });
+    classFilter.appendChild(btn);
+  });
 }
 
 function renderReferenceTimes(){
   const container = document.getElementById('ref-times-table');
   if(!container || !referenceLapTimesCache) return;
   const track = document.getElementById('ref-track-filter').value;
-  const cls = document.getElementById('ref-class-filter').value;
+  const cls = refSelectedClass;
   if(!track || !cls){
     container.className = '';
     container.innerHTML = '<div class="ref-times-hint">Strecke und Klasse wählen, um Referenzzeiten zu sehen.</div>';
@@ -2355,7 +2011,6 @@ function renderReferenceTimes(){
 }
 
 document.getElementById('ref-track-filter').addEventListener('change', renderReferenceTimes);
-document.getElementById('ref-class-filter').addEventListener('change', renderReferenceTimes);
 
 // ---- Team Events tab: coordinate who's available when, for events that
 // need a full team. Special-event schedule races that need a team (flagged
@@ -3232,7 +2887,6 @@ function setupMobileToggle(btnId, cardId, openText, closeText){
     btn.textContent = collapsed ? openText : closeText;
   });
 }
-setupMobileToggle('lt-mobile-toggle', 'lt-create-card', '+ Neue Zeit eintragen', '− Formular ausblenden');
 setupMobileToggle('te-mobile-toggle', 'te-create-card', '+ Event erstellen', '− Formular ausblenden');
 
 if('serviceWorker' in navigator){
