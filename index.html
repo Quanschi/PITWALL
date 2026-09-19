@@ -2673,40 +2673,58 @@ function renderStintPlan(team, ev){
   const maxLapsPerStint = team.tank_liters > 0 && team.consumption_per_lap > 0
     ? Math.max(1, Math.floor(team.tank_liters / team.consumption_per_lap))
     : null;
-  function packLapsIntoStints(totalLaps, count){
-    if(count <= 0) return [];
-    if(!maxLapsPerStint){
-      // Tank/consumption unknown - fall back to an even split, remainder
-      // on the last stint.
-      const base = Math.floor(totalLaps / count);
-      const laps = new Array(count).fill(base);
-      laps[count - 1] += totalLaps - base * count;
-      return laps.map(l => Math.max(0, l));
-    }
-    let remaining = Math.max(0, totalLaps);
-    const laps = [];
-    for(let i = 0; i < count; i++){
-      const l = i < count - 1 ? Math.min(maxLapsPerStint, remaining) : remaining;
-      laps.push(l);
-      remaining -= l;
-    }
-    return laps;
+  function durationFor(laps){
+    return lapTime > 0 ? Math.max(1, Math.round((laps * lapTime) / 60)) : 30;
   }
   async function applyActualLaps(stint, newLaps){
     const idx = stints.findIndex(s => s.id === stint.id);
     if(idx === -1) return;
     const following = stints.slice(idx + 1);
     const remainingTotal = (stint.laps ?? 0) + following.reduce((sum, s) => sum + (s.laps ?? 0), 0);
-    const toDistribute = Math.max(0, remainingTotal - newLaps);
-    const followingLaps = packLapsIntoStints(toDistribute, following.length);
+    let toDistribute = Math.max(0, remainingTotal - newLaps);
 
     const patches = [{ id: stint.id, laps: newLaps }];
-    following.forEach((s, i) => patches.push({ id: s.id, laps: followingLaps[i] }));
+    const newStints = [];
+
+    if(!maxLapsPerStint){
+      // Tank/consumption unknown - just split evenly across the existing
+      // following stints; without a tank size there's no way to tell
+      // when a new stint would be needed instead.
+      if(following.length){
+        const base = Math.floor(toDistribute / following.length);
+        following.forEach((s, i) => {
+          const add = i < (toDistribute - base * following.length) ? 1 : 0;
+          patches.push({ id: s.id, laps: base + add });
+        });
+      }
+    }else{
+      // Tank-first: fill the existing following stints up to one full
+      // tank each. Any laps still left over after that don't fit a tank
+      // anymore, so they get their own new stint(s) instead of being
+      // crammed into the last one beyond what it can actually run on.
+      following.forEach(s => {
+        const l = Math.min(maxLapsPerStint, toDistribute);
+        toDistribute -= l;
+        patches.push({ id: s.id, laps: l });
+      });
+      let nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
+      while(toDistribute > 0){
+        const l = Math.min(maxLapsPerStint, toDistribute);
+        toDistribute -= l;
+        newStints.push({ team_id: team.id, position: nextPosition, laps: l, duration_minutes: durationFor(l) });
+        nextPosition++;
+      }
+    }
 
     for(const p of patches){
       const patch = { laps: p.laps };
-      if(lapTime > 0) patch.duration_minutes = Math.max(1, Math.round((p.laps * lapTime) / 60));
+      if(lapTime > 0) patch.duration_minutes = durationFor(p.laps);
       await updateStint(p.id, patch, live);
+    }
+    if(newStints.length){
+      const { error } = await pitwallClient.from('team_stints').insert(newStints);
+      if(error) console.error('Add overflow stint failed:', error.message);
+      loadTeamEvents();
     }
   }
 
