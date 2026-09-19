@@ -566,7 +566,11 @@ input:focus{outline:none;border-color:var(--violet);}
 .te-team-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:3px;}
 .te-team-car{font-size:12.5px;color:var(--violet);margin-bottom:3px;}
 .te-team-members{font-size:14px;color:var(--text);}
-.te-team-members .empty{color:var(--muted);}
+.te-team-members.empty{color:var(--muted);}
+.te-member-chip{display:inline-flex;align-items:center;gap:4px;margin:0 10px 4px 0;}
+.te-member-chip.placeholder{color:var(--muted);font-style:italic;}
+.te-member-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;line-height:1;font-style:normal;}
+.te-member-remove:hover{color:var(--red);}
 .te-team-btn{
   font-family:'JetBrains Mono',monospace;
   font-size:12px;
@@ -840,6 +844,9 @@ input:focus{outline:none;border-color:var(--violet);}
 }
 .account-dropdown-item:hover{background:var(--panel-2);}
 .account-dropdown .form-message{margin:4px 10px;font-size:11.5px;}
+.account-username-form{padding:4px 10px 8px;}
+.account-username-form input{margin-bottom:6px;padding:8px 10px;font-size:13px;}
+.account-username-form .te-team-btn{width:100%;}
 
 @media(max-width:640px){
   .header{padding:16px 16px 10px 16px;}
@@ -914,6 +921,12 @@ input:focus{outline:none;border-color:var(--violet);}
             <label class="account-dropdown-item" for="account-avatar-input">Profilbild ändern</label>
             <input type="file" id="account-avatar-input" accept="image/*" hidden>
             <div class="form-message" id="account-avatar-message" hidden></div>
+            <button type="button" class="account-dropdown-item" id="account-username-toggle">Nutzernamen ändern</button>
+            <div id="account-username-form" class="account-username-form" hidden>
+              <input type="text" id="account-username-input" placeholder="Neuer Nutzername">
+              <button type="button" class="te-team-btn" id="account-username-save">Speichern</button>
+              <div class="form-message" id="account-username-message" hidden></div>
+            </div>
             <button type="button" class="account-dropdown-item" id="account-logout-btn">Abmelden</button>
           </div>
         </div>
@@ -1816,6 +1829,42 @@ document.addEventListener('click', (e) => {
 
 document.getElementById('account-logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
 
+document.getElementById('account-username-toggle').addEventListener('click', () => {
+  const form = document.getElementById('account-username-form');
+  form.hidden = !form.hidden;
+  if(!form.hidden){
+    const input = document.getElementById('account-username-input');
+    input.value = currentProfile.username || '';
+    input.focus();
+  }
+});
+document.getElementById('account-username-save').addEventListener('click', async () => {
+  hideFormMessage('account-username-message');
+  const input = document.getElementById('account-username-input');
+  const newName = input.value.trim();
+  if(!newName){
+    showFormMessage('account-username-message', 'Bitte einen Nutzernamen eingeben.');
+    return;
+  }
+  if(newName === currentProfile.username){
+    document.getElementById('account-username-form').hidden = true;
+    return;
+  }
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  const { error } = await pitwallClient.from('profiles').update({ username: newName }).eq('id', session.user.id);
+  if(error){
+    // Postgres unique_violation
+    const msg = error.code === '23505' ? 'Nutzername ist bereits vergeben.' : 'Speichern fehlgeschlagen: ' + error.message;
+    showFormMessage('account-username-message', msg);
+    return;
+  }
+  currentProfile = { ...currentProfile, username: newName };
+  updateAccountArea();
+  document.getElementById('account-username-form').hidden = true;
+  loadTeamEvents();
+});
+
 document.getElementById('account-avatar-input').addEventListener('change', async () => {
   const file = document.getElementById('account-avatar-input').files[0];
   if(!file) return;
@@ -2181,7 +2230,7 @@ function formatSlotTime(iso){
 function formatSlotMembersSummary(teamsHere){
   if(!teamsHere.length) return 'noch niemand';
   return teamsHere.map((t, i) => {
-    const names = (t.team_event_members || []).map(m => (m.profiles && m.profiles.username) || 'Unbekannt');
+    const names = (t.team_event_members || []).map(m => (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt');
     const label = teamsHere.length > 1 ? `T${i + 1}: ` : '';
     return label + (names.length ? names.join(', ') : '–');
   }).join(' · ');
@@ -2307,8 +2356,42 @@ async function setTeamEventClosed(id, closed){
 
 async function joinTeam(teamId, note){
   const { data: { session } } = await pitwallClient.auth.getSession();
-  if(!session) return;
-  await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id, note: note || null });
+  if(!session || !currentProfile) return;
+
+  // If someone already added this person as a placeholder before they had
+  // an account (or before they joined), claim that slot instead of adding
+  // a second one - carries over anything already recorded against their
+  // name (stint driver/spotter assignments) as if they'd been a real
+  // member from the start.
+  const { data: manualMatch } = await pitwallClient
+    .from('team_event_members')
+    .select('id')
+    .eq('team_id', teamId)
+    .is('user_id', null)
+    .ilike('manual_name', currentProfile.username)
+    .maybeSingle();
+
+  if(manualMatch){
+    await pitwallClient.from('team_event_members').update({ user_id: session.user.id, manual_name: null, note: note || null }).eq('id', manualMatch.id);
+    await pitwallClient.from('team_stints').update({ user_id: session.user.id, driver_name: null }).eq('team_id', teamId).ilike('driver_name', currentProfile.username);
+    await pitwallClient.from('team_stints').update({ spotter_id: session.user.id, spotter_name: null }).eq('team_id', teamId).ilike('spotter_name', currentProfile.username);
+  }else{
+    await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id, note: note || null });
+  }
+  loadTeamEvents();
+}
+
+async function addManualMember(teamId, name){
+  const trimmed = (name || '').trim();
+  if(!trimmed) return;
+  const { error } = await pitwallClient.from('team_event_members').insert({ team_id: teamId, manual_name: trimmed });
+  if(error) console.error('Add manual member failed:', error.message);
+  loadTeamEvents();
+}
+
+async function removeManualMember(memberId){
+  const { error } = await pitwallClient.from('team_event_members').delete().eq('id', memberId);
+  if(error) console.error('Remove manual member failed:', error.message);
   loadTeamEvents();
 }
 
@@ -2524,13 +2607,17 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
   const roundedSum = durations.reduce((a, b) => a + b, 0);
   durations[durations.length - 1] += Math.round(exactTotal) - roundedSum;
 
-  const inserts = plan.stints.map((s, i) => ({
-    team_id: teamId,
-    position: i,
-    laps: s.laps,
-    duration_minutes: durations[i],
-    user_id: members.length ? members[i % members.length].user_id : null,
-  }));
+  const inserts = plan.stints.map((s, i) => {
+    const member = members.length ? members[i % members.length] : null;
+    return {
+      team_id: teamId,
+      position: i,
+      laps: s.laps,
+      duration_minutes: durations[i],
+      user_id: member ? member.user_id : null,
+      driver_name: member && !member.user_id ? member.manual_name : null,
+    };
+  });
   const { error } = await pitwallClient.from('team_stints').insert(inserts);
   if(error) console.error('Apply calculated stints failed:', error.message);
   loadTeamEvents();
@@ -2676,14 +2763,14 @@ function renderStintPlan(team, ev){
   function durationFor(laps){
     return lapTime > 0 ? Math.max(1, Math.round((laps * lapTime) / 60)) : 30;
   }
-  async function applyActualLaps(stint, newLaps){
+  async function applyActualLaps(stint, newLaps, extraPatch){
     const idx = stints.findIndex(s => s.id === stint.id);
     if(idx === -1) return;
     const following = stints.slice(idx + 1);
     const remainingTotal = (stint.laps ?? 0) + following.reduce((sum, s) => sum + (s.laps ?? 0), 0);
     let toDistribute = Math.max(0, remainingTotal - newLaps);
 
-    const patches = [{ id: stint.id, laps: newLaps }];
+    const patches = [{ id: stint.id, laps: newLaps, ...extraPatch }];
     const newStints = [];
 
     if(!maxLapsPerStint){
@@ -2717,15 +2804,26 @@ function renderStintPlan(team, ev){
     }
 
     for(const p of patches){
-      const patch = { laps: p.laps };
-      if(lapTime > 0) patch.duration_minutes = durationFor(p.laps);
-      await updateStint(p.id, patch, live);
+      const { id, ...patch } = p;
+      if(lapTime > 0) patch.duration_minutes = durationFor(patch.laps);
+      await updateStint(id, patch, live);
     }
     if(newStints.length){
       const { error } = await pitwallClient.from('team_stints').insert(newStints);
       if(error) console.error('Add overflow stint failed:', error.message);
       loadTeamEvents();
     }
+  }
+
+  // The actually observed VE-Verbrauch/Runde for a stint is usually easier
+  // for a driver to read off the dashboard mid-race than an exact lap
+  // count - derive laps from it (tank / consumption) the same way the
+  // initial plan does, then reuse the same tank-first redistribution.
+  async function applyActualConsumption(stint, consumption){
+    const newLaps = team.tank_liters > 0
+      ? Math.floor(team.tank_liters / consumption)
+      : (stint.laps ?? 0);
+    await applyActualLaps(stint, newLaps, { consumption_per_lap: consumption });
   }
 
   let cumMinutes = 0;
@@ -2747,6 +2845,7 @@ function renderStintPlan(team, ev){
     noneOpt.textContent = placeholder;
     sel.appendChild(noneOpt);
     members.forEach(m => {
+      if(!m.user_id) return; // no account yet - assign by name via "manuell eintragen" below instead
       const opt = document.createElement('option');
       opt.value = m.user_id;
       opt.textContent = (m.profiles && m.profiles.username) || 'Unbekannt';
@@ -2826,22 +2925,28 @@ function renderStintPlan(team, ev){
     row.appendChild(timeEl);
 
     if(iAmIn){
-      const lapsInput = document.createElement('input');
-      lapsInput.type = 'number';
-      lapsInput.className = 'stint-duration-input';
-      lapsInput.min = '0';
-      lapsInput.value = displayLaps ?? '';
-      lapsInput.title = 'Geplante bzw. tatsächlich gefahrene Runden - eine Änderung verteilt die Differenz automatisch auf die folgenden Stints';
-      lapsInput.addEventListener('change', () => {
-        const val = parseInt(lapsInput.value, 10);
-        if(!isNaN(val) && val >= 0) applyActualLaps(stint, val);
+      const consumptionInput = document.createElement('input');
+      consumptionInput.type = 'number';
+      consumptionInput.className = 'stint-duration-input';
+      consumptionInput.step = '0.01';
+      consumptionInput.min = '0';
+      consumptionInput.value = stint.consumption_per_lap ?? team.consumption_per_lap ?? '';
+      consumptionInput.title = 'Tatsächlicher VE-Verbrauch pro Runde in diesem Stint - Rundenzahl und Stintzeit werden daraus berechnet, die Differenz verteilt sich automatisch auf die folgenden Stints';
+      consumptionInput.addEventListener('change', () => {
+        const val = parseFloat(consumptionInput.value);
+        if(!isNaN(val) && val > 0) applyActualConsumption(stint, val);
       });
-      row.appendChild(lapsInput);
+      row.appendChild(consumptionInput);
 
       const unit = document.createElement('span');
       unit.className = 'stint-duration-unit';
-      unit.textContent = 'Runden';
+      unit.textContent = 'L/Runde';
       row.appendChild(unit);
+
+      const lapsHint = document.createElement('span');
+      lapsHint.className = 'stint-laps';
+      lapsHint.textContent = displayLaps != null ? `≈${displayLaps} R.` : '';
+      row.appendChild(lapsHint);
     }else{
       const lapsEl = document.createElement('span');
       lapsEl.className = 'stint-laps';
@@ -3066,15 +3171,30 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     }
     const membersEl = document.createElement('div');
     membersEl.className = 'te-team-members';
-    membersEl.textContent = members.length
-      ? members.map(m => {
-          const name = (m.profiles && m.profiles.username) || 'Unbekannt';
-          return m.note ? `${name} (${m.note})` : name;
-        }).join(', ')
-      : '';
     if(!members.length){
       membersEl.classList.add('empty');
       membersEl.textContent = 'niemand mehr hier';
+    }else{
+      members.forEach(m => {
+        const isManual = !m.user_id;
+        const name = (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt';
+        const chip = document.createElement('span');
+        chip.className = 'te-member-chip' + (isManual ? ' placeholder' : '');
+        let label = name;
+        if(m.note) label += ` (${m.note})`;
+        if(isManual) label += ' · noch kein Konto';
+        chip.appendChild(document.createTextNode(label));
+        if(isManual && iAmIn){
+          const rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'te-member-remove';
+          rm.textContent = '✕';
+          rm.title = 'Platzhalter entfernen';
+          rm.addEventListener('click', () => removeManualMember(m.id));
+          chip.appendChild(rm);
+        }
+        membersEl.appendChild(chip);
+      });
     }
     info.appendChild(membersEl);
     row.appendChild(info);
@@ -3105,6 +3225,27 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         delTeamBtn.title = 'Team entfernen';
         delTeamBtn.addEventListener('click', () => deleteTeam(t.id));
         row.appendChild(delTeamBtn);
+      }
+
+      // Reserves a slot for someone without a Pitwall account yet (or who
+      // just hasn't joined this event) - joins seamlessly into it later by
+      // signing up/joining with the exact same username (see joinTeam).
+      if(iAmIn){
+        const manualNameInput = document.createElement('input');
+        manualNameInput.type = 'text';
+        manualNameInput.placeholder = 'Fahrer ohne Konto hinzufügen…';
+        manualNameInput.style.width = 'auto';
+        manualNameInput.style.minWidth = '180px';
+        const addManualBtn = document.createElement('button');
+        addManualBtn.type = 'button';
+        addManualBtn.className = 'te-team-btn';
+        addManualBtn.textContent = '+ Fahrer';
+        addManualBtn.addEventListener('click', () => {
+          if(!manualNameInput.value.trim()) return;
+          addManualMember(t.id, manualNameInput.value.trim());
+        });
+        row.appendChild(manualNameInput);
+        row.appendChild(addManualBtn);
       }
     }
     const stintToggle = document.createElement('button');
@@ -3303,7 +3444,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,consumption_per_lap,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
