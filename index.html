@@ -657,27 +657,46 @@ input:focus{outline:none;border-color:var(--violet);}
   background:var(--panel-2);
   border:1px solid var(--line);
   border-radius:8px;
-  padding:4px;
-  min-width:140px;
+  padding:8px;
+  min-width:220px;
   box-shadow:var(--shadow-md);
 }
+.stint-tire-menu-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:6px 0 4px 2px;
+}
+.stint-tire-menu-label:first-child{margin-top:0;}
+.stint-tire-menu-row{display:flex;flex-wrap:wrap;gap:4px;}
 .stint-tire-menu-item{
   display:flex;
   align-items:center;
-  gap:8px;
-  width:100%;
+  gap:6px;
   background:none;
-  border:none;
+  border:1px solid var(--line);
   color:var(--text);
   font-family:'Inter',sans-serif;
-  font-size:13px;
-  padding:7px 8px;
+  font-size:12.5px;
+  padding:5px 8px;
   border-radius:6px;
   cursor:pointer;
   text-align:left;
+  white-space:nowrap;
 }
 .stint-tire-menu-item:hover{background:var(--panel);}
-.stint-tire-swatch{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.3);}
+.stint-tire-swatch{width:11px;height:11px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.3);}
+.stint-tire-menu-corner{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.stint-tire-corner-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  width:22px;
+  flex-shrink:0;
+}
+.stint-tire-menu-corner select{width:auto;flex:1;}
 .stint-fuel-input{width:52px !important;flex-shrink:0;text-align:center;}
 .stint-remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0;line-height:1;}
 .stint-remove-btn:hover{color:var(--red);}
@@ -2258,70 +2277,41 @@ async function deleteTeam(teamId){
 const STINT_CLASS_PRESETS = {
   Hypercar: { tankLiters: 75, consumptionPerLap: 3.1, paceFactor: 1.00 },
   LMP2: { tankLiters: 75, consumptionPerLap: 3.0, paceFactor: 1.07 },
+  LMP3: { tankLiters: 75, consumptionPerLap: 2.6, paceFactor: 1.15 },
   GTE: { tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
   LMGT3: { tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
 };
 const STINT_TRACK_PRESETS = {
-  'Le Mans': { hypercarLapSeconds: 208.0, pitDeltaSeconds: 45 },
-  'Spa-Francorchamps': { hypercarLapSeconds: 125.0, pitDeltaSeconds: 35 },
-  'Sebring': { hypercarLapSeconds: 107.0, pitDeltaSeconds: 30 },
-  'Monza': { hypercarLapSeconds: 96.0, pitDeltaSeconds: 28 },
-  'Fuji': { hypercarLapSeconds: 90.0, pitDeltaSeconds: 28 },
-  'Bahrain': { hypercarLapSeconds: 109.0, pitDeltaSeconds: 30 },
-  'Portimão': { hypercarLapSeconds: 94.0, pitDeltaSeconds: 27 },
-  'Imola': { hypercarLapSeconds: 97.0, pitDeltaSeconds: 27 },
-  'COTA': { hypercarLapSeconds: 108.0, pitDeltaSeconds: 29 },
-  'Qatar': { hypercarLapSeconds: 98.0, pitDeltaSeconds: 27 },
+  'Le Mans': { hypercarLapSeconds: 208.0 },
+  'Spa-Francorchamps': { hypercarLapSeconds: 125.0 },
+  'Sebring': { hypercarLapSeconds: 107.0 },
+  'Monza': { hypercarLapSeconds: 96.0 },
+  'Fuji': { hypercarLapSeconds: 90.0 },
+  'Bahrain': { hypercarLapSeconds: 109.0 },
+  'Portimão': { hypercarLapSeconds: 94.0 },
+  'Imola': { hypercarLapSeconds: 97.0 },
+  'COTA': { hypercarLapSeconds: 108.0 },
+  'Qatar': { hypercarLapSeconds: 98.0 },
 };
 
 // Pure calculation: given pace/fuel inputs, works out how many stints the
 // race needs and how they should be sized - full tanks first, the last
 // stint takes only the remainder (avoids needing a late top-up "splash &
-// dash" stop), plus a rough lift&coast and FCY pit-window read-out.
-function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, tankLiters, consumptionPerLap, pitDeltaSeconds, doubleStint }){
+// dash" stop).
+function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, tankLiters, consumptionPerLap }){
   const totalLaps = Math.ceil((raceDurationMinutes * 60) / lapTimeSeconds);
   const maxLapsPerStint = Math.max(1, Math.floor(tankLiters / consumptionPerLap));
   const numStints = Math.max(1, Math.ceil(totalLaps / maxLapsPerStint));
 
   let remaining = totalLaps;
-  let cumLaps = 0;
   const stints = [];
   for(let i = 0; i < numStints; i++){
     const laps = i < numStints - 1 ? Math.min(maxLapsPerStint, remaining) : remaining;
-    const startLap = cumLaps + 1;
-    cumLaps += laps;
-    const slackLaps = Math.max(0, maxLapsPerStint - laps);
-    stints.push({
-      index: i + 1,
-      laps,
-      durationMinutes: (laps * lapTimeSeconds) / 60,
-      startLap,
-      inLap: cumLaps,
-      earliestPitLap: Math.max(startLap, cumLaps - slackLaps),
-      latestPitLap: cumLaps,
-      fuelStart: tankLiters,
-      fuelEnd: Math.max(0, tankLiters - laps * consumptionPerLap),
-      tireChange: i === 0 ? null : (!doubleStint || i % 2 === 1),
-    });
+    stints.push({ laps, durationMinutes: (laps * lapTimeSeconds) / 60 });
     remaining -= laps;
   }
 
-  // Lift & coast: would trimming consumption by a modest 3% remove a whole
-  // pit stop? If so, weigh the stop saved against the pace lost over the
-  // full race distance (rough estimate: 0.5% lap time per 3% fuel saved -
-  // real ratio varies a lot by car/track, this is just a ballpark check).
-  const coastConsumption = consumptionPerLap * 0.97;
-  const coastMaxLaps = Math.max(1, Math.floor(tankLiters / coastConsumption));
-  const coastStints = Math.max(1, Math.ceil(totalLaps / coastMaxLaps));
-  const canSaveStop = coastStints < numStints;
-  const paceLossSeconds = totalLaps * lapTimeSeconds * 0.005;
-  const netGainSeconds = pitDeltaSeconds - paceLossSeconds;
-
-  return {
-    totalLaps, maxLapsPerStint, numStints, stints, pitDeltaSeconds,
-    totalFuel: (totalLaps + 1.5) * consumptionPerLap,
-    liftAndCoast: { canSaveStop, paceLossSeconds, netGainSeconds },
-  };
+  return { totalLaps, numStints, stints, totalFuel: (totalLaps + 1.5) * consumptionPerLap };
 }
 
 // Best-effort auto-detection so nobody has to manually repeat the track/
@@ -2334,7 +2324,7 @@ function detectTrackPreset(ev){
 function detectClassPreset(team){
   const match = (team.car || '').match(/\(([^)]+)\)\s*$/);
   const raw = (match ? match[1] : '').replace(/_ELMS$/i, '').trim().toUpperCase();
-  const aliases = { LMH: 'Hypercar', HYPERCAR: 'Hypercar', LMP2: 'LMP2', GTE: 'GTE', LMGT3: 'LMGT3' };
+  const aliases = { LMH: 'Hypercar', HYPERCAR: 'Hypercar', LMP2: 'LMP2', LMP3: 'LMP3', GTE: 'GTE', LMGT3: 'LMGT3', GT3: 'LMGT3' };
   return aliases[raw] || null;
 }
 
@@ -2379,13 +2369,11 @@ function renderStintCalculator(team, ev, stints){
         est_lap_time_seconds: trackPreset.hypercarLapSeconds * classPreset.paceFactor,
         tank_liters: classPreset.tankLiters,
         consumption_per_lap: classPreset.consumptionPerLap,
-        pit_delta_seconds: trackPreset.pitDeltaSeconds,
       };
       updateTeamCalcInputs(team.id, {
         est_lap_time_seconds: team.est_lap_time_seconds,
         tank_liters: team.tank_liters,
         consumption_per_lap: team.consumption_per_lap,
-        pit_delta_seconds: team.pit_delta_seconds,
       });
     }
   }
@@ -2419,38 +2407,23 @@ function renderStintCalculator(team, ev, stints){
   lapTimeInput.className = 'stint-calc-input';
   const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
   const consumptionInput = numberField('z.B. 3.10', team.consumption_per_lap, '0.01');
-  const pitDeltaInput = numberField('z.B. 30', team.pit_delta_seconds, '1');
   row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
   row.appendChild(field('Tank (Liter)', tankInput));
   row.appendChild(field('Verbrauch (Liter/Runde)', consumptionInput));
-  row.appendChild(field('Pit Delta (Sekunden)', pitDeltaInput));
   box.appendChild(row);
-
-  const doubleStintLabel = document.createElement('label');
-  doubleStintLabel.className = 'lb-filter-toggle';
-  const doubleStintCheckbox = document.createElement('input');
-  doubleStintCheckbox.type = 'checkbox';
-  doubleStintCheckbox.checked = !!team.double_stint;
-  doubleStintLabel.appendChild(doubleStintCheckbox);
-  doubleStintLabel.appendChild(document.createTextNode('Double Stint versuchen (Reifen nur jeden 2. Stopp wechseln)'));
-  box.appendChild(doubleStintLabel);
 
   const saveInputs = () => {
     updateTeamCalcInputs(team.id, {
       est_lap_time_seconds: parseLapTimeToSeconds(lapTimeInput.value),
       tank_liters: parseFloat(tankInput.value) || null,
       consumption_per_lap: parseFloat(consumptionInput.value) || null,
-      pit_delta_seconds: parseFloat(pitDeltaInput.value) || null,
-      double_stint: doubleStintCheckbox.checked,
     });
   };
-  [lapTimeInput, tankInput, consumptionInput, pitDeltaInput].forEach(el => el.addEventListener('change', saveInputs));
-  doubleStintCheckbox.addEventListener('change', saveInputs);
+  [lapTimeInput, tankInput, consumptionInput].forEach(el => el.addEventListener('change', saveInputs));
 
   const lapTime = team.est_lap_time_seconds;
   const tankLiters = team.tank_liters;
   const consumptionPerLap = team.consumption_per_lap;
-  const pitDeltaSeconds = team.pit_delta_seconds;
   const raceDuration = ev.duration_minutes;
 
   if(lapTime > 0 && tankLiters > 0 && consumptionPerLap > 0 && raceDuration > 0){
@@ -2458,8 +2431,7 @@ function renderStintCalculator(team, ev, stints){
     // click the button, the real (editable, drag-reorderable) stint list
     // below appears. One place to look at, not two.
     const plan = computeStintPlan({
-      raceDurationMinutes: raceDuration, lapTimeSeconds: lapTime, tankLiters,
-      consumptionPerLap, pitDeltaSeconds: pitDeltaSeconds || 30, doubleStint: doubleStintCheckbox.checked,
+      raceDurationMinutes: raceDuration, lapTimeSeconds: lapTime, tankLiters, consumptionPerLap,
     });
     const result = document.createElement('div');
     result.className = 'stint-calc-result';
@@ -2515,26 +2487,40 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
   loadTeamEvents();
 }
 
-// Confirmed from real LMU session-result XMLs (fcompound/rcompound
-// attributes): four compounds, no separate Intermediate. Colors follow the
-// common Soft=red/Medium=yellow/Hard=white/Wet=blue sim-racing convention -
-// not screenshotted from LMU's own UI, so treat as a reasonable default.
+// Confirmed from real LMU session-result XMLs (fcompound/rcompound per
+// driver, cross-checked by CarClass): compound choice depends on class -
+// Hypercar gets all four, every other class only had Medium/Wet in the
+// sample data (spec-tyre classes, matches how WEC/ELMS regulations work in
+// real life: customer classes run one mandated dry compound + a wet).
+// GTE never showed up in the sample; assumed to match GT3/LMGT3.
+// Colors follow the common Soft=red/Medium=yellow/Hard=white/Wet=blue
+// sim-racing convention - not screenshotted from LMU's own UI.
 const TIRE_COMPOUND_COLORS = { Soft: '#E8433B', Medium: '#F5D033', Hard: '#F0EFEA', Wet: '#3B82C4' };
-const TIRE_COMPOUNDS = ['Soft', 'Medium', 'Hard', 'Wet'];
+const TIRE_COMPOUNDS_BY_CLASS = {
+  Hypercar: ['Soft', 'Medium', 'Hard', 'Wet'],
+  LMP2: ['Medium', 'Wet'],
+  LMP3: ['Medium', 'Wet'],
+  GTE: ['Medium', 'Wet'],
+  LMGT3: ['Medium', 'Wet'],
+};
+const TIRE_CORNERS = [['tire_fl', 'VL'], ['tire_fr', 'VR'], ['tire_rl', 'HL'], ['tire_rr', 'HR']];
 
-function renderTireControl(stint, iAmIn){
+function renderTireControl(stint, team, iAmIn){
+  const compounds = TIRE_COMPOUNDS_BY_CLASS[detectClassPreset(team)] || TIRE_COMPOUNDS_BY_CLASS.Hypercar;
+
   const wrap = document.createElement('span');
   wrap.className = 'stint-tire-wrap';
 
   const icon = document.createElement('span');
   icon.className = 'stint-tire-icon';
-  icon.title = stint.tire_compound ? `Reifen: ${stint.tire_compound}` : 'Keine neuen Reifen';
-  for(let i = 0; i < 4; i++){
+  const cornerLabel = TIRE_CORNERS.map(([key, label]) => `${label}: ${stint[key] || 'keine neuen'}`).join(', ');
+  icon.title = cornerLabel;
+  TIRE_CORNERS.forEach(([key]) => {
     const dot = document.createElement('span');
     dot.className = 'stint-tire-dot';
-    dot.style.background = TIRE_COMPOUND_COLORS[stint.tire_compound] || 'var(--muted)';
+    dot.style.background = TIRE_COMPOUND_COLORS[stint[key]] || 'var(--muted)';
     icon.appendChild(dot);
-  }
+  });
   wrap.appendChild(icon);
 
   if(iAmIn){
@@ -2543,7 +2529,7 @@ function renderTireControl(stint, iAmIn){
     menu.className = 'stint-tire-menu';
     menu.hidden = true;
 
-    const buildItem = (label, compound) => {
+    const swatchBtn = (label, compound, onPick) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'stint-tire-menu-item';
@@ -2552,14 +2538,50 @@ function renderTireControl(stint, iAmIn){
       swatch.style.background = TIRE_COMPOUND_COLORS[compound] || 'var(--muted)';
       btn.appendChild(swatch);
       btn.appendChild(document.createTextNode(label));
-      btn.addEventListener('click', () => {
-        menu.hidden = true;
-        updateStint(stint.id, { tire_compound: compound || null });
-      });
+      btn.addEventListener('click', () => onPick(compound || null));
       return btn;
     };
-    menu.appendChild(buildItem('Keine neuen', null));
-    TIRE_COMPOUNDS.forEach(c => menu.appendChild(buildItem(c, c)));
+
+    const allLabel = document.createElement('div');
+    allLabel.className = 'stint-tire-menu-label';
+    allLabel.textContent = 'Alle 4';
+    menu.appendChild(allLabel);
+    const allRow = document.createElement('div');
+    allRow.className = 'stint-tire-menu-row';
+    const setAll = compound => {
+      updateStint(stint.id, { tire_fl: compound, tire_fr: compound, tire_rl: compound, tire_rr: compound });
+    };
+    allRow.appendChild(swatchBtn('Keine', null, setAll));
+    compounds.forEach(c => allRow.appendChild(swatchBtn(c, c, setAll)));
+    menu.appendChild(allRow);
+
+    const cornerLabelEl = document.createElement('div');
+    cornerLabelEl.className = 'stint-tire-menu-label';
+    cornerLabelEl.textContent = 'Einzeln';
+    menu.appendChild(cornerLabelEl);
+    TIRE_CORNERS.forEach(([key, label]) => {
+      const cornerRow = document.createElement('div');
+      cornerRow.className = 'stint-tire-menu-corner';
+      const cornerTag = document.createElement('span');
+      cornerTag.className = 'stint-tire-corner-tag';
+      cornerTag.textContent = label;
+      cornerRow.appendChild(cornerTag);
+      const select = document.createElement('select');
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = 'Keine';
+      select.appendChild(noneOpt);
+      compounds.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        if(stint[key] === c) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', () => updateStint(stint.id, { [key]: select.value || null }));
+      cornerRow.appendChild(select);
+      menu.appendChild(cornerRow);
+    });
     wrap.appendChild(menu);
 
     icon.addEventListener('click', e => {
@@ -2675,7 +2697,19 @@ function renderStintPlan(team, ev){
       handle.textContent = '⠿';
       handle.title = 'Ziehen zum Umsortieren';
       row.appendChild(handle);
+    }
 
+    const timeEl = document.createElement('span');
+    timeEl.className = 'stint-time';
+    timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
+    row.appendChild(timeEl);
+
+    const lapsEl = document.createElement('span');
+    lapsEl.className = 'stint-laps';
+    lapsEl.textContent = laps !== null ? `≈${laps} R.` : '';
+    row.appendChild(lapsEl);
+
+    if(iAmIn){
       const durationInput = document.createElement('input');
       durationInput.type = 'number';
       durationInput.className = 'stint-duration-input';
@@ -2693,17 +2727,7 @@ function renderStintPlan(team, ev){
       row.appendChild(unit);
     }
 
-    const lapsEl = document.createElement('span');
-    lapsEl.className = 'stint-laps';
-    lapsEl.textContent = laps !== null ? `≈${laps} R.` : '';
-    row.appendChild(lapsEl);
-
-    const timeEl = document.createElement('span');
-    timeEl.className = 'stint-time';
-    timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
-    row.appendChild(timeEl);
-
-    row.appendChild(renderTireControl(stint, iAmIn));
+    row.appendChild(renderTireControl(stint, team, iAmIn));
 
     if(iAmIn){
       const fuelInput = document.createElement('input');
@@ -3176,7 +3200,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,pit_delta_seconds,double_stint,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,edited,tire_compound,fuel_percent,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,edited,fuel_percent,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
