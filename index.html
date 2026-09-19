@@ -188,32 +188,19 @@ body{
 .schedule-counter{white-space:nowrap;color:var(--muted);}
 
 .schedule-carousel{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+}
+.schedule-card{
   position:relative;
-  height:min(74vh, 660px);
-  min-height:460px;
-  overflow-y:auto;
-  scroll-snap-type:y proximity;
-  -webkit-overflow-scrolling:touch;
+  padding:16px 20px;
   border:1px solid var(--line);
   border-radius:12px;
   background:var(--panel);
   box-shadow:var(--shadow-md);
-}
-.schedule-card{
-  position:relative;
-  scroll-snap-align:start;
-  height:100%;
-  padding:18px 24px;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  overflow-y:auto;
-  border-bottom:1px solid var(--line);
   cursor:pointer;
 }
-.schedule-card:last-child{border-bottom:none;}
-.schedule-carousel, .schedule-card{scrollbar-width:none;-ms-overflow-style:none;}
-.schedule-carousel::-webkit-scrollbar, .schedule-card::-webkit-scrollbar{display:none;}
 .schedule-card-head{
   padding-right:92px;
   margin-bottom:2px;
@@ -221,7 +208,7 @@ body{
 .schedule-circuit{
   font-family:'Rajdhani',sans-serif;
   font-weight:700;
-  font-size:29px;
+  font-size:22px;
   color:var(--text);
   line-height:1.15;
 }
@@ -339,10 +326,13 @@ body{
   letter-spacing:0.5px;
   color:var(--muted);
 }
+.schedule-expand{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+}
 .schedule-details{
   margin-top:14px;
-  padding-top:14px;
-  border-top:1px solid var(--line);
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:10px 16px;
@@ -357,21 +347,13 @@ body{
   margin-bottom:2px;
 }
 .schedule-detail-value{color:var(--text);}
-.schedule-swipe-hint{
-  margin-top:18px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:11.5px;
-  color:var(--muted);
-  text-align:center;
-}
 .schedule-empty{
-  height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
   color:var(--muted);
   font-size:14px;
-  padding:0 24px;
+  padding:60px 24px;
   text-align:center;
 }
 .schedule-tbd{
@@ -768,9 +750,9 @@ input:focus{outline:none;border-color:var(--violet);}
 
 /* ---- Wide desktop ---- */
 @media(min-width:900px){
-  /* Schedule stays one column (like mobile) but only uses the left/center
-     of the screen instead of stretching edge to edge. */
-  .schedule-carousel{max-width:700px;}
+  /* Schedule flows into a multi-column grid so many races are visible at
+     once instead of one full-height card at a time. */
+  .schedule-carousel{grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));max-width:1400px;}
 
   /* Logbook and Team Events: form/create-panel on the left, the list on
      the right - same order/grouping as the stacked mobile layout, just
@@ -1501,10 +1483,10 @@ function renderScheduleCards(cards, colorByClassName){
   }
 
   statusText.textContent = 'Live-Daten · Zeiten in deiner lokalen Zeitzone';
-  counter.textContent = `1 / ${cards.length}`;
+  counter.textContent = `${cards.length} Termine`;
   const now = Date.now();
 
-  cards.forEach((card, i) => {
+  cards.forEach(card => {
     const el = document.createElement('div');
     el.className = 'schedule-card';
 
@@ -1573,11 +1555,10 @@ function renderScheduleCards(cards, colorByClassName){
 
     const toggle = document.createElement('div');
     toggle.className = 'schedule-details-toggle';
-    toggle.textContent = 'Tippen für Bedingungen ▾';
+    toggle.textContent = 'Termine & Bedingungen anzeigen ▾';
 
     const detailsBlock = document.createElement('div');
     detailsBlock.className = 'schedule-details';
-    detailsBlock.style.display = 'none';
     const detailItems = buildScheduleDetails(card);
     if(detailItems.length === 0){
       const none = document.createElement('div');
@@ -1600,48 +1581,29 @@ function renderScheduleCards(cards, colorByClassName){
       });
     }
 
+    const expandBlock = document.createElement('div');
+    expandBlock.className = 'schedule-expand';
+    expandBlock.hidden = true;
+    expandBlock.appendChild(times);
+    expandBlock.appendChild(detailsBlock);
+
     el.appendChild(head);
     if(location.textContent) el.appendChild(location);
     el.appendChild(series);
     if(classBadges) el.appendChild(classBadges);
     el.appendChild(meta);
     el.appendChild(timesLabel);
-    el.appendChild(times);
     el.appendChild(toggle);
-    el.appendChild(detailsBlock);
+    el.appendChild(expandBlock);
 
     el.addEventListener('click', (e) => {
       if(e.target.closest('.schedule-times')) return;
-      const isOpen = detailsBlock.style.display !== 'none';
-      detailsBlock.style.display = isOpen ? 'none' : 'grid';
-      toggle.textContent = isOpen ? 'Tippen für Bedingungen ▾' : 'Weniger anzeigen ▴';
-      // The card's own scrollbar is hidden (still scrollable, just no
-      // visible track/thumb), so without this there's no visual hint that
-      // newly-opened conditions sit below the fold - scroll them into view.
-      if(!isOpen) detailsBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const isOpen = !expandBlock.hidden;
+      expandBlock.hidden = isOpen;
+      toggle.textContent = isOpen ? 'Termine & Bedingungen anzeigen ▾' : 'Weniger anzeigen ▴';
     });
 
-    if(i < cards.length - 1){
-      const hint = document.createElement('div');
-      hint.className = 'schedule-swipe-hint';
-      hint.textContent = '↓ runterwischen für die nächste Strecke';
-      el.appendChild(hint);
-    }
-
     carousel.appendChild(el);
-  });
-}
-
-let scheduleScrollBound = false;
-function bindScheduleScrollCounter(){
-  if(scheduleScrollBound) return;
-  scheduleScrollBound = true;
-  const carousel = document.getElementById('schedule-carousel');
-  carousel.addEventListener('scroll', () => {
-    const total = carousel.querySelectorAll('.schedule-card').length;
-    if(!total || !carousel.clientHeight) return;
-    const idx = Math.round(carousel.scrollTop / carousel.clientHeight);
-    document.getElementById('schedule-counter').textContent = `${Math.min(idx + 1, total)} / ${total}`;
   });
 }
 
@@ -1661,7 +1623,6 @@ async function loadScheduleView(){
     ]);
     if(isStale()) return;
     renderScheduleCards(cards, colorByClassName);
-    bindScheduleScrollCounter();
   }catch(err){
     if(isStale()) return;
     document.getElementById('schedule-status-text').textContent = 'Rennplan konnte nicht geladen werden (offline?).';
