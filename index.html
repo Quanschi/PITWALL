@@ -2159,6 +2159,14 @@ function formatSlotMembersSummary(teamsHere){
 function localDayKey(d){
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// An event counts as over once its last scheduled day has passed, even if
+// nobody ever clicked "Event abschließen" - the manual flag stays available
+// for closing something early.
+function isEventPast(ev){
+  if(!ev.slot_times || !ev.slot_times.length) return false;
+  const lastSlotMs = Math.max(...ev.slot_times.map(iso => new Date(iso).getTime()));
+  return localDayKey(new Date(lastSlotMs)) < localDayKey(new Date());
+}
 function formatDayHeader(d){
   const weekday = d.toLocaleDateString('de-DE', { weekday: 'long' });
   return `${weekday}, den ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
@@ -3051,7 +3059,7 @@ function renderEventCard(ev, teams, carData){
 
   const badges = [];
   if(ev.source === 'auto') badges.push('Aus Schedule');
-  if(ev.closed) badges.push('Abgeschlossen');
+  if(ev.closed || isEventPast(ev)) badges.push('Abgeschlossen');
   if(badges.length){
     const badgesRow = document.createElement('div');
     badgesRow.className = 'te-badges-row';
@@ -3192,7 +3200,7 @@ async function loadTeamEvents(){
   }
 
   const showClosed = document.getElementById('te-show-closed').checked;
-  const events = showClosed ? allEvents : allEvents.filter(ev => !ev.closed);
+  const events = showClosed ? allEvents : allEvents.filter(ev => !ev.closed && !isEventPast(ev));
   if(events.length === 0){
     container.innerHTML = '<div class="leaderboard-empty">Keine offenen Team Events — alle abgeschlossen.</div>';
     return;
