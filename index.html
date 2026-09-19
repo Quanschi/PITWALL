@@ -832,15 +832,14 @@ input:focus{outline:none;border-color:var(--violet);}
   }
   .schedule-carousel.is-grouped .schedule-tier-section{flex:1;min-width:0;}
 
-  /* Logbook and Team Events: form/create-panel on the left, the list on
-     the right - same order/grouping as the stacked mobile layout, just
-     arranged as columns. The right column is still capped so its rows
-     don't stretch wide enough to push name and time far apart. */
+  /* Team Events: create-form on the left, the event list on the right -
+     same order/grouping as the stacked mobile layout, just arranged as
+     columns. The list stays one event per row (no side-by-side grid) but
+     is free to stretch all the way to the right edge of the screen, so an
+     opened stint plan has the full width to lay out in. */
   .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
   .split-col-left{flex:0 0 460px;}
-  .split-col-right{flex:1;max-width:560px;}
-  #te-content .split-col-right{max-width:920px;}
-  #te-list{grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));}
+  .split-col-right{flex:1;max-width:none;}
 }
 
 </style>
