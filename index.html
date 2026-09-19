@@ -618,8 +618,19 @@ input:focus{outline:none;border-color:var(--violet);}
 .stint-plan-title:first-child{margin-top:0;}
 .stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .stint-row.dragging{opacity:0.4;}
+.stint-row.completed{opacity:0.5;}
+.stint-row.completed .stint-time{text-decoration:line-through;}
 .stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
 .stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
+.stint-edited-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  color:var(--amber);
+  background:rgba(255,176,32,0.12);
+  padding:2px 7px;
+  border-radius:10px;
+  flex-shrink:0;
+}
 .stint-plan select, .stint-plan input[type="number"], .stint-plan input[type="text"]{width:auto;}
 .stint-driver-select-wrap, .stint-spotter-select-wrap{display:flex;flex:1;min-width:110px;gap:6px;}
 .stint-driver-select, .stint-spotter-select{flex:1;min-width:0;}
@@ -686,30 +697,6 @@ input:focus{outline:none;border-color:var(--violet);}
   margin-top:6px;
 }
 .stint-calc-apply:hover{background:rgba(255,176,32,0.1);}
-.stint-output{margin:10px 0;padding:10px 0;border-top:1px dashed var(--line);}
-.stint-metrics-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
-.stint-metrics-row .ref-times-cell{flex:1;min-width:120px;}
-.stint-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}
-.stint-table th{
-  text-align:left;
-  font-family:'JetBrains Mono',monospace;
-  font-size:10.5px;
-  letter-spacing:0.4px;
-  text-transform:uppercase;
-  color:var(--muted);
-  padding:6px 8px;
-  border-bottom:1px solid var(--line);
-}
-.stint-table td{padding:6px 8px;border-bottom:1px solid var(--line);color:var(--text);}
-.stint-fuel-target{
-  font-family:'JetBrains Mono',monospace;
-  font-size:13px;
-  color:var(--amber);
-  background:rgba(255,176,32,0.1);
-  border-radius:6px;
-  padding:8px 12px;
-  margin-top:6px;
-}
 .te-new-team-btn{
   align-self:flex-start;
   font-family:'JetBrains Mono',monospace;
@@ -2428,16 +2415,22 @@ function renderStintCalculator(team, ev, stints){
   const raceDuration = ev.duration_minutes;
 
   if(lapTime > 0 && tankLiters > 0 && consumptionPerLap > 0 && raceDuration > 0){
+    // No separate preview table here on purpose - fill in the numbers,
+    // click the button, the real (editable, drag-reorderable) stint list
+    // below appears. One place to look at, not two.
     const plan = computeStintPlan({
       raceDurationMinutes: raceDuration, lapTimeSeconds: lapTime, tankLiters,
       consumptionPerLap, pitDeltaSeconds: pitDeltaSeconds || 30, doubleStint: doubleStintCheckbox.checked,
     });
-    box.appendChild(renderStintPlanOutput(plan, team));
+    const result = document.createElement('div');
+    result.className = 'stint-calc-result';
+    result.textContent = `→ ${plan.numStints} Stint${plan.numStints === 1 ? '' : 's'} · Sprit-Ziel ${(plan.totalFuel / plan.totalLaps).toFixed(2)} L/Runde`;
+    box.appendChild(result);
 
     const applyBtn = document.createElement('button');
     applyBtn.type = 'button';
     applyBtn.className = 'stint-calc-apply';
-    applyBtn.textContent = stints.length ? 'Plan neu erstellen (ersetzt aktuelle Stints)' : 'Stints automatisch anlegen';
+    applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
     applyBtn.addEventListener('click', () => {
       if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
       applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
@@ -2451,90 +2444,6 @@ function renderStintCalculator(team, ev, stints){
   }
 
   return box;
-}
-
-function renderStintPlanOutput(plan, team){
-  const wrap = document.createElement('div');
-  wrap.className = 'stint-output';
-
-  // A) Key metrics
-  const metrics = document.createElement('div');
-  metrics.className = 'stint-metrics-row';
-  const metricDefs = [
-    ['Stints', plan.numStints],
-    ['Sprit gesamt', `${plan.totalFuel.toFixed(1)} L`],
-    ['Strategie', plan.liftAndCoast.canSaveStop && plan.liftAndCoast.netGainSeconds > 0
-      ? `Lift & Coast (-1 Stopp, ≈${Math.round(plan.liftAndCoast.netGainSeconds)}s)`
-      : 'Push Strategy'],
-  ];
-  metricDefs.forEach(([label, value]) => {
-    const cell = document.createElement('div');
-    cell.className = 'ref-times-cell';
-    const t = document.createElement('div');
-    t.className = 'ref-times-tier';
-    t.textContent = label;
-    const v = document.createElement('div');
-    v.className = 'ref-times-value';
-    v.textContent = value;
-    cell.appendChild(t);
-    cell.appendChild(v);
-    metrics.appendChild(cell);
-  });
-  wrap.appendChild(metrics);
-
-  // B) Stint table
-  const table = document.createElement('table');
-  table.className = 'stint-table';
-  table.innerHTML = `<thead><tr>
-    <th>Stint</th><th>Dauer</th><th>Sprit (Start–Ende)</th><th>In-Lap</th><th>Pit Window</th><th>Reifen</th>
-  </tr></thead>`;
-  const tbody = document.createElement('tbody');
-  plan.stints.forEach(s => {
-    const tr = document.createElement('tr');
-    const tireLabel = s.tireChange === null ? '—' : (s.tireChange ? 'Ja' : 'Nein');
-    tr.innerHTML = `<td>${s.index}</td>
-      <td>${s.durationMinutes.toFixed(1)} min (${s.laps} R.)</td>
-      <td>${s.fuelStart.toFixed(0)}–${s.fuelEnd.toFixed(0)} L</td>
-      <td>Runde ${s.inLap}</td>
-      <td>${s.earliestPitLap}–${s.latestPitLap}</td>
-      <td>${tireLabel}</td>`;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-
-  // C) Driver stint summary - cyclic rotation across the team's real members
-  const members = team.team_event_members || [];
-  if(members.length){
-    const driverTitle = document.createElement('div');
-    driverTitle.className = 'stint-plan-title';
-    driverTitle.textContent = 'Fahrerwechsel-Vorschlag';
-    wrap.appendChild(driverTitle);
-    const rotation = plan.stints.map((s, i) => {
-      const name = (members[i % members.length].profiles && members[i % members.length].profiles.username) || 'Unbekannt';
-      return name;
-    });
-    const summary = document.createElement('div');
-    summary.className = 'stint-calc-hint';
-    summary.textContent = rotation.join(' → ');
-    wrap.appendChild(summary);
-    const longStint = plan.stints.find(s => s.durationMinutes > 60);
-    if(longStint){
-      const warn = document.createElement('div');
-      warn.className = 'stint-calc-hint';
-      warn.style.color = 'var(--red)';
-      warn.textContent = `Hinweis: Stint ${longStint.index} ist über 60 Min lang – ggf. Fahrerwechsel-Limit im Team prüfen.`;
-      wrap.appendChild(warn);
-    }
-  }
-
-  // D) Fuel target per lap
-  const fuelTarget = document.createElement('div');
-  fuelTarget.className = 'stint-fuel-target';
-  fuelTarget.textContent = `Sprit-Ziel pro Runde: ${(plan.totalFuel / plan.totalLaps).toFixed(2)} L/Runde`;
-  wrap.appendChild(fuelTarget);
-
-  return wrap;
 }
 
 async function updateTeamCalcInputs(teamId, patch){
@@ -2636,6 +2545,7 @@ function renderStintPlan(team, ev){
 
     const row = document.createElement('div');
     row.className = 'stint-row';
+    if(stintEnd.getTime() <= Date.now()) row.classList.add('completed');
     row.dataset.stintId = stint.id;
 
     if(iAmIn){
@@ -2663,6 +2573,14 @@ function renderStintPlan(team, ev){
     timeEl.className = 'stint-time';
     timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
     row.appendChild(timeEl);
+
+    if(stint.edited){
+      const editedBadge = document.createElement('span');
+      editedBadge.className = 'stint-edited-badge';
+      editedBadge.textContent = '✎ geändert';
+      editedBadge.title = 'Nach der Planerstellung manuell angepasst';
+      row.appendChild(editedBadge);
+    }
 
     const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
     const spotterLabel = (stint.spotter && stint.spotter.username) || stint.spotter_name || null;
@@ -2777,7 +2695,9 @@ async function addStint(teamId, position, durationMinutes){
 }
 
 async function updateStint(stintId, patch){
-  const { error } = await pitwallClient.from('team_stints').update(patch).eq('id', stintId);
+  // Any manual edit (driver/spotter/duration) flags the stint as changed
+  // since the plan was made, so the team notices a deviation at a glance.
+  const { error } = await pitwallClient.from('team_stints').update({ ...patch, edited: true }).eq('id', stintId);
   if(error) console.error('Update stint failed:', error.message);
   loadTeamEvents();
 }
@@ -3140,7 +3060,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,pit_delta_seconds,double_stint,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,pit_delta_seconds,double_stint,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,edited,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
