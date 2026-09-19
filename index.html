@@ -437,6 +437,8 @@ input:focus{outline:none;border-color:var(--violet);}
   transition:all .2s var(--ease);
 }
 .mobile-toggle-btn:hover{border-color:var(--muted);}
+.lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
+.lb-filter-toggle input{width:auto;}
 
 .leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
 
@@ -642,8 +644,9 @@ input:focus{outline:none;border-color:var(--violet);}
 }
 .stint-calc-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
 .stint-calc-input{width:150px !important;}
+.stint-calc-select{width:auto !important;min-width:150px;}
 .stint-calc-result{font-size:12.5px;color:var(--text);margin-bottom:8px;}
-.stint-calc-hint{font-size:12px;color:var(--muted);}
+.stint-calc-hint{font-size:12px;color:var(--muted);margin-bottom:6px;}
 .stint-calc-apply{
   font-family:'JetBrains Mono',monospace;
   font-size:11.5px;
@@ -655,8 +658,33 @@ input:focus{outline:none;border-color:var(--violet);}
   background:none;
   color:var(--amber);
   cursor:pointer;
+  margin-top:6px;
 }
 .stint-calc-apply:hover{background:rgba(255,176,32,0.1);}
+.stint-output{margin:10px 0;padding:10px 0;border-top:1px dashed var(--line);}
+.stint-metrics-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.stint-metrics-row .ref-times-cell{flex:1;min-width:120px;}
+.stint-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}
+.stint-table th{
+  text-align:left;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:6px 8px;
+  border-bottom:1px solid var(--line);
+}
+.stint-table td{padding:6px 8px;border-bottom:1px solid var(--line);color:var(--text);}
+.stint-fuel-target{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--amber);
+  background:rgba(255,176,32,0.1);
+  border-radius:6px;
+  padding:8px 12px;
+  margin-top:6px;
+}
 .te-new-team-btn{
   align-self:flex-start;
   font-family:'JetBrains Mono',monospace;
@@ -2188,6 +2216,79 @@ async function deleteTeam(teamId){
   loadTeamEvents();
 }
 
+// Rough ballpark presets to prefill the calculator with as few clicks as
+// possible - not official LMU data (we have no telemetry access), just
+// reasonable starting points the user is expected to check/adjust. Pace
+// factors are relative to Hypercar; track paces are Hypercar reference laps.
+const STINT_CLASS_PRESETS = {
+  Hypercar: { tankLiters: 75, consumptionPerLap: 3.1, paceFactor: 1.00 },
+  LMP2: { tankLiters: 75, consumptionPerLap: 3.0, paceFactor: 1.07 },
+  GTE: { tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
+  LMGT3: { tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
+};
+const STINT_TRACK_PRESETS = {
+  'Le Mans': { hypercarLapSeconds: 208.0, pitDeltaSeconds: 45 },
+  'Spa-Francorchamps': { hypercarLapSeconds: 125.0, pitDeltaSeconds: 35 },
+  'Sebring': { hypercarLapSeconds: 107.0, pitDeltaSeconds: 30 },
+  'Monza': { hypercarLapSeconds: 96.0, pitDeltaSeconds: 28 },
+  'Fuji': { hypercarLapSeconds: 90.0, pitDeltaSeconds: 28 },
+  'Bahrain': { hypercarLapSeconds: 109.0, pitDeltaSeconds: 30 },
+  'Portimão': { hypercarLapSeconds: 94.0, pitDeltaSeconds: 27 },
+  'Imola': { hypercarLapSeconds: 97.0, pitDeltaSeconds: 27 },
+  'COTA': { hypercarLapSeconds: 108.0, pitDeltaSeconds: 29 },
+  'Qatar': { hypercarLapSeconds: 98.0, pitDeltaSeconds: 27 },
+};
+
+// Pure calculation: given pace/fuel inputs, works out how many stints the
+// race needs and how they should be sized - full tanks first, the last
+// stint takes only the remainder (avoids needing a late top-up "splash &
+// dash" stop), plus a rough lift&coast and FCY pit-window read-out.
+function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, tankLiters, consumptionPerLap, pitDeltaSeconds, doubleStint }){
+  const totalLaps = Math.ceil((raceDurationMinutes * 60) / lapTimeSeconds);
+  const maxLapsPerStint = Math.max(1, Math.floor(tankLiters / consumptionPerLap));
+  const numStints = Math.max(1, Math.ceil(totalLaps / maxLapsPerStint));
+
+  let remaining = totalLaps;
+  let cumLaps = 0;
+  const stints = [];
+  for(let i = 0; i < numStints; i++){
+    const laps = i < numStints - 1 ? Math.min(maxLapsPerStint, remaining) : remaining;
+    const startLap = cumLaps + 1;
+    cumLaps += laps;
+    const slackLaps = Math.max(0, maxLapsPerStint - laps);
+    stints.push({
+      index: i + 1,
+      laps,
+      durationMinutes: (laps * lapTimeSeconds) / 60,
+      startLap,
+      inLap: cumLaps,
+      earliestPitLap: Math.max(startLap, cumLaps - slackLaps),
+      latestPitLap: cumLaps,
+      fuelStart: tankLiters,
+      fuelEnd: Math.max(0, tankLiters - laps * consumptionPerLap),
+      tireChange: i === 0 ? null : (!doubleStint || i % 2 === 1),
+    });
+    remaining -= laps;
+  }
+
+  // Lift & coast: would trimming consumption by a modest 3% remove a whole
+  // pit stop? If so, weigh the stop saved against the pace lost over the
+  // full race distance (rough estimate: 0.5% lap time per 3% fuel saved -
+  // real ratio varies a lot by car/track, this is just a ballpark check).
+  const coastConsumption = consumptionPerLap * 0.97;
+  const coastMaxLaps = Math.max(1, Math.floor(tankLiters / coastConsumption));
+  const coastStints = Math.max(1, Math.ceil(totalLaps / coastMaxLaps));
+  const canSaveStop = coastStints < numStints;
+  const paceLossSeconds = totalLaps * lapTimeSeconds * 0.005;
+  const netGainSeconds = pitDeltaSeconds - paceLossSeconds;
+
+  return {
+    totalLaps, maxLapsPerStint, numStints, stints, pitDeltaSeconds,
+    totalFuel: (totalLaps + 1.5) * consumptionPerLap,
+    liftAndCoast: { canSaveStop, paceLossSeconds, netGainSeconds },
+  };
+}
+
 function renderStintCalculator(team, ev, stints){
   const box = document.createElement('div');
   box.className = 'stint-calc';
@@ -2197,57 +2298,91 @@ function renderStintCalculator(team, ev, stints){
   title.textContent = 'Stint-Rechner';
   box.appendChild(title);
 
+  const presetRow = document.createElement('div');
+  presetRow.className = 'stint-calc-row';
+  const trackSelect = document.createElement('select');
+  trackSelect.className = 'stint-calc-select';
+  trackSelect.innerHTML = '<option value="">Strecke (Preset)…</option>' +
+    Object.keys(STINT_TRACK_PRESETS).map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
+  const classSelect = document.createElement('select');
+  classSelect.className = 'stint-calc-select';
+  classSelect.innerHTML = '<option value="">Klasse (Preset)…</option>' +
+    Object.keys(STINT_CLASS_PRESETS).map(c => `<option value="${escapeText(c)}">${escapeText(c)}</option>`).join('');
+  presetRow.appendChild(trackSelect);
+  presetRow.appendChild(classSelect);
+  box.appendChild(presetRow);
+
   const row = document.createElement('div');
   row.className = 'stint-calc-row';
 
-  const lapTimeInput = document.createElement('input');
-  lapTimeInput.type = 'number';
-  lapTimeInput.step = '0.001';
-  lapTimeInput.min = '1';
-  lapTimeInput.placeholder = 'Rundenzeit (Sek.)';
-  lapTimeInput.value = team.est_lap_time_seconds || '';
-  lapTimeInput.className = 'stint-calc-input';
-
-  const lapsPerTankInput = document.createElement('input');
-  lapsPerTankInput.type = 'number';
-  lapsPerTankInput.step = '1';
-  lapsPerTankInput.min = '1';
-  lapsPerTankInput.placeholder = 'Runden pro Tank';
-  lapsPerTankInput.value = team.laps_per_tank || '';
-  lapsPerTankInput.className = 'stint-calc-input';
-
-  const saveInputs = () => {
-    const lapTime = parseFloat(lapTimeInput.value);
-    const lapsPerTank = parseInt(lapsPerTankInput.value, 10);
-    updateTeamCalcInputs(team.id, {
-      est_lap_time_seconds: lapTime > 0 ? lapTime : null,
-      laps_per_tank: lapsPerTank > 0 ? lapsPerTank : null,
-    });
-  };
-  lapTimeInput.addEventListener('change', saveInputs);
-  lapsPerTankInput.addEventListener('change', saveInputs);
-
-  row.appendChild(lapTimeInput);
-  row.appendChild(lapsPerTankInput);
+  function numberField(placeholder, value, step){
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = step;
+    input.min = '0';
+    input.placeholder = placeholder;
+    input.value = value || '';
+    input.className = 'stint-calc-input';
+    return input;
+  }
+  const lapTimeInput = numberField('Rundenzeit (Sek.)', team.est_lap_time_seconds, '0.001');
+  const tankInput = numberField('Tank (Liter)', team.tank_liters, '0.1');
+  const consumptionInput = numberField('Verbrauch (L/Runde)', team.consumption_per_lap, '0.01');
+  const pitDeltaInput = numberField('Pit Delta (Sek.)', team.pit_delta_seconds, '1');
+  [lapTimeInput, tankInput, consumptionInput, pitDeltaInput].forEach(el => row.appendChild(el));
   box.appendChild(row);
 
+  const doubleStintLabel = document.createElement('label');
+  doubleStintLabel.className = 'lb-filter-toggle';
+  const doubleStintCheckbox = document.createElement('input');
+  doubleStintCheckbox.type = 'checkbox';
+  doubleStintCheckbox.checked = !!team.double_stint;
+  doubleStintLabel.appendChild(doubleStintCheckbox);
+  doubleStintLabel.appendChild(document.createTextNode('Double Stint versuchen (Reifen nur jeden 2. Stopp wechseln)'));
+  box.appendChild(doubleStintLabel);
+
+  trackSelect.addEventListener('change', () => {
+    const preset = STINT_TRACK_PRESETS[trackSelect.value];
+    if(!preset) return;
+    pitDeltaInput.value = preset.pitDeltaSeconds;
+    const classPreset = STINT_CLASS_PRESETS[classSelect.value];
+    if(classPreset) lapTimeInput.value = (preset.hypercarLapSeconds * classPreset.paceFactor).toFixed(1);
+    saveInputs();
+  });
+  classSelect.addEventListener('change', () => {
+    const preset = STINT_CLASS_PRESETS[classSelect.value];
+    if(!preset) return;
+    tankInput.value = preset.tankLiters;
+    consumptionInput.value = preset.consumptionPerLap;
+    const trackPreset = STINT_TRACK_PRESETS[trackSelect.value];
+    if(trackPreset) lapTimeInput.value = (trackPreset.hypercarLapSeconds * preset.paceFactor).toFixed(1);
+    saveInputs();
+  });
+
+  const saveInputs = () => {
+    updateTeamCalcInputs(team.id, {
+      est_lap_time_seconds: parseFloat(lapTimeInput.value) || null,
+      tank_liters: parseFloat(tankInput.value) || null,
+      consumption_per_lap: parseFloat(consumptionInput.value) || null,
+      pit_delta_seconds: parseFloat(pitDeltaInput.value) || null,
+      double_stint: doubleStintCheckbox.checked,
+    });
+  };
+  [lapTimeInput, tankInput, consumptionInput, pitDeltaInput].forEach(el => el.addEventListener('change', saveInputs));
+  doubleStintCheckbox.addEventListener('change', saveInputs);
+
   const lapTime = team.est_lap_time_seconds;
-  const lapsPerTank = team.laps_per_tank;
+  const tankLiters = team.tank_liters;
+  const consumptionPerLap = team.consumption_per_lap;
+  const pitDeltaSeconds = team.pit_delta_seconds;
   const raceDuration = ev.duration_minutes;
 
-  if(lapTime > 0 && lapsPerTank > 0 && raceDuration > 0){
-    // Longest possible stint given the fuel tank, then the fewest evenly
-    // sized stints that still fit within that limit - fewer pit stops is
-    // the fastest way to the finish, not equal-for-equal's-sake stints.
-    const maxStintMinutes = (lapsPerTank * lapTime) / 60;
-    const numStints = Math.max(1, Math.ceil(raceDuration / maxStintMinutes));
-    const stintMinutes = raceDuration / numStints;
-    const lapsPerStint = (stintMinutes * 60) / lapTime;
-
-    const result = document.createElement('div');
-    result.className = 'stint-calc-result';
-    result.textContent = `→ ${numStints} Stint${numStints === 1 ? '' : 's'} à ${stintMinutes.toFixed(1)} Min (≈ ${Math.round(lapsPerStint)} Runden) für möglichst wenig Boxenstopps.`;
-    box.appendChild(result);
+  if(lapTime > 0 && tankLiters > 0 && consumptionPerLap > 0 && raceDuration > 0){
+    const plan = computeStintPlan({
+      raceDurationMinutes: raceDuration, lapTimeSeconds: lapTime, tankLiters,
+      consumptionPerLap, pitDeltaSeconds: pitDeltaSeconds || 30, doubleStint: doubleStintCheckbox.checked,
+    });
+    box.appendChild(renderStintPlanOutput(plan, team));
 
     const applyBtn = document.createElement('button');
     applyBtn.type = 'button';
@@ -2255,17 +2390,101 @@ function renderStintCalculator(team, ev, stints){
     applyBtn.textContent = stints.length ? 'Plan neu erstellen (ersetzt aktuelle Stints)' : 'Stints automatisch anlegen';
     applyBtn.addEventListener('click', () => {
       if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
-      applyCalculatedStints(team.id, stints, numStints, stintMinutes);
+      applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
     });
     box.appendChild(applyBtn);
   }else{
     const hint = document.createElement('div');
     hint.className = 'stint-calc-hint';
-    hint.textContent = 'Rundenzeit und Runden pro Tank eintragen, um die optimale Stintlänge zu berechnen.';
+    hint.textContent = 'Strecke + Klasse wählen (füllt Vorschläge) oder Rundenzeit, Tank und Verbrauch von Hand eintragen, um den Stintplan zu berechnen.';
     box.appendChild(hint);
   }
 
   return box;
+}
+
+function renderStintPlanOutput(plan, team){
+  const wrap = document.createElement('div');
+  wrap.className = 'stint-output';
+
+  // A) Key metrics
+  const metrics = document.createElement('div');
+  metrics.className = 'stint-metrics-row';
+  const metricDefs = [
+    ['Stints', plan.numStints],
+    ['Sprit gesamt', `${plan.totalFuel.toFixed(1)} L`],
+    ['Strategie', plan.liftAndCoast.canSaveStop && plan.liftAndCoast.netGainSeconds > 0
+      ? `Lift & Coast (-1 Stopp, ≈${Math.round(plan.liftAndCoast.netGainSeconds)}s)`
+      : 'Push Strategy'],
+  ];
+  metricDefs.forEach(([label, value]) => {
+    const cell = document.createElement('div');
+    cell.className = 'ref-times-cell';
+    const t = document.createElement('div');
+    t.className = 'ref-times-tier';
+    t.textContent = label;
+    const v = document.createElement('div');
+    v.className = 'ref-times-value';
+    v.textContent = value;
+    cell.appendChild(t);
+    cell.appendChild(v);
+    metrics.appendChild(cell);
+  });
+  wrap.appendChild(metrics);
+
+  // B) Stint table
+  const table = document.createElement('table');
+  table.className = 'stint-table';
+  table.innerHTML = `<thead><tr>
+    <th>Stint</th><th>Dauer</th><th>Sprit (Start–Ende)</th><th>In-Lap</th><th>Pit Window</th><th>Reifen</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  plan.stints.forEach(s => {
+    const tr = document.createElement('tr');
+    const tireLabel = s.tireChange === null ? '—' : (s.tireChange ? 'Ja' : 'Nein');
+    tr.innerHTML = `<td>${s.index}</td>
+      <td>${s.durationMinutes.toFixed(1)} min (${s.laps} R.)</td>
+      <td>${s.fuelStart.toFixed(0)}–${s.fuelEnd.toFixed(0)} L</td>
+      <td>Runde ${s.inLap}</td>
+      <td>${s.earliestPitLap}–${s.latestPitLap}</td>
+      <td>${tireLabel}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+
+  // C) Driver stint summary - cyclic rotation across the team's real members
+  const members = team.team_event_members || [];
+  if(members.length){
+    const driverTitle = document.createElement('div');
+    driverTitle.className = 'stint-plan-title';
+    driverTitle.textContent = 'Fahrerwechsel-Vorschlag';
+    wrap.appendChild(driverTitle);
+    const rotation = plan.stints.map((s, i) => {
+      const name = (members[i % members.length].profiles && members[i % members.length].profiles.username) || 'Unbekannt';
+      return name;
+    });
+    const summary = document.createElement('div');
+    summary.className = 'stint-calc-hint';
+    summary.textContent = rotation.join(' → ');
+    wrap.appendChild(summary);
+    const longStint = plan.stints.find(s => s.durationMinutes > 60);
+    if(longStint){
+      const warn = document.createElement('div');
+      warn.className = 'stint-calc-hint';
+      warn.style.color = 'var(--red)';
+      warn.textContent = `Hinweis: Stint ${longStint.index} ist über 60 Min lang – ggf. Fahrerwechsel-Limit im Team prüfen.`;
+      wrap.appendChild(warn);
+    }
+  }
+
+  // D) Fuel target per lap
+  const fuelTarget = document.createElement('div');
+  fuelTarget.className = 'stint-fuel-target';
+  fuelTarget.textContent = `Sprit-Ziel pro Runde: ${(plan.totalFuel / plan.totalLaps).toFixed(2)} L/Runde`;
+  wrap.appendChild(fuelTarget);
+
+  return wrap;
 }
 
 async function updateTeamCalcInputs(teamId, patch){
@@ -2274,13 +2493,14 @@ async function updateTeamCalcInputs(teamId, patch){
   loadTeamEvents();
 }
 
-async function applyCalculatedStints(teamId, existingStints, numStints, stintMinutes){
+async function applyCalculatedStints(teamId, existingStints, plan, members){
   await Promise.all(existingStints.map(s => pitwallClient.from('team_stints').delete().eq('id', s.id)));
-  const rounded = Math.round(stintMinutes);
-  const inserts = [];
-  for(let i = 0; i < numStints; i++){
-    inserts.push({ team_id: teamId, position: i, duration_minutes: rounded });
-  }
+  const inserts = plan.stints.map((s, i) => ({
+    team_id: teamId,
+    position: i,
+    duration_minutes: Math.round(s.durationMinutes),
+    user_id: members.length ? members[i % members.length].user_id : null,
+  }));
   const { error } = await pitwallClient.from('team_stints').insert(inserts);
   if(error) console.error('Apply calculated stints failed:', error.message);
   loadTeamEvents();
@@ -2870,7 +3090,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,laps_per_tank,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,pit_delta_seconds,double_stint,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
