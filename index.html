@@ -442,47 +442,45 @@ input:focus{outline:none;border-color:var(--violet);}
 
 .leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
 
-.ref-times-section{max-width:720px;}
+.ref-times-section{max-width:900px;}
 #ref-track-filter{width:auto;max-width:280px;margin-bottom:4px;}
 .ref-times-table-wrap{overflow-x:auto;margin-top:8px;}
-.ref-times-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ref-times-table{width:100%;border-collapse:collapse;font-size:14.5px;}
 .ref-times-table th{
   text-align:left;
   font-family:'JetBrains Mono',monospace;
-  font-size:10.5px;
+  font-size:11.5px;
   letter-spacing:0.4px;
   text-transform:uppercase;
   color:var(--muted);
-  padding:8px 10px;
+  padding:11px 14px;
   border-bottom:1px solid var(--line);
   white-space:nowrap;
+  font-weight:700;
 }
 .ref-times-table td{
-  padding:8px 10px;
+  padding:11px 14px;
   border-bottom:1px solid var(--line);
   font-family:'JetBrains Mono',monospace;
   color:var(--text);
   white-space:nowrap;
 }
-.ref-times-class{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--text);}
-.ref-times-cell{
-  background:var(--panel-2);
-  border-radius:8px;
-  padding:10px 12px;
-}
-.ref-times-tier{
-  font-family:'JetBrains Mono',monospace;
-  font-size:10.5px;
-  letter-spacing:0.5px;
-  text-transform:uppercase;
-  color:var(--muted);
-  margin-bottom:3px;
-}
-.ref-times-value{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);}
+.ref-times-class{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15.5px;color:var(--text);}
 .ref-times-hint{color:var(--muted);font-size:13px;padding:8px 0;}
 .ref-times-credit{font-size:11.5px;color:var(--muted);margin-top:14px;}
 .ref-times-credit a{color:var(--muted);}
 .ref-times-credit a:hover{color:var(--text);}
+.link-btn-inline{
+  background:none;
+  border:none;
+  padding:0;
+  font-size:inherit;
+  font-family:inherit;
+  color:var(--muted);
+  text-decoration:underline;
+  cursor:pointer;
+}
+.link-btn-inline:hover{color:var(--text);}
 
 /* ---- Team Events tab ---- */
 .te-toolbar{margin-bottom:16px;}
@@ -697,7 +695,6 @@ input:focus{outline:none;border-color:var(--violet);}
   flex-shrink:0;
 }
 .stint-tire-menu-corner select{width:auto;flex:1;}
-.stint-fuel-input{width:66px !important;flex-shrink:0;text-align:center;}
 .stint-remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0;line-height:1;}
 .stint-remove-btn:hover{color:var(--red);}
 .stint-add-btn{
@@ -982,6 +979,8 @@ input:focus{outline:none;border-color:var(--violet);}
     <div id="ref-times-table"></div>
     <p class="ref-times-credit">
       Quelle: <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
+      · Stand: <span id="ref-last-updated">–</span>
+      · <button type="button" id="ref-refresh-btn" class="link-btn-inline">Aktualisieren</button>
     </p>
   </div>
 
@@ -2014,9 +2013,12 @@ function parseCsvLine(line){
 }
 
 let referenceLapTimesCache = null;
+let referenceLapTimesFetchedAt = 0;
+const REFERENCE_LAP_TIMES_MAX_AGE_MS = 15 * 60 * 1000; // refetch if older than 15 min
 
-async function loadReferenceLapTimes(){
-  if(referenceLapTimesCache) return referenceLapTimesCache;
+async function loadReferenceLapTimes(force){
+  const isStale = Date.now() - referenceLapTimesFetchedAt > REFERENCE_LAP_TIMES_MAX_AGE_MS;
+  if(referenceLapTimesCache && !force && !isStale) return referenceLapTimesCache;
   try{
     const res = await fetch(REFERENCE_SHEET_CSV_URL);
     if(!res.ok) throw new Error('HTTP ' + res.status);
@@ -2040,6 +2042,9 @@ async function loadReferenceLapTimes(){
       tailender: cols[10],
       offline: cols[11],
     }));
+    referenceLapTimesFetchedAt = Date.now();
+    const stamp = document.getElementById('ref-last-updated');
+    if(stamp) stamp.textContent = new Date(referenceLapTimesFetchedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   }catch(err){
     console.error('Reference lap times load failed:', err.message);
     referenceLapTimesCache = [];
@@ -2057,16 +2062,27 @@ function populateReferenceFilters(rows){
     tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
 }
 
+// Green-to-red gradient so a glance at the row tells you which column is
+// the fast end and which is the slow end, without having to read labels.
 const REF_TIERS = [
-  ['alien', 'Alien'],
-  ['competitive', 'Competitive'],
-  ['good', 'Good'],
-  ['midpack', 'Midpack'],
-  ['tailender', 'Tail-ender'],
-  ['offline', 'Offline'],
+  ['alien', 'Alien', '#22c55e'],
+  ['competitive', 'Competitive', '#84cc16'],
+  ['good', 'Good', '#eab308'],
+  ['midpack', 'Midpack', '#f59e0b'],
+  ['tailender', 'Tail-ender', '#f97316'],
+  ['offline', 'Offline', '#ef4444'],
 ];
+// Sheet class labels don't always match lmuportal's display names (e.g.
+// "LMP2elms"/"LMP2wec" vs. "LMP2", "LMH" vs. "Hypercar") - normalize just
+// for the color lookup, the raw label from the sheet is still displayed.
+function normalizeRefClassName(raw){
+  if(!raw) return raw;
+  if(/^LMP2/i.test(raw)) return 'LMP2';
+  if(/^LMH$/i.test(raw)) return 'Hypercar';
+  return raw;
+}
 
-function renderReferenceTimes(){
+async function renderReferenceTimes(){
   const container = document.getElementById('ref-times-table');
   if(!container || !referenceLapTimesCache) return;
   const track = document.getElementById('ref-track-filter').value;
@@ -2081,12 +2097,22 @@ function renderReferenceTimes(){
     container.innerHTML = '<div class="ref-times-hint">Keine Daten für diese Strecke.</div>';
     return;
   }
+  const { colorByClassName } = await loadCarsByClass();
+
   container.className = 'ref-times-table-wrap';
   container.innerHTML = '';
   const table = document.createElement('table');
   table.className = 'ref-times-table';
   const thead = document.createElement('thead');
-  thead.innerHTML = '<tr><th>Klasse</th>' + REF_TIERS.map(([, label]) => `<th>${label}</th>`).join('') + '</tr>';
+  const headRow = document.createElement('tr');
+  headRow.appendChild(document.createElement('th')).textContent = 'Klasse';
+  REF_TIERS.forEach(([, label, color]) => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    th.style.color = color;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
   table.appendChild(thead);
   const tbody = document.createElement('tbody');
   classRows.sort((a, b) => a.class.localeCompare(b.class)).forEach(row => {
@@ -2094,10 +2120,13 @@ function renderReferenceTimes(){
     const classCell = document.createElement('td');
     classCell.className = 'ref-times-class';
     classCell.textContent = row.class;
+    const classColor = (colorByClassName || {})[normalizeRefClassName(row.class)];
+    if(classColor) classCell.style.color = classColor;
     tr.appendChild(classCell);
-    REF_TIERS.forEach(([key]) => {
+    REF_TIERS.forEach(([key, , color]) => {
       const td = document.createElement('td');
       td.textContent = row[key] || '–';
+      if(row[key] && color) td.style.background = color + '1a';
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
@@ -2107,6 +2136,7 @@ function renderReferenceTimes(){
 }
 
 document.getElementById('ref-track-filter').addEventListener('change', renderReferenceTimes);
+document.getElementById('ref-refresh-btn').addEventListener('click', () => loadReferenceLapTimes(true));
 
 // ---- Team Events tab: coordinate who's available when, for events that
 // need a full team. Special-event schedule races that need a team (flagged
@@ -2166,6 +2196,16 @@ function isEventPast(ev){
   if(!ev.slot_times || !ev.slot_times.length) return false;
   const lastSlotMs = Math.max(...ev.slot_times.map(iso => new Date(iso).getTime()));
   return localDayKey(new Date(lastSlotMs)) < localDayKey(new Date());
+}
+// Gates the "geändert" badge to edits made while the race is actually
+// underway for this team - pre-race planning tweaks aren't a deviation
+// from the plan, only changes made mid-event are.
+function isEventLiveForTeam(team, ev){
+  if(!team.slot_time || !ev.duration_minutes) return false;
+  const startMs = new Date(team.slot_time).getTime();
+  const endMs = startMs + ev.duration_minutes * 60000;
+  const now = Date.now();
+  return now >= startMs && now <= endMs;
 }
 function formatDayHeader(d){
   const weekday = d.toLocaleDateString('de-DE', { weekday: 'long' });
@@ -2487,6 +2527,7 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
   const inserts = plan.stints.map((s, i) => ({
     team_id: teamId,
     position: i,
+    laps: s.laps,
     duration_minutes: durations[i],
     user_id: members.length ? members[i % members.length].user_id : null,
   }));
@@ -2513,7 +2554,7 @@ const TIRE_COMPOUNDS_BY_CLASS = {
 };
 const TIRE_CORNERS = [['tire_fl', 'VL'], ['tire_fr', 'VR'], ['tire_rl', 'HL'], ['tire_rr', 'HR']];
 
-function renderTireControl(stint, team, iAmIn){
+function renderTireControl(stint, team, iAmIn, live){
   const compounds = TIRE_COMPOUNDS_BY_CLASS[detectClassPreset(team)] || TIRE_COMPOUNDS_BY_CLASS.Hypercar;
 
   const wrap = document.createElement('span');
@@ -2557,7 +2598,7 @@ function renderTireControl(stint, team, iAmIn){
     const allRow = document.createElement('div');
     allRow.className = 'stint-tire-menu-row';
     const setAll = compound => {
-      updateStint(stint.id, { tire_fl: compound, tire_fr: compound, tire_rl: compound, tire_rr: compound });
+      updateStint(stint.id, { tire_fl: compound, tire_fr: compound, tire_rl: compound, tire_rr: compound }, live);
     };
     allRow.appendChild(swatchBtn('Keine', null, setAll));
     compounds.forEach(c => allRow.appendChild(swatchBtn(c, c, setAll)));
@@ -2586,7 +2627,7 @@ function renderTireControl(stint, team, iAmIn){
         if(stint[key] === c) opt.selected = true;
         select.appendChild(opt);
       });
-      select.addEventListener('change', () => updateStint(stint.id, { [key]: select.value || null }));
+      select.addEventListener('change', () => updateStint(stint.id, { [key]: select.value || null }, live));
       cornerRow.appendChild(select);
       menu.appendChild(cornerRow);
     });
@@ -2615,8 +2656,37 @@ function renderStintPlan(team, ev){
   const stints = team.team_stints || [];
   const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
   const startMs = new Date(team.slot_time).getTime();
+  const lapTime = team.est_lap_time_seconds;
+  const live = isEventLiveForTeam(team, ev);
 
   if(iAmIn) wrap.appendChild(renderStintCalculator(team, ev, stints));
+
+  // Entering how many laps a stint actually took (e.g. cut short by an
+  // incident) reflows the remaining laps across the stints still ahead of
+  // it, split evenly with any remainder on the last one - same rounding
+  // pattern as applyCalculatedStints. Driver/spotter/tire choices on those
+  // following stints are left untouched, only their lap count shifts.
+  async function applyActualLaps(stint, newLaps){
+    const idx = stints.findIndex(s => s.id === stint.id);
+    if(idx === -1) return;
+    const oldLaps = stint.laps ?? 0;
+    const diff = oldLaps - newLaps;
+    const following = stints.slice(idx + 1);
+    const patches = [{ id: stint.id, laps: newLaps }];
+    if(following.length && diff !== 0){
+      const share = Math.trunc(diff / following.length);
+      const remainder = diff - share * following.length;
+      following.forEach((s, i) => {
+        const add = share + (i < Math.abs(remainder) ? Math.sign(remainder) : 0);
+        patches.push({ id: s.id, laps: Math.max(0, (s.laps ?? 0) + add) });
+      });
+    }
+    for(const p of patches){
+      const patch = { laps: p.laps };
+      if(lapTime > 0) patch.duration_minutes = Math.max(1, Math.round((p.laps * lapTime) / 60));
+      await updateStint(p.id, patch, live);
+    }
+  }
 
   let cumMinutes = 0;
   if(!stints.length){
@@ -2677,9 +2747,12 @@ function renderStintPlan(team, ev){
     const stintStart = new Date(startMs + cumMinutes * 60000);
     cumMinutes += stint.duration_minutes || 0;
     const stintEnd = new Date(startMs + cumMinutes * 60000);
-    const laps = team.est_lap_time_seconds > 0
-      ? Math.round((stint.duration_minutes * 60) / team.est_lap_time_seconds)
+    // Falls back to an estimate from duration_minutes for stints created
+    // before the laps column existed - once edited, the real value sticks.
+    const estimatedLaps = lapTime > 0
+      ? Math.round((stint.duration_minutes * 60) / lapTime)
       : null;
+    const displayLaps = stint.laps ?? estimatedLaps;
 
     const row = document.createElement('div');
     row.className = 'stint-row';
@@ -2712,54 +2785,31 @@ function renderStintPlan(team, ev){
     timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
     row.appendChild(timeEl);
 
-    const lapsEl = document.createElement('span');
-    lapsEl.className = 'stint-laps';
-    lapsEl.textContent = laps !== null ? `≈${laps} R.` : '';
-    row.appendChild(lapsEl);
-
     if(iAmIn){
-      const durationInput = document.createElement('input');
-      durationInput.type = 'number';
-      durationInput.className = 'stint-duration-input';
-      durationInput.min = '1';
-      durationInput.value = stint.duration_minutes;
-      durationInput.addEventListener('change', () => {
-        const val = parseInt(durationInput.value, 10);
-        if(val > 0) updateStint(stint.id, { duration_minutes: val });
+      const lapsInput = document.createElement('input');
+      lapsInput.type = 'number';
+      lapsInput.className = 'stint-duration-input';
+      lapsInput.min = '0';
+      lapsInput.value = displayLaps ?? '';
+      lapsInput.title = 'Geplante bzw. tatsächlich gefahrene Runden - eine Änderung verteilt die Differenz automatisch auf die folgenden Stints';
+      lapsInput.addEventListener('change', () => {
+        const val = parseInt(lapsInput.value, 10);
+        if(!isNaN(val) && val >= 0) applyActualLaps(stint, val);
       });
-      row.appendChild(durationInput);
+      row.appendChild(lapsInput);
 
       const unit = document.createElement('span');
       unit.className = 'stint-duration-unit';
-      unit.textContent = 'min';
+      unit.textContent = 'Runden';
       row.appendChild(unit);
-    }
-
-    row.appendChild(renderTireControl(stint, team, iAmIn));
-
-    if(iAmIn){
-      const fuelInput = document.createElement('input');
-      fuelInput.type = 'number';
-      fuelInput.className = 'stint-fuel-input';
-      fuelInput.min = '0';
-      fuelInput.max = '100';
-      fuelInput.value = stint.fuel_percent ?? 100;
-      fuelInput.title = 'Sprit/VE für diesen Stint';
-      fuelInput.addEventListener('change', () => {
-        const val = parseInt(fuelInput.value, 10);
-        updateStint(stint.id, { fuel_percent: isNaN(val) ? null : Math.max(0, Math.min(100, val)) });
-      });
-      row.appendChild(fuelInput);
-      const fuelUnit = document.createElement('span');
-      fuelUnit.className = 'stint-duration-unit';
-      fuelUnit.textContent = '% VE';
-      row.appendChild(fuelUnit);
     }else{
-      const fuelText = document.createElement('span');
-      fuelText.className = 'stint-laps';
-      fuelText.textContent = `${stint.fuel_percent ?? 100}% VE`;
-      row.appendChild(fuelText);
+      const lapsEl = document.createElement('span');
+      lapsEl.className = 'stint-laps';
+      lapsEl.textContent = displayLaps != null ? `≈${displayLaps} R.` : '';
+      row.appendChild(lapsEl);
     }
+
+    row.appendChild(renderTireControl(stint, team, iAmIn, live));
 
     if(stint.edited){
       const editedBadge = document.createElement('span');
@@ -2774,11 +2824,11 @@ function renderStintPlan(team, ev){
 
     if(iAmIn){
       const driverField = makePersonField('stint-driver-select', 'Fahrer offen', stint.user_id, stint.driver_name,
-        ({ userId, manualName }) => updateStint(stint.id, { user_id: userId, driver_name: manualName }));
+        ({ userId, manualName }) => updateStint(stint.id, { user_id: userId, driver_name: manualName }, live));
       row.appendChild(driverField);
 
       const spotterField = makePersonField('stint-spotter-select', 'Spotter offen', stint.spotter_id, stint.spotter_name,
-        ({ userId, manualName }) => updateStint(stint.id, { spotter_id: userId, spotter_name: manualName }));
+        ({ userId, manualName }) => updateStint(stint.id, { spotter_id: userId, spotter_name: manualName }, live));
       row.appendChild(spotterField);
 
       const removeBtn = document.createElement('button');
@@ -2791,7 +2841,8 @@ function renderStintPlan(team, ev){
     }else{
       const driverText = document.createElement('span');
       driverText.className = 'stint-driver-text';
-      driverText.textContent = `${driverLabel || 'Fahrer offen'} · ${spotterLabel || 'Spotter offen'} · ${stint.duration_minutes} min`;
+      const durationLabel = displayLaps != null ? `${displayLaps} R.` : `${stint.duration_minutes} min`;
+      driverText.textContent = `${driverLabel || 'Fahrer offen'} · ${spotterLabel || 'Spotter offen'} · ${durationLabel}`;
       row.appendChild(driverText);
     }
 
@@ -2804,8 +2855,10 @@ function renderStintPlan(team, ev){
     addBtn.className = 'stint-add-btn';
     addBtn.textContent = '+ Stint hinzufügen';
     const nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
-    const lastDuration = stints.length ? stints[stints.length - 1].duration_minutes : 30;
-    addBtn.addEventListener('click', () => addStint(team.id, nextPosition, lastDuration));
+    const last = stints.length ? stints[stints.length - 1] : null;
+    const lastLaps = last ? (last.laps ?? (lapTime > 0 ? Math.round((last.duration_minutes * 60) / lapTime) : 10)) : 10;
+    const lastDuration = last ? last.duration_minutes : 30;
+    addBtn.addEventListener('click', () => addStint(team.id, nextPosition, lastLaps, lastDuration));
     wrap.appendChild(addBtn);
   }
 
@@ -2836,16 +2889,18 @@ async function reorderStints(stints, draggedId, targetId){
   loadTeamEvents();
 }
 
-async function addStint(teamId, position, durationMinutes){
-  const { error } = await pitwallClient.from('team_stints').insert({ team_id: teamId, position, duration_minutes: durationMinutes || 30 });
+async function addStint(teamId, position, laps, durationMinutes){
+  const { error } = await pitwallClient.from('team_stints').insert({ team_id: teamId, position, laps: laps ?? null, duration_minutes: durationMinutes || 30 });
   if(error) console.error('Add stint failed:', error.message);
   loadTeamEvents();
 }
 
-async function updateStint(stintId, patch){
-  // Any manual edit (driver/spotter/duration) flags the stint as changed
-  // since the plan was made, so the team notices a deviation at a glance.
-  const { error } = await pitwallClient.from('team_stints').update({ ...patch, edited: true }).eq('id', stintId);
+async function updateStint(stintId, patch, markEdited){
+  // A manual edit only flags the stint as changed while the event is live
+  // for that team (see isEventLiveForTeam) - pre-race adjustments while
+  // still planning aren't a deviation worth flagging.
+  const finalPatch = markEdited ? { ...patch, edited: true } : patch;
+  const { error } = await pitwallClient.from('team_stints').update(finalPatch).eq('id', stintId);
   if(error) console.error('Update stint failed:', error.message);
   loadTeamEvents();
 }
@@ -3208,7 +3263,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,edited,fuel_percent,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
@@ -3237,6 +3292,11 @@ function showPanel(name){
   if(name === 'schedule' && !scheduleFirstLoadDone){
     scheduleFirstLoadDone = true;
     loadScheduleView();
+  }
+  // Unforced - only actually refetches if the 15min staleness window has
+  // passed, so switching back and forth into the tab doesn't spam requests.
+  if(name === 'logbook' && !document.getElementById('logbook-section').hidden){
+    loadReferenceLapTimes();
   }
 }
 
