@@ -764,7 +764,18 @@ input:focus{outline:none;border-color:var(--violet);}
   /* Schedule flows into a multi-column grid so many races are visible at
      once instead of one full-height card at a time. */
   .schedule-carousel{grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));max-width:1400px;}
-  .schedule-tier-grid{grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));}
+
+  /* Grouped-by-difficulty view (the "All" filter): three columns side by
+     side, one per tier, instead of stacked sections - so Beginner/
+     Intermediate/Advanced can be compared at a glance. */
+  .schedule-carousel.is-grouped{
+    display:flex;
+    flex-direction:row;
+    align-items:flex-start;
+    gap:20px;
+    max-width:none;
+  }
+  .schedule-carousel.is-grouped .schedule-tier-section{flex:1;min-width:0;}
 
   /* Logbook and Team Events: form/create-panel on the left, the list on
      the right - same order/grouping as the stacked mobile layout, just
@@ -1483,6 +1494,7 @@ function renderScheduleCards(cards, colorByClassName){
   const statusText = document.getElementById('schedule-status-text');
   const counter = document.getElementById('schedule-counter');
   carousel.innerHTML = '';
+  carousel.classList.toggle('is-grouped', scheduleFilters.difficulty === 'all');
 
   if(cards.length === 0){
     statusText.textContent = 'Keine anstehenden Termine für diese Auswahl gefunden.';
