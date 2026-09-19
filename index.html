@@ -642,6 +642,30 @@ input:focus{outline:none;border-color:var(--violet);}
 .stint-add-btn:hover{color:var(--text);border-color:var(--text);}
 .stint-total{font-size:11.5px;color:var(--muted);margin-top:8px;}
 .stint-total.over{color:var(--red);}
+.stint-calc{
+  flex-basis:100%;
+  background:var(--panel-2);
+  border-radius:8px;
+  padding:12px 14px;
+  margin-bottom:12px;
+}
+.stint-calc-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.stint-calc-input{width:150px !important;}
+.stint-calc-result{font-size:12.5px;color:var(--text);margin-bottom:8px;}
+.stint-calc-hint{font-size:12px;color:var(--muted);}
+.stint-calc-apply{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  letter-spacing:0.3px;
+  text-transform:uppercase;
+  padding:7px 12px;
+  border-radius:6px;
+  border:1px solid var(--amber);
+  background:none;
+  color:var(--amber);
+  cursor:pointer;
+}
+.stint-calc-apply:hover{background:rgba(255,176,32,0.1);}
 .te-new-team-btn{
   align-self:flex-start;
   font-family:'JetBrains Mono',monospace;
@@ -2323,6 +2347,104 @@ async function deleteTeam(teamId){
   loadTeamEvents();
 }
 
+function renderStintCalculator(team, ev, stints){
+  const box = document.createElement('div');
+  box.className = 'stint-calc';
+
+  const title = document.createElement('div');
+  title.className = 'stint-plan-title';
+  title.textContent = 'Stint-Rechner';
+  box.appendChild(title);
+
+  const row = document.createElement('div');
+  row.className = 'stint-calc-row';
+
+  const lapTimeInput = document.createElement('input');
+  lapTimeInput.type = 'number';
+  lapTimeInput.step = '0.001';
+  lapTimeInput.min = '1';
+  lapTimeInput.placeholder = 'Rundenzeit (Sek.)';
+  lapTimeInput.value = team.est_lap_time_seconds || '';
+  lapTimeInput.className = 'stint-calc-input';
+
+  const lapsPerTankInput = document.createElement('input');
+  lapsPerTankInput.type = 'number';
+  lapsPerTankInput.step = '1';
+  lapsPerTankInput.min = '1';
+  lapsPerTankInput.placeholder = 'Runden pro Tank';
+  lapsPerTankInput.value = team.laps_per_tank || '';
+  lapsPerTankInput.className = 'stint-calc-input';
+
+  const saveInputs = () => {
+    const lapTime = parseFloat(lapTimeInput.value);
+    const lapsPerTank = parseInt(lapsPerTankInput.value, 10);
+    updateTeamCalcInputs(team.id, {
+      est_lap_time_seconds: lapTime > 0 ? lapTime : null,
+      laps_per_tank: lapsPerTank > 0 ? lapsPerTank : null,
+    });
+  };
+  lapTimeInput.addEventListener('change', saveInputs);
+  lapsPerTankInput.addEventListener('change', saveInputs);
+
+  row.appendChild(lapTimeInput);
+  row.appendChild(lapsPerTankInput);
+  box.appendChild(row);
+
+  const lapTime = team.est_lap_time_seconds;
+  const lapsPerTank = team.laps_per_tank;
+  const raceDuration = ev.duration_minutes;
+
+  if(lapTime > 0 && lapsPerTank > 0 && raceDuration > 0){
+    // Longest possible stint given the fuel tank, then the fewest evenly
+    // sized stints that still fit within that limit - fewer pit stops is
+    // the fastest way to the finish, not equal-for-equal's-sake stints.
+    const maxStintMinutes = (lapsPerTank * lapTime) / 60;
+    const numStints = Math.max(1, Math.ceil(raceDuration / maxStintMinutes));
+    const stintMinutes = raceDuration / numStints;
+    const lapsPerStint = (stintMinutes * 60) / lapTime;
+
+    const result = document.createElement('div');
+    result.className = 'stint-calc-result';
+    result.textContent = `→ ${numStints} Stint${numStints === 1 ? '' : 's'} à ${stintMinutes.toFixed(1)} Min (≈ ${Math.round(lapsPerStint)} Runden) für möglichst wenig Boxenstopps.`;
+    box.appendChild(result);
+
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'stint-calc-apply';
+    applyBtn.textContent = stints.length ? 'Plan neu erstellen (ersetzt aktuelle Stints)' : 'Stints automatisch anlegen';
+    applyBtn.addEventListener('click', () => {
+      if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
+      applyCalculatedStints(team.id, stints, numStints, stintMinutes);
+    });
+    box.appendChild(applyBtn);
+  }else{
+    const hint = document.createElement('div');
+    hint.className = 'stint-calc-hint';
+    hint.textContent = 'Rundenzeit und Runden pro Tank eintragen, um die optimale Stintlänge zu berechnen.';
+    box.appendChild(hint);
+  }
+
+  return box;
+}
+
+async function updateTeamCalcInputs(teamId, patch){
+  const { error } = await pitwallClient.from('team_event_teams').update(patch).eq('id', teamId);
+  if(error) console.error('Update team calc inputs failed:', error.message);
+  loadTeamEvents();
+}
+
+async function applyCalculatedStints(teamId, existingStints, numStints, stintMinutes){
+  await Promise.all(existingStints.map(s => pitwallClient.from('team_stints').delete().eq('id', s.id)));
+  const rounded = Math.round(stintMinutes);
+  const inserts = [];
+  for(let i = 0; i < numStints; i++){
+    inserts.push({ team_id: teamId, position: i, duration_minutes: rounded });
+  }
+  const { error } = await pitwallClient.from('team_stints').insert(inserts);
+  if(error) console.error('Apply calculated stints failed:', error.message);
+  loadTeamEvents();
+}
+
 function renderStintPlan(team, ev){
   const wrap = document.createElement('div');
   wrap.className = 'stint-plan';
@@ -2336,6 +2458,8 @@ function renderStintPlan(team, ev){
   const stints = team.team_stints || [];
   const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
   const startMs = new Date(team.slot_time).getTime();
+
+  if(iAmIn) wrap.appendChild(renderStintCalculator(team, ev, stints));
 
   let cumMinutes = 0;
   if(!stints.length){
@@ -2895,7 +3019,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,laps_per_tank,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
