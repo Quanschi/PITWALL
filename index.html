@@ -193,6 +193,16 @@ body{
   gap:14px;
   align-items:start;
 }
+.schedule-tier-section{margin-bottom:6px;}
+.schedule-tier-header{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--amber);
+  margin:4px 0 10px 0;
+}
+.schedule-tier-grid{display:grid;grid-template-columns:1fr;gap:14px;align-items:start;}
 .schedule-card{
   position:relative;
   padding:16px 20px;
@@ -753,7 +763,8 @@ input:focus{outline:none;border-color:var(--violet);}
 @media(min-width:900px){
   /* Schedule flows into a multi-column grid so many races are visible at
      once instead of one full-height card at a time. */
-  .schedule-carousel{grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));max-width:1400px;}
+  .schedule-carousel{grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));max-width:1400px;}
+  .schedule-tier-grid{grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));}
 
   /* Logbook and Team Events: form/create-panel on the left, the list on
      the right - same order/grouping as the stacked mobile layout, just
@@ -1487,7 +1498,36 @@ function renderScheduleCards(cards, colorByClassName){
   counter.textContent = `${cards.length} Termine`;
   const now = Date.now();
 
-  cards.forEach(card => {
+  if(scheduleFilters.difficulty === 'all'){
+    const groups = {};
+    cards.forEach(card => {
+      const key = card.tier_name || 'other';
+      (groups[key] = groups[key] || []).push(card);
+    });
+    Object.keys(groups)
+      .sort((a, b) => (TIER_ORDER[a] ?? 99) - (TIER_ORDER[b] ?? 99))
+      .forEach(key => {
+        const section = document.createElement('div');
+        section.className = 'schedule-tier-section';
+        const header = document.createElement('div');
+        header.className = 'schedule-tier-header';
+        header.textContent = DIFFICULTY_LABELS[key] || key;
+        section.appendChild(header);
+        const grid = document.createElement('div');
+        grid.className = 'schedule-tier-grid';
+        groups[key].forEach(card => grid.appendChild(buildScheduleCard(card, now, colorByClassName)));
+        section.appendChild(grid);
+        carousel.appendChild(section);
+      });
+    return;
+  }
+
+  cards.forEach(card => carousel.appendChild(buildScheduleCard(card, now, colorByClassName)));
+}
+
+const DIFFICULTY_LABELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+
+function buildScheduleCard(card, now, colorByClassName){
     const el = document.createElement('div');
     el.className = 'schedule-card';
 
@@ -1604,8 +1644,7 @@ function renderScheduleCards(cards, colorByClassName){
       toggle.textContent = isOpen ? 'Termine & Bedingungen anzeigen ▾' : 'Weniger anzeigen ▴';
     });
 
-    carousel.appendChild(el);
-  });
+    return el;
 }
 
 async function loadScheduleView(){
