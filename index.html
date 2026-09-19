@@ -490,6 +490,38 @@ input:focus{outline:none;border-color:var(--violet);}
 .lb-filter-toggle input{width:auto;}
 #lb-track-filter{width:auto;max-width:220px;}
 
+.ref-times-section{
+  margin-top:32px;
+  padding-top:24px;
+  border-top:1px solid var(--line);
+  max-width:720px;
+}
+#ref-track-filter, #ref-class-filter{width:auto;max-width:220px;}
+.ref-times-table{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
+  gap:10px;
+  margin-top:4px;
+}
+.ref-times-cell{
+  background:var(--panel-2);
+  border-radius:8px;
+  padding:10px 12px;
+}
+.ref-times-tier{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:3px;
+}
+.ref-times-value{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);}
+.ref-times-hint{color:var(--muted);font-size:13px;padding:8px 0;}
+.ref-times-credit{font-size:11.5px;color:var(--muted);margin-top:14px;}
+.ref-times-credit a{color:var(--muted);}
+.ref-times-credit a:hover{color:var(--text);}
+
 /* ---- Team Events tab ---- */
 .te-toolbar{margin-bottom:16px;}
 .te-login-hint{color:var(--muted);font-size:13px;}
@@ -938,6 +970,23 @@ input:focus{outline:none;border-color:var(--violet);}
     </div>
     <div id="leaderboard"></div>
     </div>
+  </div>
+
+  <div class="ref-times-section">
+    <p class="section-label">Referenz-Rundenzeiten (LMU)</p>
+    <div class="leaderboard-filters">
+      <select id="ref-track-filter">
+        <option value="">Strecke wählen…</option>
+      </select>
+      <select id="ref-class-filter">
+        <option value="">Klasse wählen…</option>
+      </select>
+    </div>
+    <div id="ref-times-table"></div>
+    <p class="ref-times-credit">
+      Quelle: <a href="https://discord.com/invite/dFAqhnuSXH" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
+      · <a href="https://www.youtube.com/@ohne_speed" target="_blank" rel="noopener">YouTube</a>
+    </p>
   </div>
   </div>
 
@@ -1866,6 +1915,7 @@ function updateAuthUI(session){
     authSection.hidden = true;
     logbookSection.hidden = false;
     loadLeaderboard();
+    loadReferenceLapTimes();
   }else{
     authSection.hidden = false;
     logbookSection.hidden = true;
@@ -2185,6 +2235,127 @@ function renderLeaderboard(){
     container.appendChild(trackEl);
   });
 }
+
+// ---- Reference lap times (Logbuch): pulls a public, actively-maintained
+// pace-tier spreadsheet ("Ohne Speed's LMU laptimes spreadsheet", published
+// via Google Sheets' own "Publish to the web" CSV export, which sets
+// permissive CORS headers unlike the pubhtml page itself) so people can
+// compare against community pace benchmarks without leaving Pitwall.
+const REFERENCE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pub?gid=1766901750&single=true&output=csv';
+
+function parseCsvLine(line){
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for(let i = 0; i < line.length; i++){
+    const c = line[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(line[i + 1] === '"'){ cur += '"'; i++; }
+        else inQuotes = false;
+      }else cur += c;
+    }else{
+      if(c === ','){ out.push(cur); cur = ''; }
+      else if(c === '"') inQuotes = true;
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+let referenceLapTimesCache = null;
+
+async function loadReferenceLapTimes(){
+  if(referenceLapTimesCache) return referenceLapTimesCache;
+  try{
+    const res = await fetch(REFERENCE_SHEET_CSV_URL);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    // Column positions confirmed by inspecting the live sheet (2026-09-19):
+    // 1=Track, 4-11=pace tiers (Alien/Competitive/Good x2/Midpack x2/
+    // Tail-ender/Offline), 16=class. If the sheet owner reorders columns
+    // this parsing breaks silently (falls back to "no data") - nothing we
+    // can guard against from the consuming side of someone else's sheet.
+    const rows = text.split('\r\n')
+      .filter(line => line.trim())
+      .map(parseCsvLine)
+      .filter(cols => cols.length > 16 && /^[A-Za-z0-9]+$/.test(cols[16]) && cols[1]);
+    referenceLapTimesCache = rows.map(cols => ({
+      track: cols[1],
+      class: cols[16],
+      alien: cols[4],
+      competitive: cols[5],
+      good: cols[6] && cols[7] ? `${cols[6]}–${cols[7]}` : (cols[6] || cols[7] || ''),
+      midpack: cols[8] && cols[9] ? `${cols[8]}–${cols[9]}` : (cols[8] || cols[9] || ''),
+      tailender: cols[10],
+      offline: cols[11],
+    }));
+  }catch(err){
+    console.error('Reference lap times load failed:', err.message);
+    referenceLapTimesCache = [];
+  }
+  populateReferenceFilters(referenceLapTimesCache);
+  renderReferenceTimes();
+  return referenceLapTimesCache;
+}
+
+function populateReferenceFilters(rows){
+  const trackSelect = document.getElementById('ref-track-filter');
+  const classSelect = document.getElementById('ref-class-filter');
+  if(!trackSelect || !classSelect) return;
+  const tracks = [...new Set(rows.map(r => r.track))].sort();
+  const classes = [...new Set(rows.map(r => r.class))].sort();
+  trackSelect.innerHTML = '<option value="">Strecke wählen…</option>' +
+    tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
+  classSelect.innerHTML = '<option value="">Klasse wählen…</option>' +
+    classes.map(c => `<option value="${escapeText(c)}">${escapeText(c)}</option>`).join('');
+}
+
+function renderReferenceTimes(){
+  const container = document.getElementById('ref-times-table');
+  if(!container || !referenceLapTimesCache) return;
+  const track = document.getElementById('ref-track-filter').value;
+  const cls = document.getElementById('ref-class-filter').value;
+  if(!track || !cls){
+    container.className = '';
+    container.innerHTML = '<div class="ref-times-hint">Strecke und Klasse wählen, um Referenzzeiten zu sehen.</div>';
+    return;
+  }
+  const row = referenceLapTimesCache.find(r => r.track === track && r.class === cls);
+  if(!row){
+    container.className = '';
+    container.innerHTML = '<div class="ref-times-hint">Keine Daten für diese Kombination.</div>';
+    return;
+  }
+  const tiers = [
+    ['Alien (~100%)', row.alien],
+    ['Competitive (101%)', row.competitive],
+    ['Good (102–103%)', row.good],
+    ['Midpack (104–105%)', row.midpack],
+    ['Tail-ender (106%)', row.tailender],
+    ['Offline (107%)', row.offline],
+  ];
+  container.className = 'ref-times-table';
+  container.innerHTML = '';
+  tiers.forEach(([label, value]) => {
+    if(!value) return;
+    const cell = document.createElement('div');
+    cell.className = 'ref-times-cell';
+    const t = document.createElement('div');
+    t.className = 'ref-times-tier';
+    t.textContent = label;
+    const v = document.createElement('div');
+    v.className = 'ref-times-value';
+    v.textContent = value;
+    cell.appendChild(t);
+    cell.appendChild(v);
+    container.appendChild(cell);
+  });
+}
+
+document.getElementById('ref-track-filter').addEventListener('change', renderReferenceTimes);
+document.getElementById('ref-class-filter').addEventListener('change', renderReferenceTimes);
 
 // ---- Team Events tab: coordinate who's available when, for events that
 // need a full team. Special-event schedule races that need a team (flagged
