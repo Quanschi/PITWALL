@@ -442,10 +442,10 @@ input:focus{outline:none;border-color:var(--violet);}
 
 .leaderboard-empty{color:var(--muted);font-size:13px;padding:12px 0;}
 
-.ref-times-section{max-width:900px;}
+.ref-times-section{max-width:1200px;}
 #ref-track-filter{width:auto;max-width:280px;margin-bottom:4px;}
 .ref-times-table-wrap{overflow-x:auto;margin-top:8px;}
-.ref-times-table{width:100%;border-collapse:collapse;font-size:14.5px;}
+.ref-times-table{width:100%;border-collapse:collapse;font-size:14.5px;table-layout:fixed;}
 .ref-times-table th{
   text-align:left;
   font-family:'JetBrains Mono',monospace;
@@ -453,9 +453,10 @@ input:focus{outline:none;border-color:var(--violet);}
   letter-spacing:0.4px;
   text-transform:uppercase;
   color:var(--muted);
-  padding:11px 14px;
+  padding:11px 10px;
   border-bottom:1px solid var(--line);
-  white-space:nowrap;
+  white-space:normal;
+  line-height:1.4;
   font-weight:700;
 }
 .ref-times-table td{
@@ -2833,18 +2834,33 @@ function renderStintPlan(team, ev){
     noneOpt.value = '';
     noneOpt.textContent = placeholder;
     sel.appendChild(noneOpt);
+    // Manual (no-account) team members get a "manual:<memberId>" option so
+    // they're pickable here just like a regular member - assigning one
+    // just writes their name into driver_name/spotter_name, same as the
+    // free-text "manuell eintragen" fallback below.
+    const manualMemberByOptionValue = {};
     members.forEach(m => {
-      if(!m.user_id) return; // no account yet - assign by name via "manuell eintragen" below instead
       const opt = document.createElement('option');
-      opt.value = m.user_id;
-      opt.textContent = (m.profiles && m.profiles.username) || 'Unbekannt';
+      if(m.user_id){
+        opt.value = m.user_id;
+      }else{
+        opt.value = 'manual:' + m.id;
+        manualMemberByOptionValue[opt.value] = m.manual_name;
+      }
+      opt.textContent = (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt';
       sel.appendChild(opt);
     });
     const manualOpt = document.createElement('option');
     manualOpt.value = '__manual__';
     manualOpt.textContent = '✎ Name manuell eintragen…';
     sel.appendChild(manualOpt);
-    sel.value = currentUserId ? currentUserId : (currentManualName ? '__manual__' : '');
+    const matchingManualMember = currentManualName
+      ? members.find(m => !m.user_id && m.manual_name === currentManualName)
+      : null;
+    sel.value = currentUserId
+      ? currentUserId
+      : matchingManualMember ? 'manual:' + matchingManualMember.id
+      : (currentManualName ? '__manual__' : '');
 
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
@@ -2860,6 +2876,10 @@ function renderStintPlan(team, ev){
         return;
       }
       nameInput.hidden = true;
+      if(sel.value in manualMemberByOptionValue){
+        onChange({ userId: null, manualName: manualMemberByOptionValue[sel.value] });
+        return;
+      }
       onChange({ userId: sel.value || null, manualName: null });
     });
     nameInput.addEventListener('change', () => {
@@ -3426,7 +3446,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
