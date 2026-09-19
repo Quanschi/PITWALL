@@ -444,12 +444,27 @@ input:focus{outline:none;border-color:var(--violet);}
 
 .ref-times-section{max-width:720px;}
 #ref-track-filter{width:auto;max-width:280px;margin-bottom:4px;}
-.ref-times-table{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
-  gap:10px;
-  margin-top:4px;
+.ref-times-table-wrap{overflow-x:auto;margin-top:8px;}
+.ref-times-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ref-times-table th{
+  text-align:left;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:8px 10px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
 }
+.ref-times-table td{
+  padding:8px 10px;
+  border-bottom:1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;
+  color:var(--text);
+  white-space:nowrap;
+}
+.ref-times-class{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--text);}
 .ref-times-cell{
   background:var(--panel-2);
   border-radius:8px;
@@ -586,9 +601,11 @@ input:focus{outline:none;border-color:var(--violet);}
 .te-stint-toggle:hover{color:var(--text);}
 .stint-plan{
   flex-basis:100%;
-  margin-top:6px;
-  padding-top:10px;
-  border-top:1px dashed var(--line);
+  margin-top:10px;
+  padding:14px 16px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
 }
 .stint-plan-title{
   font-family:'JetBrains Mono',monospace;
@@ -596,8 +613,9 @@ input:focus{outline:none;border-color:var(--violet);}
   letter-spacing:0.4px;
   text-transform:uppercase;
   color:var(--muted);
-  margin-bottom:8px;
+  margin:14px 0 8px 0;
 }
+.stint-plan-title:first-child{margin-top:0;}
 .stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .stint-row.dragging{opacity:0.4;}
 .stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
@@ -642,9 +660,16 @@ input:focus{outline:none;border-color:var(--violet);}
   padding:12px 14px;
   margin-bottom:12px;
 }
-.stint-calc-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
-.stint-calc-input{width:150px !important;}
-.stint-calc-select{width:auto !important;min-width:150px;}
+.stint-calc-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+.stint-calc-field{display:flex;flex-direction:column;gap:4px;}
+.stint-calc-field label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.stint-calc-input{width:140px !important;}
 .stint-calc-result{font-size:12.5px;color:var(--text);margin-bottom:8px;}
 .stint-calc-hint{font-size:12px;color:var(--muted);margin-bottom:6px;}
 .stint-calc-apply{
@@ -916,14 +941,9 @@ input:focus{outline:none;border-color:var(--violet);}
       <option value="">Strecke wählen…</option>
     </select>
 
-    <p class="section-label">Klasse</p>
-    <div class="filter-row" id="ref-class-filter"></div>
-
     <div id="ref-times-table"></div>
     <p class="ref-times-credit">
       Quelle: <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
-      · <a href="https://discord.com/invite/dFAqhnuSXH" target="_blank" rel="noopener">Discord</a>
-      · <a href="https://www.youtube.com/@ohne_speed" target="_blank" rel="noopener">YouTube</a>
     </p>
   </div>
 
@@ -1984,72 +2004,61 @@ async function loadReferenceLapTimes(){
   return referenceLapTimesCache;
 }
 
-let refSelectedClass = '';
-
 function populateReferenceFilters(rows){
   const trackSelect = document.getElementById('ref-track-filter');
-  const classFilter = document.getElementById('ref-class-filter');
-  if(!trackSelect || !classFilter) return;
+  if(!trackSelect) return;
   const tracks = [...new Set(rows.map(r => r.track))].sort();
-  const classes = [...new Set(rows.map(r => r.class))].sort();
   trackSelect.innerHTML = '<option value="">Strecke wählen…</option>' +
     tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
-  classFilter.innerHTML = '';
-  classes.forEach(c => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'filter-pill';
-    btn.dataset.class = c;
-    btn.textContent = c;
-    btn.addEventListener('click', () => {
-      refSelectedClass = refSelectedClass === c ? '' : c;
-      classFilter.querySelectorAll('.filter-pill').forEach(b => b.classList.toggle('active', b.dataset.class === refSelectedClass));
-      renderReferenceTimes();
-    });
-    classFilter.appendChild(btn);
-  });
 }
+
+const REF_TIERS = [
+  ['alien', 'Alien'],
+  ['competitive', 'Competitive'],
+  ['good', 'Good'],
+  ['midpack', 'Midpack'],
+  ['tailender', 'Tail-ender'],
+  ['offline', 'Offline'],
+];
 
 function renderReferenceTimes(){
   const container = document.getElementById('ref-times-table');
   if(!container || !referenceLapTimesCache) return;
   const track = document.getElementById('ref-track-filter').value;
-  const cls = refSelectedClass;
-  if(!track || !cls){
+  if(!track){
     container.className = '';
-    container.innerHTML = '<div class="ref-times-hint">Strecke und Klasse wählen, um Referenzzeiten zu sehen.</div>';
+    container.innerHTML = '<div class="ref-times-hint">Strecke wählen, um Referenzzeiten zu sehen.</div>';
     return;
   }
-  const row = referenceLapTimesCache.find(r => r.track === track && r.class === cls);
-  if(!row){
+  const classRows = referenceLapTimesCache.filter(r => r.track === track);
+  if(!classRows.length){
     container.className = '';
-    container.innerHTML = '<div class="ref-times-hint">Keine Daten für diese Kombination.</div>';
+    container.innerHTML = '<div class="ref-times-hint">Keine Daten für diese Strecke.</div>';
     return;
   }
-  const tiers = [
-    ['Alien (~100%)', row.alien],
-    ['Competitive (101%)', row.competitive],
-    ['Good (102–103%)', row.good],
-    ['Midpack (104–105%)', row.midpack],
-    ['Tail-ender (106%)', row.tailender],
-    ['Offline (107%)', row.offline],
-  ];
-  container.className = 'ref-times-table';
+  container.className = 'ref-times-table-wrap';
   container.innerHTML = '';
-  tiers.forEach(([label, value]) => {
-    if(!value) return;
-    const cell = document.createElement('div');
-    cell.className = 'ref-times-cell';
-    const t = document.createElement('div');
-    t.className = 'ref-times-tier';
-    t.textContent = label;
-    const v = document.createElement('div');
-    v.className = 'ref-times-value';
-    v.textContent = value;
-    cell.appendChild(t);
-    cell.appendChild(v);
-    container.appendChild(cell);
+  const table = document.createElement('table');
+  table.className = 'ref-times-table';
+  const thead = document.createElement('thead');
+  thead.innerHTML = '<tr><th>Klasse</th>' + REF_TIERS.map(([, label]) => `<th>${label}</th>`).join('') + '</tr>';
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  classRows.sort((a, b) => a.class.localeCompare(b.class)).forEach(row => {
+    const tr = document.createElement('tr');
+    const classCell = document.createElement('td');
+    classCell.className = 'ref-times-class';
+    classCell.textContent = row.class;
+    tr.appendChild(classCell);
+    REF_TIERS.forEach(([key]) => {
+      const td = document.createElement('td');
+      td.textContent = row[key] || '–';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
   });
+  table.appendChild(tbody);
+  container.appendChild(table);
 }
 
 document.getElementById('ref-track-filter').addEventListener('change', renderReferenceTimes);
@@ -2289,6 +2298,40 @@ function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, tankLiters, con
   };
 }
 
+// Best-effort auto-detection so nobody has to manually repeat the track/
+// class the event and team already imply. Falls back to nothing (blank
+// fields, filled in by hand) rather than guessing wrong.
+function detectTrackPreset(ev){
+  const name = (ev.name || '').toLowerCase();
+  return Object.keys(STINT_TRACK_PRESETS).find(k => name.includes(k.toLowerCase())) || null;
+}
+function detectClassPreset(team){
+  const match = (team.car || '').match(/\(([^)]+)\)\s*$/);
+  const raw = (match ? match[1] : '').replace(/_ELMS$/i, '').trim().toUpperCase();
+  const aliases = { LMH: 'Hypercar', HYPERCAR: 'Hypercar', LMP2: 'LMP2', GTE: 'GTE', LMGT3: 'LMGT3' };
+  return aliases[raw] || null;
+}
+
+function parseLapTimeToSeconds(str){
+  if(!str) return null;
+  const cleaned = str.trim().replace(',', '.');
+  const match = cleaned.match(/^(?:(\d+)[:.])?(\d{1,2})[.:](\d{1,3})$/);
+  if(match){
+    const min = match[1] ? parseInt(match[1], 10) : 0;
+    const sec = parseInt(match[2], 10);
+    const ms = parseInt(match[3].padEnd(3, '0'), 10);
+    return min * 60 + sec + ms / 1000;
+  }
+  const plain = parseFloat(cleaned);
+  return isNaN(plain) ? null : plain;
+}
+function formatSecondsToLapTime(totalSeconds){
+  if(!(totalSeconds > 0)) return '';
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds - m * 60;
+  return `${m}:${s.toFixed(3).padStart(6, '0')}`;
+}
+
 function renderStintCalculator(team, ev, stints){
   const box = document.createElement('div');
   box.className = 'stint-calc';
@@ -2298,23 +2341,41 @@ function renderStintCalculator(team, ev, stints){
   title.textContent = 'Stint-Rechner';
   box.appendChild(title);
 
-  const presetRow = document.createElement('div');
-  presetRow.className = 'stint-calc-row';
-  const trackSelect = document.createElement('select');
-  trackSelect.className = 'stint-calc-select';
-  trackSelect.innerHTML = '<option value="">Strecke (Preset)…</option>' +
-    Object.keys(STINT_TRACK_PRESETS).map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
-  const classSelect = document.createElement('select');
-  classSelect.className = 'stint-calc-select';
-  classSelect.innerHTML = '<option value="">Klasse (Preset)…</option>' +
-    Object.keys(STINT_CLASS_PRESETS).map(c => `<option value="${escapeText(c)}">${escapeText(c)}</option>`).join('');
-  presetRow.appendChild(trackSelect);
-  presetRow.appendChild(classSelect);
-  box.appendChild(presetRow);
+  // One-time auto-fill from the event/team's own data, only while the team
+  // hasn't entered anything yet - never overwrites existing values.
+  if(!team.est_lap_time_seconds && !team.tank_liters){
+    const trackKey = detectTrackPreset(ev);
+    const classKey = detectClassPreset(team);
+    if(trackKey && classKey){
+      const trackPreset = STINT_TRACK_PRESETS[trackKey];
+      const classPreset = STINT_CLASS_PRESETS[classKey];
+      team = { ...team,
+        est_lap_time_seconds: trackPreset.hypercarLapSeconds * classPreset.paceFactor,
+        tank_liters: classPreset.tankLiters,
+        consumption_per_lap: classPreset.consumptionPerLap,
+        pit_delta_seconds: trackPreset.pitDeltaSeconds,
+      };
+      updateTeamCalcInputs(team.id, {
+        est_lap_time_seconds: team.est_lap_time_seconds,
+        tank_liters: team.tank_liters,
+        consumption_per_lap: team.consumption_per_lap,
+        pit_delta_seconds: team.pit_delta_seconds,
+      });
+    }
+  }
 
   const row = document.createElement('div');
   row.className = 'stint-calc-row';
 
+  function field(labelText, inputEl){
+    const wrap = document.createElement('div');
+    wrap.className = 'stint-calc-field';
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    wrap.appendChild(label);
+    wrap.appendChild(inputEl);
+    return wrap;
+  }
   function numberField(placeholder, value, step){
     const input = document.createElement('input');
     input.type = 'number';
@@ -2325,11 +2386,18 @@ function renderStintCalculator(team, ev, stints){
     input.className = 'stint-calc-input';
     return input;
   }
-  const lapTimeInput = numberField('Rundenzeit (Sek.)', team.est_lap_time_seconds, '0.001');
-  const tankInput = numberField('Tank (Liter)', team.tank_liters, '0.1');
-  const consumptionInput = numberField('Verbrauch (L/Runde)', team.consumption_per_lap, '0.01');
-  const pitDeltaInput = numberField('Pit Delta (Sek.)', team.pit_delta_seconds, '1');
-  [lapTimeInput, tankInput, consumptionInput, pitDeltaInput].forEach(el => row.appendChild(el));
+  const lapTimeInput = document.createElement('input');
+  lapTimeInput.type = 'text';
+  lapTimeInput.placeholder = '1:46.500';
+  lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
+  lapTimeInput.className = 'stint-calc-input';
+  const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
+  const consumptionInput = numberField('z.B. 3.10', team.consumption_per_lap, '0.01');
+  const pitDeltaInput = numberField('z.B. 30', team.pit_delta_seconds, '1');
+  row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
+  row.appendChild(field('Tank (Liter)', tankInput));
+  row.appendChild(field('Verbrauch (Liter/Runde)', consumptionInput));
+  row.appendChild(field('Pit Delta (Sekunden)', pitDeltaInput));
   box.appendChild(row);
 
   const doubleStintLabel = document.createElement('label');
@@ -2341,27 +2409,9 @@ function renderStintCalculator(team, ev, stints){
   doubleStintLabel.appendChild(document.createTextNode('Double Stint versuchen (Reifen nur jeden 2. Stopp wechseln)'));
   box.appendChild(doubleStintLabel);
 
-  trackSelect.addEventListener('change', () => {
-    const preset = STINT_TRACK_PRESETS[trackSelect.value];
-    if(!preset) return;
-    pitDeltaInput.value = preset.pitDeltaSeconds;
-    const classPreset = STINT_CLASS_PRESETS[classSelect.value];
-    if(classPreset) lapTimeInput.value = (preset.hypercarLapSeconds * classPreset.paceFactor).toFixed(1);
-    saveInputs();
-  });
-  classSelect.addEventListener('change', () => {
-    const preset = STINT_CLASS_PRESETS[classSelect.value];
-    if(!preset) return;
-    tankInput.value = preset.tankLiters;
-    consumptionInput.value = preset.consumptionPerLap;
-    const trackPreset = STINT_TRACK_PRESETS[trackSelect.value];
-    if(trackPreset) lapTimeInput.value = (trackPreset.hypercarLapSeconds * preset.paceFactor).toFixed(1);
-    saveInputs();
-  });
-
   const saveInputs = () => {
     updateTeamCalcInputs(team.id, {
-      est_lap_time_seconds: parseFloat(lapTimeInput.value) || null,
+      est_lap_time_seconds: parseLapTimeToSeconds(lapTimeInput.value),
       tank_liters: parseFloat(tankInput.value) || null,
       consumption_per_lap: parseFloat(consumptionInput.value) || null,
       pit_delta_seconds: parseFloat(pitDeltaInput.value) || null,
@@ -2396,7 +2446,7 @@ function renderStintCalculator(team, ev, stints){
   }else{
     const hint = document.createElement('div');
     hint.className = 'stint-calc-hint';
-    hint.textContent = 'Strecke + Klasse wählen (füllt Vorschläge) oder Rundenzeit, Tank und Verbrauch von Hand eintragen, um den Stintplan zu berechnen.';
+    hint.textContent = 'Rundenzeit, Tank und Verbrauch eintragen, um den Stintplan zu berechnen (bei bekannter Strecke/Klasse wird das automatisch vorbelegt).';
     box.appendChild(hint);
   }
 
