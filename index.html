@@ -636,16 +636,9 @@ input:focus{outline:none;border-color:var(--violet);}
 .stint-driver-select, .stint-spotter-select{flex:1;min-width:0;}
 .stint-driver-select-manual, .stint-spotter-select-manual{flex:1;min-width:0;}
 .stint-driver-text{flex:1;font-size:13px;color:var(--text);min-width:0;}
-.stint-overview{
-  flex-basis:100%;
-  margin-top:12px;
-  padding-top:10px;
-  border-top:1px dashed var(--line);
-}
-.stint-overview-row{font-size:12.5px;color:var(--text);margin-bottom:4px;}
-.stint-overview-row strong{color:var(--amber);}
-.stint-duration-input{width:60px !important;flex-shrink:0;text-align:center;}
+.stint-duration-input{width:76px !important;flex-shrink:0;text-align:center;}
 .stint-duration-unit{font-size:12px;color:var(--muted);flex-shrink:0;}
+.stint-laps{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);flex-shrink:0;}
 .stint-remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0;line-height:1;}
 .stint-remove-btn:hover{color:var(--red);}
 .stint-add-btn{
@@ -2453,10 +2446,21 @@ async function updateTeamCalcInputs(teamId, patch){
 
 async function applyCalculatedStints(teamId, existingStints, plan, members){
   await Promise.all(existingStints.map(s => pitwallClient.from('team_stints').delete().eq('id', s.id)));
+
+  // duration_minutes is an integer column, so each stint's fractional
+  // length has to be rounded - rounding every stint independently can drift
+  // the total away from the planned race distance by a couple of minutes
+  // (some rounded down, some up). Push that rounding difference onto the
+  // last stint instead, so the sum always matches the exact total exactly.
+  const durations = plan.stints.map(s => Math.round(s.durationMinutes));
+  const exactTotal = plan.stints.reduce((sum, s) => sum + s.durationMinutes, 0);
+  const roundedSum = durations.reduce((a, b) => a + b, 0);
+  durations[durations.length - 1] += Math.round(exactTotal) - roundedSum;
+
   const inserts = plan.stints.map((s, i) => ({
     team_id: teamId,
     position: i,
-    duration_minutes: Math.round(s.durationMinutes),
+    duration_minutes: durations[i],
     user_id: members.length ? members[i % members.length].user_id : null,
   }));
   const { error } = await pitwallClient.from('team_stints').insert(inserts);
@@ -2535,12 +2539,13 @@ function renderStintPlan(team, ev){
     return wrap;
   }
 
-  const driverStints = {}; // display name -> [{start, end}]
-
   stints.forEach(stint => {
     const stintStart = new Date(startMs + cumMinutes * 60000);
     cumMinutes += stint.duration_minutes || 0;
     const stintEnd = new Date(startMs + cumMinutes * 60000);
+    const laps = team.est_lap_time_seconds > 0
+      ? Math.round((stint.duration_minutes * 60) / team.est_lap_time_seconds)
+      : null;
 
     const row = document.createElement('div');
     row.className = 'stint-row';
@@ -2566,35 +2571,6 @@ function renderStintPlan(team, ev){
       handle.textContent = '⠿';
       handle.title = 'Ziehen zum Umsortieren';
       row.appendChild(handle);
-    }
-
-    const timeEl = document.createElement('span');
-    timeEl.className = 'stint-time';
-    timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
-    row.appendChild(timeEl);
-
-    if(stint.edited){
-      const editedBadge = document.createElement('span');
-      editedBadge.className = 'stint-edited-badge';
-      editedBadge.textContent = '✎ geändert';
-      editedBadge.title = 'Nach der Planerstellung manuell angepasst';
-      row.appendChild(editedBadge);
-    }
-
-    const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
-    const spotterLabel = (stint.spotter && stint.spotter.username) || stint.spotter_name || null;
-    if(driverLabel){
-      (driverStints[driverLabel] = driverStints[driverLabel] || []).push({ start: stintStart, end: stintEnd });
-    }
-
-    if(iAmIn){
-      const driverField = makePersonField('stint-driver-select', 'Fahrer offen', stint.user_id, stint.driver_name,
-        ({ userId, manualName }) => updateStint(stint.id, { user_id: userId, driver_name: manualName }));
-      row.appendChild(driverField);
-
-      const spotterField = makePersonField('stint-spotter-select', 'Spotter offen', stint.spotter_id, stint.spotter_name,
-        ({ userId, manualName }) => updateStint(stint.id, { spotter_id: userId, spotter_name: manualName }));
-      row.appendChild(spotterField);
 
       const durationInput = document.createElement('input');
       durationInput.type = 'number';
@@ -2611,6 +2587,37 @@ function renderStintPlan(team, ev){
       unit.className = 'stint-duration-unit';
       unit.textContent = 'min';
       row.appendChild(unit);
+    }
+
+    const lapsEl = document.createElement('span');
+    lapsEl.className = 'stint-laps';
+    lapsEl.textContent = laps !== null ? `≈${laps} R.` : '';
+    row.appendChild(lapsEl);
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'stint-time';
+    timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
+    row.appendChild(timeEl);
+
+    if(stint.edited){
+      const editedBadge = document.createElement('span');
+      editedBadge.className = 'stint-edited-badge';
+      editedBadge.textContent = '✎ geändert';
+      editedBadge.title = 'Nach der Planerstellung manuell angepasst';
+      row.appendChild(editedBadge);
+    }
+
+    const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
+    const spotterLabel = (stint.spotter && stint.spotter.username) || stint.spotter_name || null;
+
+    if(iAmIn){
+      const driverField = makePersonField('stint-driver-select', 'Fahrer offen', stint.user_id, stint.driver_name,
+        ({ userId, manualName }) => updateStint(stint.id, { user_id: userId, driver_name: manualName }));
+      row.appendChild(driverField);
+
+      const spotterField = makePersonField('stint-spotter-select', 'Spotter offen', stint.spotter_id, stint.spotter_name,
+        ({ userId, manualName }) => updateStint(stint.id, { spotter_id: userId, spotter_name: manualName }));
+      row.appendChild(spotterField);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -2645,26 +2652,6 @@ function renderStintPlan(team, ev){
     total.className = 'stint-total' + (cumMinutes > ev.duration_minutes ? ' over' : '');
     total.textContent = `${cumMinutes} von ${ev.duration_minutes} min geplant`;
     wrap.appendChild(total);
-  }
-
-  const driverNames = Object.keys(driverStints);
-  if(driverNames.length){
-    const overview = document.createElement('div');
-    overview.className = 'stint-overview';
-    const overviewTitle = document.createElement('div');
-    overviewTitle.className = 'stint-plan-title';
-    overviewTitle.textContent = 'Wer fährt wann';
-    overview.appendChild(overviewTitle);
-    driverNames.forEach(name => {
-      const line = document.createElement('div');
-      line.className = 'stint-overview-row';
-      const ranges = driverStints[name]
-        .map(r => `${formatSlotTime(r.start.toISOString())}–${formatSlotTime(r.end.toISOString())}`)
-        .join(', ');
-      line.innerHTML = `<strong>${escapeText(name)}</strong>: ${escapeText(ranges)}`;
-      overview.appendChild(line);
-    });
-    wrap.appendChild(overview);
   }
 
   return wrap;
