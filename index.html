@@ -639,6 +639,46 @@ input:focus{outline:none;border-color:var(--violet);}
 .stint-duration-input{width:76px !important;flex-shrink:0;text-align:center;}
 .stint-duration-unit{font-size:12px;color:var(--muted);flex-shrink:0;}
 .stint-laps{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);flex-shrink:0;}
+.stint-tire-wrap{position:relative;flex-shrink:0;}
+.stint-tire-icon{
+  display:grid;
+  grid-template-columns:repeat(2, 8px);
+  grid-template-rows:repeat(2, 8px);
+  gap:2px;
+  padding:3px;
+}
+.stint-tire-icon.clickable{cursor:pointer;}
+.stint-tire-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,0.3);}
+.stint-tire-menu{
+  position:absolute;
+  top:100%;
+  left:0;
+  z-index:20;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:4px;
+  min-width:140px;
+  box-shadow:var(--shadow-md);
+}
+.stint-tire-menu-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  background:none;
+  border:none;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:7px 8px;
+  border-radius:6px;
+  cursor:pointer;
+  text-align:left;
+}
+.stint-tire-menu-item:hover{background:var(--panel);}
+.stint-tire-swatch{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.3);}
+.stint-fuel-input{width:52px !important;flex-shrink:0;text-align:center;}
 .stint-remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0;line-height:1;}
 .stint-remove-btn:hover{color:var(--red);}
 .stint-add-btn{
@@ -1748,6 +1788,13 @@ document.addEventListener('click', (e) => {
   const dropdown = document.getElementById('account-dropdown');
   if(!dropdown.hidden && !e.target.closest('#account-profile')) dropdown.hidden = true;
 });
+// Delegated once here rather than per stint row (which re-renders on every
+// data change) - closes any open tire menu when clicking elsewhere.
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.stint-tire-wrap')){
+    document.querySelectorAll('.stint-tire-menu').forEach(m => { m.hidden = true; });
+  }
+});
 
 document.getElementById('account-logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
 
@@ -2468,6 +2515,63 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
   loadTeamEvents();
 }
 
+// Confirmed from real LMU session-result XMLs (fcompound/rcompound
+// attributes): four compounds, no separate Intermediate. Colors follow the
+// common Soft=red/Medium=yellow/Hard=white/Wet=blue sim-racing convention -
+// not screenshotted from LMU's own UI, so treat as a reasonable default.
+const TIRE_COMPOUND_COLORS = { Soft: '#E8433B', Medium: '#F5D033', Hard: '#F0EFEA', Wet: '#3B82C4' };
+const TIRE_COMPOUNDS = ['Soft', 'Medium', 'Hard', 'Wet'];
+
+function renderTireControl(stint, iAmIn){
+  const wrap = document.createElement('span');
+  wrap.className = 'stint-tire-wrap';
+
+  const icon = document.createElement('span');
+  icon.className = 'stint-tire-icon';
+  icon.title = stint.tire_compound ? `Reifen: ${stint.tire_compound}` : 'Keine neuen Reifen';
+  for(let i = 0; i < 4; i++){
+    const dot = document.createElement('span');
+    dot.className = 'stint-tire-dot';
+    dot.style.background = TIRE_COMPOUND_COLORS[stint.tire_compound] || 'var(--muted)';
+    icon.appendChild(dot);
+  }
+  wrap.appendChild(icon);
+
+  if(iAmIn){
+    icon.classList.add('clickable');
+    const menu = document.createElement('div');
+    menu.className = 'stint-tire-menu';
+    menu.hidden = true;
+
+    const buildItem = (label, compound) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'stint-tire-menu-item';
+      const swatch = document.createElement('span');
+      swatch.className = 'stint-tire-swatch';
+      swatch.style.background = TIRE_COMPOUND_COLORS[compound] || 'var(--muted)';
+      btn.appendChild(swatch);
+      btn.appendChild(document.createTextNode(label));
+      btn.addEventListener('click', () => {
+        menu.hidden = true;
+        updateStint(stint.id, { tire_compound: compound || null });
+      });
+      return btn;
+    };
+    menu.appendChild(buildItem('Keine neuen', null));
+    TIRE_COMPOUNDS.forEach(c => menu.appendChild(buildItem(c, c)));
+    wrap.appendChild(menu);
+
+    icon.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.stint-tire-menu').forEach(m => { if(m !== menu) m.hidden = true; });
+      menu.hidden = !menu.hidden;
+    });
+  }
+
+  return wrap;
+}
+
 function renderStintPlan(team, ev){
   const wrap = document.createElement('div');
   wrap.className = 'stint-plan';
@@ -2598,6 +2702,32 @@ function renderStintPlan(team, ev){
     timeEl.className = 'stint-time';
     timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
     row.appendChild(timeEl);
+
+    row.appendChild(renderTireControl(stint, iAmIn));
+
+    if(iAmIn){
+      const fuelInput = document.createElement('input');
+      fuelInput.type = 'number';
+      fuelInput.className = 'stint-fuel-input';
+      fuelInput.min = '0';
+      fuelInput.max = '100';
+      fuelInput.value = stint.fuel_percent ?? 100;
+      fuelInput.title = 'Sprit/VE für diesen Stint';
+      fuelInput.addEventListener('change', () => {
+        const val = parseInt(fuelInput.value, 10);
+        updateStint(stint.id, { fuel_percent: isNaN(val) ? null : Math.max(0, Math.min(100, val)) });
+      });
+      row.appendChild(fuelInput);
+      const fuelUnit = document.createElement('span');
+      fuelUnit.className = 'stint-duration-unit';
+      fuelUnit.textContent = '% VE';
+      row.appendChild(fuelUnit);
+    }else{
+      const fuelText = document.createElement('span');
+      fuelText.className = 'stint-laps';
+      fuelText.textContent = `${stint.fuel_percent ?? 100}% VE`;
+      row.appendChild(fuelText);
+    }
 
     if(stint.edited){
       const editedBadge = document.createElement('span');
@@ -3046,7 +3176,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,pit_delta_seconds,double_stint,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,edited,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,pit_delta_seconds,double_stint,team_event_members(user_id,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,driver_name,spotter_name,edited,tire_compound,fuel_percent,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
