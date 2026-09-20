@@ -714,17 +714,26 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   padding:3px;
 }
 .stint-tire-icon.clickable{cursor:pointer;}
+.stint-tire-label{font-size:11px;color:var(--muted);flex-shrink:0;}
+.stint-tire-label.clickable{cursor:pointer;}
 .stint-tire-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,0.3);}
 .stint-tire-menu{
-  position:absolute;
-  top:100%;
-  left:0;
-  z-index:20;
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(0,0,0,0.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.stint-tire-menu-card{
   background:var(--panel-2);
   border:1px solid var(--line);
-  border-radius:8px;
-  padding:8px;
-  min-width:220px;
+  border-radius:12px;
+  padding:16px;
+  width:100%;
+  max-width:280px;
   box-shadow:var(--shadow-md);
 }
 .stint-tire-menu-label{
@@ -1050,13 +1059,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
      this width no matter the layout. */
   .ref-times-table{table-layout:auto;}
   .ref-times-table th, .ref-times-table td{white-space:nowrap;padding:9px 10px;}
-
-  /* Tire popover is anchored to the icon's own position, which can land
-     anywhere along a wrapped stint row - anchoring its right edge instead
-     of its left keeps it from running past the right edge of a narrow
-     screen in the common case (icon sitting left-of-center in the row).
-  */
-  .stint-tire-menu{left:auto;right:0;}
 }
 
 /* ---- Wide desktop ---- */
@@ -2189,11 +2191,15 @@ document.addEventListener('click', (e) => {
   if(!dropdown.hidden && !e.target.closest('#account-profile')) dropdown.hidden = true;
 });
 // Delegated once here rather than per stint row (which re-renders on every
-// data change) - closes any open tire menu when clicking elsewhere.
+// data change) - closes any open tire menu when clicking elsewhere or
+// pressing Escape.
 document.addEventListener('click', (e) => {
   if(!e.target.closest('.stint-tire-wrap')){
     document.querySelectorAll('.stint-tire-menu').forEach(m => { m.hidden = true; });
   }
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') document.querySelectorAll('.stint-tire-menu').forEach(m => { m.hidden = true; });
 });
 
 document.getElementById('account-logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
@@ -3907,11 +3913,22 @@ function renderTireControl(stint, team, iAmIn, live){
   });
   wrap.appendChild(icon);
 
+  // The four dots alone don't read as anything in particular sitting
+  // between the lap/duration controls - spell out what they're for.
+  const tireLabel = document.createElement('span');
+  tireLabel.className = 'stint-tire-label';
+  tireLabel.textContent = 'Reifenwechsel';
+  wrap.appendChild(tireLabel);
+
   if(iAmIn){
     icon.classList.add('clickable');
+    tireLabel.classList.add('clickable');
     const menu = document.createElement('div');
     menu.className = 'stint-tire-menu';
     menu.hidden = true;
+    const card = document.createElement('div');
+    card.className = 'stint-tire-menu-card';
+    menu.appendChild(card);
 
     const swatchBtn = (label, compound, onPick) => {
       const btn = document.createElement('button');
@@ -3929,7 +3946,7 @@ function renderTireControl(stint, team, iAmIn, live){
     const allLabel = document.createElement('div');
     allLabel.className = 'stint-tire-menu-label';
     allLabel.textContent = 'Alle 4';
-    menu.appendChild(allLabel);
+    card.appendChild(allLabel);
     const allRow = document.createElement('div');
     allRow.className = 'stint-tire-menu-row';
     const setAll = compound => {
@@ -3937,12 +3954,12 @@ function renderTireControl(stint, team, iAmIn, live){
     };
     allRow.appendChild(swatchBtn('Keine', null, setAll));
     compounds.forEach(c => allRow.appendChild(swatchBtn(c, c, setAll)));
-    menu.appendChild(allRow);
+    card.appendChild(allRow);
 
     const cornerLabelEl = document.createElement('div');
     cornerLabelEl.className = 'stint-tire-menu-label';
     cornerLabelEl.textContent = 'Einzeln';
-    menu.appendChild(cornerLabelEl);
+    card.appendChild(cornerLabelEl);
     TIRE_CORNERS.forEach(([key, label]) => {
       const cornerRow = document.createElement('div');
       cornerRow.className = 'stint-tire-menu-corner';
@@ -3964,15 +3981,18 @@ function renderTireControl(stint, team, iAmIn, live){
       });
       select.addEventListener('change', () => updateStint(stint.id, { [key]: select.value || null }, live));
       cornerRow.appendChild(select);
-      menu.appendChild(cornerRow);
+      card.appendChild(cornerRow);
     });
     wrap.appendChild(menu);
 
-    icon.addEventListener('click', e => {
+    const openMenu = e => {
       e.stopPropagation();
       document.querySelectorAll('.stint-tire-menu').forEach(m => { if(m !== menu) m.hidden = true; });
       menu.hidden = !menu.hidden;
-    });
+    };
+    icon.addEventListener('click', openMenu);
+    tireLabel.addEventListener('click', openMenu);
+    menu.addEventListener('click', e => { if(e.target === menu) menu.hidden = true; });
   }
 
   return wrap;
@@ -4379,8 +4399,9 @@ function renderStintPlan(team, ev){
     }else{
       const driverText = document.createElement('span');
       driverText.className = 'stint-driver-text';
-      const durationLabel = displayLaps != null ? `${displayLaps} R.` : `${stint.duration_minutes} min`;
-      driverText.textContent = `${driverLabel || 'Fahrer offen'} · ${spotterLabel || 'Spotter offen'} · ${durationLabel}`;
+      // Laps are already shown once, right before the tire selection
+      // (see .stint-laps above) - no need to repeat them here too.
+      driverText.textContent = `${driverLabel || 'Fahrer offen'} · ${spotterLabel || 'Spotter offen'}`;
       groupPeople.appendChild(driverText);
     }
 
