@@ -531,6 +531,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   padding:2px 7px;
 }
 .te-draft-note{color:var(--muted);font-size:12.5px;margin-top:8px;}
+.te-merge-box{background:rgba(255,176,32,0.08);border:1px solid rgba(255,176,32,0.3);border-radius:8px;padding:10px 12px;margin-top:10px;}
+.te-merge-label{font-size:12px;color:var(--amber);margin-bottom:8px;}
+.te-merge-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.te-merge-row select{width:auto;flex:1;min-width:180px;}
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;}
 .te-delete-btn:hover{color:var(--red);}
@@ -1237,6 +1241,13 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
               <button type="button" class="filter-pill" data-time="22:00">22:00</button>
               <button type="button" class="filter-pill" data-time="23:00">23:00</button>
             </div>
+          </div>
+          <div class="field">
+            <label for="te-link-schedule">Schedule-Rennen verknüpfen (optional)</label>
+            <select id="te-link-schedule">
+              <option value="">Kein passendes Schedule-Rennen…</option>
+            </select>
+            <p style="color:var(--muted);font-size:11.5px;margin:6px 0 0 0;">Verhindert, dass später ein doppeltes Event entsteht, wenn dieses Rennen auch im Schedule-Tab auftaucht. Gibt es das dort schon, werden die Teams direkt dorthin übertragen.</p>
           </div>
           <div class="form-message" id="te-create-message" hidden></div>
           <button type="button" class="stint-calc-apply" id="te-publish-btn">✓ Event veröffentlichen</button>
@@ -2889,7 +2900,37 @@ async function openEventEditor(eventId){
   }
   populateEditorForm(ev);
   refreshEventEditorPreview();
+  populateScheduleLinkOptions();
 }
+
+let editorScheduleCandidates = [];
+
+async function populateScheduleLinkOptions(){
+  const select = document.getElementById('te-link-schedule');
+  select.innerHTML = '<option value="">Kein passendes Schedule-Rennen…</option>';
+  try{
+    const cards = await fetchScheduleCards('special', 'all');
+    editorScheduleCandidates = (cards || []).filter(c => c.driver_swap_enabled && c.times && c.times.length);
+  }catch(e){
+    editorScheduleCandidates = [];
+  }
+  editorScheduleCandidates.forEach((c, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = `${c.series_name || c.track_name} · ${c.track_name} (${formatEventDateRange(c.times.map(d => d.toISOString()))})`;
+    select.appendChild(opt);
+  });
+}
+
+document.getElementById('te-link-schedule').addEventListener('change', () => {
+  const select = document.getElementById('te-link-schedule');
+  const idx = select.value;
+  select.value = ''; // one-shot action, not a persistent field selection
+  if(idx === '' || !teEditorEventId) return;
+  const card = editorScheduleCandidates[parseInt(idx, 10)];
+  if(!card) return;
+  linkEventToScheduleRace(teEditorEventId, card);
+});
 
 function closeEventEditor(){
   teEditorEventId = null;
@@ -2960,6 +3001,78 @@ async function setTeamEventClosed(id, closed){
   const { error } = await pitwallClient.from('team_events').update({ closed }).eq('id', id);
   if(error) console.error('Close/reopen team event failed:', error.message);
   loadTeamEvents();
+}
+
+// A manually-created event can end up duplicating a race that later also
+// shows up from Schedule (auto-synced, with richer info - car classes, SR
+// requirement, series data). This moves every team (and, since they're
+// only foreign-keyed to team_id not event_id, everything under them -
+// members, stint plans, all of it) from the manual event onto the real
+// schedule one, adding any of its slot times the target doesn't already
+// have so nothing becomes an orphaned, invisible team, then removes the
+// now-empty manual event. One-directional on purpose - the schedule event
+// is always treated as the "real" one to consolidate onto.
+async function mergeManualEventIntoSchedule(manualEventId, targetEventId){
+  const { data: manualTeams, error: teamsFetchError } = await pitwallClient
+    .from('team_event_teams').select('id,slot_time').eq('event_id', manualEventId);
+  if(teamsFetchError){ console.error('Load teams to merge failed:', teamsFetchError.message); return; }
+
+  const { data: targetEvent, error: targetFetchError } = await pitwallClient
+    .from('team_events').select('slot_times').eq('id', targetEventId).maybeSingle();
+  if(targetFetchError || !targetEvent){
+    if(targetFetchError) console.error('Load target event failed:', targetFetchError.message);
+    return;
+  }
+
+  const existing = new Set((targetEvent.slot_times || []).map(iso => new Date(iso).getTime()));
+  const missing = [];
+  (manualTeams || []).forEach(t => {
+    const ms = new Date(t.slot_time).getTime();
+    if(!existing.has(ms)){ existing.add(ms); missing.push(t.slot_time); }
+  });
+  if(missing.length){
+    const mergedSlotTimes = [...(targetEvent.slot_times || []), ...missing].sort();
+    const { error: slotUpdateError } = await pitwallClient.from('team_events').update({ slot_times: mergedSlotTimes }).eq('id', targetEventId);
+    if(slotUpdateError){ console.error('Extend target slot_times failed:', slotUpdateError.message); return; }
+  }
+
+  const { error: moveError } = await pitwallClient.from('team_event_teams').update({ event_id: targetEventId }).eq('event_id', manualEventId);
+  if(moveError){ console.error('Move teams failed:', moveError.message); return; }
+
+  const { error: deleteError } = await pitwallClient.from('team_events').delete().eq('id', manualEventId);
+  if(deleteError) console.error('Delete merged manual event failed:', deleteError.message);
+
+  if(teEditorEventId === manualEventId){
+    // The open draft just merged itself away - fall back to the list
+    // instead of leaving the editor open on a now-deleted event.
+    teEditorEventId = null;
+    document.getElementById('te-editor-view').hidden = true;
+    document.getElementById('te-list-view').hidden = false;
+  }
+  loadTeamEvents();
+}
+
+// Claims a schedule race's identifiers for a still-manual event so the
+// Schedule auto-sync's own dedupe (unique on race_series_id+week_key)
+// skips creating a second event for it later - prevents the duplicate
+// instead of having to clean it up. If a synced copy already exists (the
+// race already showed up from Schedule before this was clicked), merges
+// into it immediately instead, since claiming the same identifiers would
+// just violate that same uniqueness constraint.
+async function linkEventToScheduleRace(eventId, card){
+  const { data: existingAuto, error: findError } = await pitwallClient
+    .from('team_events').select('id').eq('race_series_id', card.series_id).eq('week_key', card.week_key).maybeSingle();
+  if(findError){ console.error('Look up existing schedule event failed:', findError.message); return; }
+  if(existingAuto && existingAuto.id !== eventId){
+    await mergeManualEventIntoSchedule(eventId, existingAuto.id);
+    return;
+  }
+  const { error } = await pitwallClient.from('team_events').update({
+    race_series_id: card.series_id, week_key: card.week_key,
+  }).eq('id', eventId);
+  if(error) console.error('Link event to schedule race failed:', error.message);
+  if(teEditorEventId === eventId) refreshEventEditorPreview();
+  else loadTeamEvents();
 }
 
 async function joinTeam(teamId, note){
@@ -4256,6 +4369,42 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   return detail;
 }
 
+function renderScheduleMergeControl(ev, candidates){
+  const box = document.createElement('div');
+  box.className = 'te-merge-box';
+  const label = document.createElement('div');
+  label.className = 'te-merge-label';
+  label.textContent = '⚠ Es gibt Schedule-Event(s) für dieses Spiel - könnte ein Duplikat sein.';
+  box.appendChild(label);
+
+  const row = document.createElement('div');
+  row.className = 'te-merge-row';
+  const select = document.createElement('select');
+  candidates.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = `${c.name} (${formatEventDateRange(c.slot_times)})`;
+    select.appendChild(opt);
+  });
+  const mergeBtn = document.createElement('button');
+  mergeBtn.type = 'button';
+  mergeBtn.className = 'te-team-btn';
+  mergeBtn.textContent = 'Daten übertragen';
+  mergeBtn.addEventListener('click', async () => {
+    if(!select.value) return;
+    const sure = await pitwallConfirm(
+      'Alle Teams dieses Events (inkl. Mitglieder und Stintplan) auf das ausgewählte Schedule-Event übertragen? Dieses Event wird danach gelöscht - nichts Eingestelltes geht dabei verloren.',
+      { confirmText: 'Übertragen', danger: true }
+    );
+    if(!sure) return;
+    mergeManualEventIntoSchedule(ev.id, select.value);
+  });
+  row.appendChild(select);
+  row.appendChild(mergeBtn);
+  box.appendChild(row);
+  return box;
+}
+
 function renderEventCard(ev, teams, carData, opts){
   opts = opts || {};
   const card = document.createElement('div');
@@ -4343,6 +4492,16 @@ function renderEventCard(ev, teams, carData, opts){
     resumeBtn.addEventListener('click', () => openEventEditor(ev.id));
     card.appendChild(resumeBtn);
     return card;
+  }
+
+  // A manually-created event whose race also exists as an auto-synced
+  // Schedule event is a likely accidental duplicate - offer to consolidate
+  // onto the Schedule one (see mergeManualEventIntoSchedule) rather than
+  // leaving people's already-built teams/stint plans stranded on the copy
+  // nobody else will find.
+  if(ev.source === 'manual' && !opts.isEditorPreview){
+    const candidates = (opts.autoEventCandidates || []).filter(c => (c.game || 'lmu') === (ev.game || 'lmu'));
+    if(candidates.length) card.appendChild(renderScheduleMergeControl(ev, candidates));
   }
 
   // Keyed by epoch ms, not the raw string - team_event_teams.slot_time comes
@@ -4451,9 +4610,10 @@ async function loadTeamEvents(){
         carData.allProfiles = await loadAllProfiles();
         const teamsByEvent = {};
         (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
+        const autoEventCandidates = allEvents.filter(e => e.source === 'auto');
 
         container.innerHTML = '';
-        events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [], carData)));
+        events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [], carData, { autoEventCandidates })));
       }
     }
   }
