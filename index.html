@@ -675,6 +675,15 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   border-radius:10px;
   flex-shrink:0;
 }
+.stint-number{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.3px;
+  color:var(--amber);
+  width:52px;
+  flex-shrink:0;
+}
 .stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
 .stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
 .stint-edited-badge{
@@ -3583,8 +3592,17 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
   const roundedSum = durations.reduce((a, b) => a + b, 0);
   durations[durations.length - 1] += Math.round(exactTotal) - roundedSum;
 
+  // Spotter defaults to whoever drove the stint before it (same rule as
+  // manually changing a driver - see the driver onChange handler in
+  // renderStintPlan), skipped when that person is already this stint's own
+  // driver (round-robin with few members can wrap onto the same person).
   const inserts = plan.stints.map((s, i) => {
     const member = members.length ? members[i % members.length] : null;
+    const prevMember = i > 0 && members.length ? members[(i - 1) % members.length] : null;
+    const samePerson = prevMember && member && (
+      (prevMember.user_id || member.user_id) ? prevMember.user_id === member.user_id : prevMember.manual_name === member.manual_name
+    );
+    const spotter = prevMember && !samePerson ? prevMember : null;
     return {
       team_id: teamId,
       position: i,
@@ -3592,6 +3610,8 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
       duration_minutes: durations[i],
       user_id: member ? member.user_id : null,
       driver_name: member && !member.user_id ? member.manual_name : null,
+      spotter_id: spotter ? spotter.user_id : null,
+      spotter_name: spotter && !spotter.user_id ? spotter.manual_name : null,
     };
   });
   const { error } = await pitwallClient.from('team_stints').insert(inserts);
@@ -3899,7 +3919,7 @@ function renderStintPlan(team, ev){
     return wrap;
   }
 
-  stints.forEach(stint => {
+  stints.forEach((stint, stintIdx) => {
     const stintStart = new Date(startMs + cumMinutes * 60000);
     cumMinutes += stint.duration_minutes || 0;
     const stintEnd = new Date(startMs + cumMinutes * 60000);
@@ -3946,6 +3966,11 @@ function renderStintPlan(team, ev){
     row.appendChild(groupControls);
     row.appendChild(groupStatus);
     row.appendChild(groupPeople);
+
+    const numberEl = document.createElement('span');
+    numberEl.className = 'stint-number';
+    numberEl.textContent = 'Stint ' + (stintIdx + 1);
+    groupMeta.appendChild(numberEl);
 
     if(iAmIn){
       row.draggable = true;
