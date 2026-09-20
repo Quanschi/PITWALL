@@ -462,7 +462,14 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .ref-times-section{max-width:1200px;}
 #ref-track-filter{width:auto;max-width:280px;margin-bottom:4px;}
 .ref-times-table-wrap{overflow-x:auto;margin-top:8px;}
-.ref-times-table{width:100%;border-collapse:collapse;font-size:14.5px;table-layout:fixed;}
+/* Natural column sizing (not table-layout:fixed) - a fixed even split
+   across 7 columns only fits on a genuinely wide desktop window. Anything
+   narrower than that - including an iPad, which is well above the phone
+   breakpoint below - squeezed a lap time range like "1:44.48-1:45.51"
+   into a column too thin for it, so it visibly overflowed into the next
+   column instead of wrapping. Auto sizing plus the wrapper's own
+   horizontal scroll above never overflows, on any screen width. */
+.ref-times-table{width:100%;border-collapse:collapse;font-size:14.5px;}
 .ref-times-table th{
   text-align:left;
   font-family:'JetBrains Mono',monospace;
@@ -472,7 +479,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   color:var(--muted);
   padding:11px 10px;
   border-bottom:1px solid var(--line);
-  white-space:normal;
+  white-space:nowrap;
   line-height:1.4;
   font-weight:700;
 }
@@ -1057,14 +1064,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .filter-pill{padding:6px 11px;font-size:10.5px;}
   .schedule-card{padding:14px 18px;}
 
-  /* table-layout:fixed (see desktop rule) divides the table width evenly
-     across 7 columns so it fits without scrolling on a wide screen - on a
-     phone that leaves ~45px per column, nowhere near enough for a lap time
-     range like "1:44.48–1:45.51". Fall back to natural sizing and let the
-     wrapper's own horizontal scroll handle it instead - unavoidable at
-     this width no matter the layout. */
-  .ref-times-table{table-layout:auto;}
-  .ref-times-table th, .ref-times-table td{white-space:nowrap;padding:9px 10px;}
+  .ref-times-table th, .ref-times-table td{padding:9px 10px;}
 }
 
 /* ---- Wide desktop ---- */
