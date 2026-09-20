@@ -884,6 +884,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   box-sizing:border-box;
 }
 .account-dropdown-item:hover{background:var(--panel-2);}
+.account-dropdown-item.danger{color:var(--red);}
+.account-dropdown-item.danger:hover{background:rgba(232,92,74,0.1);}
 .account-dropdown .form-message{margin:4px 10px;font-size:11.5px;}
 .account-notif-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
 #account-leave-requests{border-bottom:1px solid var(--line);margin-bottom:6px;padding-bottom:6px;}
@@ -968,9 +970,65 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .split-col-right{flex:1;max-width:none;}
 }
 
+/* ---- Pitwall-styled confirm dialog (replaces native confirm()) ---- */
+.pitwall-modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+.pitwall-modal{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--shadow-md);
+  padding:22px;
+  max-width:400px;
+  width:100%;
+}
+.pitwall-modal-message{
+  color:var(--text);
+  font-size:14.5px;
+  line-height:1.5;
+  margin:0 0 18px 0;
+  white-space:pre-line;
+}
+.pitwall-modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.pitwall-modal-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12.5px;
+  letter-spacing:0.3px;
+  text-transform:uppercase;
+  padding:10px 16px;
+  border-radius:8px;
+  cursor:pointer;
+  border:1px solid var(--line);
+  background:none;
+  color:var(--muted);
+}
+.pitwall-modal-btn:hover{color:var(--text);border-color:var(--muted);}
+.pitwall-modal-btn.primary{border-color:var(--amber);color:var(--amber);}
+.pitwall-modal-btn.primary:hover{background:rgba(255,176,32,0.1);}
+.pitwall-modal-btn.danger{border-color:var(--red);color:var(--red);}
+.pitwall-modal-btn.danger:hover{background:rgba(232,92,74,0.1);}
+
 </style>
 </head>
 <body>
+
+<div id="pitwall-modal-overlay" class="pitwall-modal-overlay" hidden>
+  <div class="pitwall-modal">
+    <p class="pitwall-modal-message" id="pitwall-modal-message"></p>
+    <div class="pitwall-modal-actions">
+      <button type="button" class="pitwall-modal-btn" id="pitwall-modal-cancel">Abbrechen</button>
+      <button type="button" class="pitwall-modal-btn primary" id="pitwall-modal-confirm">Bestätigen</button>
+    </div>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-top">
@@ -1000,6 +1058,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
               <div class="form-message" id="account-username-message" hidden></div>
             </div>
             <button type="button" class="account-dropdown-item" id="account-logout-btn">Abmelden</button>
+            <button type="button" class="account-dropdown-item danger" id="account-delete-btn">Konto löschen</button>
+            <div class="form-message" id="account-delete-message" hidden></div>
           </div>
         </div>
       </div>
@@ -1895,6 +1955,42 @@ function hideFormMessage(id){
   document.getElementById(id).hidden = true;
 }
 
+// Pitwall-styled stand-in for the browser's native confirm() dialog, which
+// looks jarringly out of place against the rest of the app. Resolves true
+// on confirm, false on cancel/Escape/clicking outside - callers just need
+// to `await` it instead of reading confirm()'s return value directly.
+function pitwallConfirm(message, { confirmText = 'Bestätigen', cancelText = 'Abbrechen', danger = false } = {}){
+  return new Promise(resolve => {
+    const overlay = document.getElementById('pitwall-modal-overlay');
+    const msgEl = document.getElementById('pitwall-modal-message');
+    const confirmBtn = document.getElementById('pitwall-modal-confirm');
+    const cancelBtn = document.getElementById('pitwall-modal-cancel');
+    msgEl.textContent = message;
+    confirmBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+    confirmBtn.className = 'pitwall-modal-btn ' + (danger ? 'danger' : 'primary');
+    overlay.hidden = false;
+
+    function cleanup(result){
+      overlay.hidden = true;
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onConfirm(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    function onOverlayClick(e){ if(e.target === overlay) cleanup(false); }
+    function onKeydown(e){ if(e.key === 'Escape') cleanup(false); }
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+  });
+}
+
 async function loadOwnProfile(userId){
   const { data } = await pitwallClient.from('profiles').select('id,username,avatar_url').eq('id', userId).maybeSingle();
   return data;
@@ -1919,6 +2015,22 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('account-logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
+
+document.getElementById('account-delete-btn').addEventListener('click', async () => {
+  hideFormMessage('account-delete-message');
+  const sure = await pitwallConfirm(
+    'Konto wirklich unwiderruflich löschen?\nAlle deine Daten (Profil, Rundenzeiten, Team-Mitgliedschaften) werden entfernt. Das kann nicht rückgängig gemacht werden.',
+    { confirmText: 'Konto löschen', danger: true }
+  );
+  if(!sure) return;
+  const { error } = await pitwallClient.rpc('delete_own_account');
+  if(error){
+    showFormMessage('account-delete-message', 'Löschen fehlgeschlagen: ' + error.message);
+    return;
+  }
+  await pitwallClient.auth.signOut();
+  window.location.href = 'login.html';
+});
 
 document.getElementById('account-username-toggle').addEventListener('click', () => {
   const form = document.getElementById('account-username-form');
@@ -2930,9 +3042,8 @@ function renderStintCalculator(team, ev, stints){
 
   // Only the team creator gets this - a safeguard against fat-fingering
   // "Stints neu berechnen" mid-event and wiping the whole plan. Confirmed
-  // both ways (native confirm() dialog - already the app's own pattern for
-  // "are you sure", e.g. the overwrite-warning just below) since locking
-  // and unlocking are both meaningful, deliberate actions.
+  // both ways since locking and unlocking are both meaningful, deliberate
+  // actions.
   if(currentProfile && currentProfile.id === team.created_by){
     const lockBtn = document.createElement('button');
     lockBtn.type = 'button';
@@ -2944,7 +3055,7 @@ function renderStintCalculator(team, ev, stints){
       const msg = wantLock
         ? 'Den "Stints (neu) berechnen"-Button für dieses Team wirklich sperren?'
         : 'Den "Stints (neu) berechnen"-Button für dieses Team wieder entsperren?';
-      if(!confirm(msg)) return;
+      if(!(await pitwallConfirm(msg))) return;
       const { error } = await pitwallClient.from('team_event_teams').update({ stints_locked: wantLock }).eq('id', team.id);
       if(error) console.error('Toggle stints lock failed:', error.message);
       loadTeamEvents();
@@ -3074,8 +3185,8 @@ function renderStintCalculator(team, ev, stints){
       applyBtn.type = 'button';
       applyBtn.className = 'stint-calc-apply';
       applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
-      applyBtn.addEventListener('click', () => {
-        if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
+      applyBtn.addEventListener('click', async () => {
+        if(stints.length && !(await pitwallConfirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.', { danger: true }))) return;
         applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
       });
       box.appendChild(applyBtn);
@@ -3679,7 +3790,7 @@ async function leaveTeam(teamId){
 async function requestLeaveTeam(teamId){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
-  if(!confirm('Der Stintplan für dieses Team ist gesperrt - du kannst nicht mehr direkt austreten. Stattdessen eine Anfrage an den Team-Ersteller senden?')) return;
+  if(!(await pitwallConfirm('Der Stintplan für dieses Team ist gesperrt - du kannst nicht mehr direkt austreten. Stattdessen eine Anfrage an den Team-Ersteller senden?'))) return;
   const { error } = await pitwallClient.from('team_event_members').update({ leave_requested: true }).eq('team_id', teamId).eq('user_id', session.user.id);
   if(error) console.error('Request leave team failed:', error.message);
   loadTeamEvents();
