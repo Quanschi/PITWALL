@@ -824,6 +824,68 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-new-team-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
 .te-new-team-form select{width:auto;min-width:150px;}
 
+/* Desktop default: each group is invisible to layout, so .stint-row is
+   still one flat flex-wrap row exactly as if these groups didn't exist. */
+.stint-row-group{display:contents;}
+
+/* ---- Mobile: turn each stint into a clearly separated, stacked card
+   instead of a single flex-wrap row cramming 8+ controls onto one line.
+   Each .stint-row-group becomes its own line grouping related controls
+   (time+status / laps+tyre / driver+spotter), so it reads top-to-bottom
+   instead of wrapping mid-thought. ---- */
+@media (max-width:640px){
+  .stint-plan{padding:12px;}
+  .stint-row{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    position:relative;
+    gap:0;
+    padding:10px 34px 10px 10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--panel-2);
+    margin-bottom:8px;
+  }
+  .stint-row.active{padding:10px 34px 10px 10px;}
+  .stint-row.zero-laps{padding:10px 34px 10px 10px;}
+  .stint-row-group{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+    width:100%;
+  }
+  .stint-row-meta{margin-bottom:6px;font-size:13px;}
+  .stint-row-controls{margin-bottom:6px;}
+  .stint-row-status:not(:empty){margin-bottom:6px;}
+  .stint-row-people{flex-direction:column;align-items:stretch;gap:8px;}
+  .stint-time{width:auto;font-size:13px;}
+  .stint-drag-handle{order:-1;}
+  .stint-remove-btn{position:absolute;top:8px;right:6px;font-size:18px;}
+  .stint-driver-select-wrap, .stint-spotter-select-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:4px;
+    width:100%;
+  }
+  .stint-driver-select-wrap::before, .stint-spotter-select-wrap::before{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.4px;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .stint-driver-select-wrap::before{content:'Fahrer';}
+  .stint-spotter-select-wrap::before{content:'Spotter';}
+  .stint-driver-text{width:100%;}
+  .stint-calc-row{flex-direction:column;}
+  .stint-calc-field{width:100%;}
+  .stint-calc-input{width:100% !important;}
+  .stint-plan-header{gap:8px;}
+}
+
 /* ---- Account area (header, top-right) ---- */
 .account-login-btn{
   font-family:'JetBrains Mono',monospace;
@@ -3865,6 +3927,26 @@ function renderStintPlan(team, ev){
     if(stintStart.getTime() <= now && now < stintEnd.getTime()) row.classList.add('active');
     row.dataset.stintId = stint.id;
 
+    // Four groups, appended to `row` in the same left-to-right order their
+    // contents used to be appended directly - on desktop each group is
+    // `display:contents` so this is visually identical to before (one flat
+    // wrapping flex row). On mobile each group becomes its own stacked
+    // line instead, so related controls (time+status, laps/tire,
+    // driver/spotter) stay together instead of wrapping mid-group into an
+    // illegible jumble.
+    const groupMeta = document.createElement('div');
+    groupMeta.className = 'stint-row-group stint-row-meta';
+    const groupControls = document.createElement('div');
+    groupControls.className = 'stint-row-group stint-row-controls';
+    const groupStatus = document.createElement('div');
+    groupStatus.className = 'stint-row-group stint-row-status';
+    const groupPeople = document.createElement('div');
+    groupPeople.className = 'stint-row-group stint-row-people';
+    row.appendChild(groupMeta);
+    row.appendChild(groupControls);
+    row.appendChild(groupStatus);
+    row.appendChild(groupPeople);
+
     if(iAmIn){
       row.draggable = true;
       row.addEventListener('dragstart', () => {
@@ -3883,13 +3965,13 @@ function renderStintPlan(team, ev){
       handle.className = 'stint-drag-handle';
       handle.textContent = '⠿';
       handle.title = 'Ziehen zum Umsortieren';
-      row.appendChild(handle);
+      groupMeta.appendChild(handle);
     }
 
     const timeEl = document.createElement('span');
     timeEl.className = 'stint-time';
     timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
-    row.appendChild(timeEl);
+    groupMeta.appendChild(timeEl);
 
     if(iAmIn){
       const lapsInput = document.createElement('input');
@@ -3902,12 +3984,12 @@ function renderStintPlan(team, ev){
         const val = parseInt(lapsInput.value, 10);
         if(!isNaN(val) && val >= 0) applyActualLaps(stint, val);
       });
-      row.appendChild(lapsInput);
+      groupControls.appendChild(lapsInput);
 
       const unit = document.createElement('span');
       unit.className = 'stint-duration-unit';
       unit.textContent = 'Runden';
-      row.appendChild(unit);
+      groupControls.appendChild(unit);
 
       // An alternate unit for the same edit the laps field makes, not a
       // separate mechanism - someone fuel-saving (or pushing) genuinely
@@ -3928,27 +4010,27 @@ function renderStintPlan(team, ev){
         const derivedLaps = lapTime > 0 ? Math.ceil((val * 60) / lapTime) : (stint.laps ?? 0);
         applyActualLaps(stint, derivedLaps);
       });
-      row.appendChild(minutesInput);
+      groupControls.appendChild(minutesInput);
 
       const minutesUnit = document.createElement('span');
       minutesUnit.className = 'stint-duration-unit';
       minutesUnit.textContent = 'min';
-      row.appendChild(minutesUnit);
+      groupControls.appendChild(minutesUnit);
     }else{
       const lapsEl = document.createElement('span');
       lapsEl.className = 'stint-laps';
       lapsEl.textContent = displayLaps != null ? `≈${displayLaps} R.` : '';
-      row.appendChild(lapsEl);
+      groupControls.appendChild(lapsEl);
     }
 
-    row.appendChild(renderTireControl(stint, team, iAmIn, live));
+    groupControls.appendChild(renderTireControl(stint, team, iAmIn, live));
 
     if(stint.edited){
       const editedBadge = document.createElement('span');
       editedBadge.className = 'stint-edited-badge';
       editedBadge.textContent = '✎ geändert';
       editedBadge.title = 'Nach der Planerstellung manuell angepasst';
-      row.appendChild(editedBadge);
+      groupStatus.appendChild(editedBadge);
     }
 
     if(isZeroLaps){
@@ -3956,7 +4038,7 @@ function renderStintPlan(team, ev){
       zeroBadge.className = 'stint-zero-warning';
       zeroBadge.textContent = '⚠ 0 Runden';
       zeroBadge.title = 'Dieser Stint hat durch eine Neuverteilung keine Runden mehr - wird so nicht mehr gefahren, ggf. entfernen';
-      row.appendChild(zeroBadge);
+      groupStatus.appendChild(zeroBadge);
     }
 
     if(stint.laps_increased && !isZeroLaps){
@@ -3964,7 +4046,7 @@ function renderStintPlan(team, ev){
       increasedBadge.className = 'stint-increased-badge';
       increasedBadge.textContent = '⬆ mehr Runden als geplant';
       increasedBadge.title = 'Ein anderer Stint wurde waehrend des Events verkuerzt - die Differenz wurde hierher verteilt, dieser Stint dauert jetzt laenger als urspruenglich geplant';
-      row.appendChild(increasedBadge);
+      groupStatus.appendChild(increasedBadge);
     }
 
     const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
@@ -3987,11 +4069,11 @@ function renderStintPlan(team, ev){
             if(!nextIsSamePerson) updateStint(nextStint.id, { spotter_id: userId, spotter_name: manualName }, live);
           }
         });
-      row.appendChild(driverField);
+      groupPeople.appendChild(driverField);
 
       const spotterField = makePersonField('stint-spotter-select', 'Spotter offen', stint.spotter_id, stint.spotter_name,
         ({ userId, manualName }) => updateStint(stint.id, { spotter_id: userId, spotter_name: manualName }, live));
-      row.appendChild(spotterField);
+      groupPeople.appendChild(spotterField);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -4005,7 +4087,7 @@ function renderStintPlan(team, ev){
       driverText.className = 'stint-driver-text';
       const durationLabel = displayLaps != null ? `${displayLaps} R.` : `${stint.duration_minutes} min`;
       driverText.textContent = `${driverLabel || 'Fahrer offen'} · ${spotterLabel || 'Spotter offen'} · ${durationLabel}`;
-      row.appendChild(driverText);
+      groupPeople.appendChild(driverText);
     }
 
     const isMyStint = currentProfile && (stint.user_id === currentProfile.id || stint.spotter_id === currentProfile.id);
