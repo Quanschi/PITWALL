@@ -3275,7 +3275,7 @@ function renderStintPlan(team, ev){
     // Falls back to an estimate from duration_minutes for stints created
     // before the laps column existed - once edited, the real value sticks.
     const estimatedLaps = lapTime > 0
-      ? Math.round((stint.duration_minutes * 60) / lapTime)
+      ? Math.ceil((stint.duration_minutes * 60) / lapTime)
       : null;
     const displayLaps = stint.laps ?? estimatedLaps;
     // A stint that lost all its laps to a redistribution (see
@@ -3335,22 +3335,24 @@ function renderStintPlan(team, ev){
       unit.textContent = 'Runden';
       row.appendChild(unit);
 
-      // Separate from the laps field on purpose: laps assumes everyone
-      // keeps the planned pace, but someone fuel-saving (or pushing) genuinely
-      // drives longer or shorter than that without necessarily doing a
-      // different number of laps. Editing this only shifts this stint's own
-      // clock time (and, since every following start/end is just the
-      // running total of durations, every stint after it shifts too) -
-      // it doesn't touch laps or trigger the fuel/VE redistribution.
+      // An alternate unit for the same edit the laps field makes, not a
+      // separate mechanism - someone fuel-saving (or pushing) genuinely
+      // drives a different number of minutes without necessarily driving a
+      // clean number of laps, so this converts to laps (rounding up: time
+      // spent partway into a lap still means that lap had to be driven,
+      // same convention as the race's own totalLaps calculation) and runs
+      // through the exact same redistribution as editing laps directly.
       const minutesInput = document.createElement('input');
       minutesInput.type = 'number';
       minutesInput.className = 'stint-duration-input';
       minutesInput.min = '1';
       minutesInput.value = stint.duration_minutes;
-      minutesInput.title = 'Tatsächliche Stintzeit (z.B. länger durch Sprit sparen) - verschiebt nur die Uhrzeiten der folgenden Stints, nicht die Rundenverteilung';
+      minutesInput.title = 'Tatsächliche Stintzeit (z.B. länger durch Sprit sparen) - wie bei den Runden verteilt eine Änderung die Differenz automatisch auf die folgenden Stints';
       minutesInput.addEventListener('change', () => {
         const val = parseInt(minutesInput.value, 10);
-        if(!isNaN(val) && val > 0) updateStint(stint.id, { duration_minutes: val }, live);
+        if(isNaN(val) || val <= 0) return;
+        const derivedLaps = lapTime > 0 ? Math.ceil((val * 60) / lapTime) : (stint.laps ?? 0);
+        applyActualLaps(stint, derivedLaps);
       });
       row.appendChild(minutesInput);
 
@@ -3421,7 +3423,7 @@ function renderStintPlan(team, ev){
     addBtn.textContent = '+ Stint hinzufügen';
     const nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
     const last = stints.length ? stints[stints.length - 1] : null;
-    const lastLaps = last ? (last.laps ?? (lapTime > 0 ? Math.round((last.duration_minutes * 60) / lapTime) : 10)) : 10;
+    const lastLaps = last ? (last.laps ?? (lapTime > 0 ? Math.ceil((last.duration_minutes * 60) / lapTime) : 10)) : 10;
     const lastDuration = last ? last.duration_minutes : 30;
     addBtn.addEventListener('click', () => addStint(team.id, nextPosition, lastLaps, lastDuration));
     wrap.appendChild(addBtn);
