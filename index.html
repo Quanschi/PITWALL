@@ -428,24 +428,32 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .split-columns{display:flex;flex-direction:column;gap:24px;}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
-.mobile-toggle-btn{
+.te-open-editor-btn{
   display:block;
   width:100%;
   font-family:'JetBrains Mono',monospace;
   font-size:12.5px;
   letter-spacing:0.4px;
   text-transform:uppercase;
-  padding:11px 14px;
+  padding:13px 14px;
   border-radius:8px;
   border:1px dashed var(--line);
   background:var(--panel-2);
   color:var(--text);
   cursor:pointer;
-  margin-bottom:14px;
+  margin-bottom:16px;
   transition:all .2s var(--ease);
 }
-.mobile-toggle-btn:hover{border-color:var(--muted);}
-.mobile-collapsible.collapsed{display:none;}
+.te-open-editor-btn:hover{border-color:var(--muted);}
+.te-editor-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.te-editor-title{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:26px;
+  margin:0;
+  color:var(--text);
+}
+#te-editor-form .stint-calc-apply{width:100%;margin-top:14px;}
 .lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
 .lb-filter-toggle input{width:auto;}
 
@@ -522,6 +530,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   border-radius:6px;
   padding:2px 7px;
 }
+.te-draft-note{color:var(--muted);font-size:12.5px;margin-top:8px;}
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;}
 .te-delete-btn:hover{color:var(--red);}
@@ -1148,74 +1157,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   </div>
 
   <div id="te-content" hidden>
-  <div class="split-columns">
-    <div class="split-col-left">
-    <button type="button" class="mobile-toggle-btn" id="te-mobile-toggle">+ Event erstellen</button>
-    <div class="auth-card mobile-collapsible collapsed" id="te-create-card">
-      <p class="section-label" style="margin-top:0">Neues Team Event</p>
-      <div class="field">
-        <label>Spiel</label>
-        <div class="filter-row" id="te-game-select">
-          <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
-          <button type="button" class="filter-pill" data-game="acc">ACC</button>
-        </div>
-      </div>
-      <div class="field">
-        <label for="te-name">Name</label>
-        <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
-      </div>
-      <div class="field">
-        <label for="te-date-start">Von</label>
-        <input type="date" id="te-date-start">
-      </div>
-      <div class="field">
-        <label for="te-date-end">Bis (optional, für mehrtägige Events)</label>
-        <input type="date" id="te-date-end">
-      </div>
-      <div class="field">
-        <label>Renndauer</label>
-        <div class="laptime-inputs">
-          <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std">
-          <span>h</span>
-          <input type="number" id="te-duration-m" min="0" max="59" placeholder="Min">
-          <span>min</span>
-        </div>
-      </div>
-      <div class="field">
-        <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
-        <div class="filter-row" id="te-time-tiles">
-          <button type="button" class="filter-pill" data-time="00:00">00:00</button>
-          <button type="button" class="filter-pill" data-time="01:00">01:00</button>
-          <button type="button" class="filter-pill" data-time="02:00">02:00</button>
-          <button type="button" class="filter-pill" data-time="03:00">03:00</button>
-          <button type="button" class="filter-pill" data-time="04:00">04:00</button>
-          <button type="button" class="filter-pill" data-time="05:00">05:00</button>
-          <button type="button" class="filter-pill" data-time="06:00">06:00</button>
-          <button type="button" class="filter-pill" data-time="07:00">07:00</button>
-          <button type="button" class="filter-pill" data-time="08:00">08:00</button>
-          <button type="button" class="filter-pill" data-time="09:00">09:00</button>
-          <button type="button" class="filter-pill" data-time="10:00">10:00</button>
-          <button type="button" class="filter-pill" data-time="11:00">11:00</button>
-          <button type="button" class="filter-pill" data-time="12:00">12:00</button>
-          <button type="button" class="filter-pill" data-time="13:00">13:00</button>
-          <button type="button" class="filter-pill" data-time="14:00">14:00</button>
-          <button type="button" class="filter-pill" data-time="15:00">15:00</button>
-          <button type="button" class="filter-pill" data-time="16:00">16:00</button>
-          <button type="button" class="filter-pill" data-time="17:00">17:00</button>
-          <button type="button" class="filter-pill" data-time="18:00">18:00</button>
-          <button type="button" class="filter-pill" data-time="19:00">19:00</button>
-          <button type="button" class="filter-pill" data-time="20:00">20:00</button>
-          <button type="button" class="filter-pill" data-time="21:00">21:00</button>
-          <button type="button" class="filter-pill" data-time="22:00">22:00</button>
-          <button type="button" class="filter-pill" data-time="23:00">23:00</button>
-        </div>
-      </div>
-      <div class="form-message" id="te-create-message" hidden></div>
-      <button type="button" class="filter-pill active" id="te-create-submit">Event erstellen</button>
-    </div>
-    </div>
 
-    <div class="split-col-right">
+  <div id="te-list-view">
     <div class="te-toolbar">
       <div class="filter-row" id="te-game-filter">
         <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
@@ -1223,9 +1166,88 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       </div>
       <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
     </div>
+    <button type="button" class="te-open-editor-btn" id="te-open-editor-btn">+ Event erstellen</button>
     <div id="te-list"></div>
+  </div>
+
+  <div id="te-editor-view" hidden>
+    <div class="te-editor-header">
+      <h2 class="te-editor-title">Erstelle ein Event</h2>
+      <button type="button" class="te-new-team-btn" id="te-editor-close-btn">Später weiter bearbeiten</button>
+    </div>
+
+    <div class="split-columns">
+      <div class="split-col-left">
+        <div class="auth-card" id="te-editor-form">
+          <div class="field">
+            <label>Spiel</label>
+            <div class="filter-row" id="te-game-select">
+              <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+              <button type="button" class="filter-pill" data-game="acc">ACC</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="te-name">Name</label>
+            <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
+          </div>
+          <div class="field">
+            <label for="te-date-start">Von</label>
+            <input type="date" id="te-date-start">
+          </div>
+          <div class="field">
+            <label for="te-date-end">Bis (optional, für mehrtägige Events)</label>
+            <input type="date" id="te-date-end">
+          </div>
+          <div class="field">
+            <label>Renndauer</label>
+            <div class="laptime-inputs">
+              <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std">
+              <span>h</span>
+              <input type="number" id="te-duration-m" min="0" max="59" placeholder="Min">
+              <span>min</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
+            <div class="filter-row" id="te-time-tiles">
+              <button type="button" class="filter-pill" data-time="00:00">00:00</button>
+              <button type="button" class="filter-pill" data-time="01:00">01:00</button>
+              <button type="button" class="filter-pill" data-time="02:00">02:00</button>
+              <button type="button" class="filter-pill" data-time="03:00">03:00</button>
+              <button type="button" class="filter-pill" data-time="04:00">04:00</button>
+              <button type="button" class="filter-pill" data-time="05:00">05:00</button>
+              <button type="button" class="filter-pill" data-time="06:00">06:00</button>
+              <button type="button" class="filter-pill" data-time="07:00">07:00</button>
+              <button type="button" class="filter-pill" data-time="08:00">08:00</button>
+              <button type="button" class="filter-pill" data-time="09:00">09:00</button>
+              <button type="button" class="filter-pill" data-time="10:00">10:00</button>
+              <button type="button" class="filter-pill" data-time="11:00">11:00</button>
+              <button type="button" class="filter-pill" data-time="12:00">12:00</button>
+              <button type="button" class="filter-pill" data-time="13:00">13:00</button>
+              <button type="button" class="filter-pill" data-time="14:00">14:00</button>
+              <button type="button" class="filter-pill" data-time="15:00">15:00</button>
+              <button type="button" class="filter-pill" data-time="16:00">16:00</button>
+              <button type="button" class="filter-pill" data-time="17:00">17:00</button>
+              <button type="button" class="filter-pill" data-time="18:00">18:00</button>
+              <button type="button" class="filter-pill" data-time="19:00">19:00</button>
+              <button type="button" class="filter-pill" data-time="20:00">20:00</button>
+              <button type="button" class="filter-pill" data-time="21:00">21:00</button>
+              <button type="button" class="filter-pill" data-time="22:00">22:00</button>
+              <button type="button" class="filter-pill" data-time="23:00">23:00</button>
+            </div>
+          </div>
+          <div class="form-message" id="te-create-message" hidden></div>
+          <button type="button" class="stint-calc-apply" id="te-publish-btn">✓ Event veröffentlichen</button>
+        </div>
+      </div>
+
+      <div class="split-col-right">
+        <p class="section-label" style="margin-top:0">Vorschau (live)</p>
+        <div id="te-editor-preview"></div>
+      </div>
     </div>
   </div>
+
   </div>
 
 </div>
@@ -2257,6 +2279,18 @@ function loadCarsByClass(){
   return carsByClassPromise;
 }
 
+let allProfilesPromise = null;
+function loadAllProfiles(){
+  if(!allProfilesPromise){
+    allProfilesPromise = pitwallClient.from('profiles').select('id,username').order('username', { ascending: true })
+      .then(({ data, error }) => {
+        if(error){ console.error('Load profiles failed:', error.message); return []; }
+        return data || [];
+      });
+  }
+  return allProfilesPromise;
+}
+
 // lmuportal's own official per-class badge color (e.g. GTE green, LMP2
 // blue) - shared between Schedule and Team Events so a class always shows
 // in the same color everywhere.
@@ -2612,7 +2646,7 @@ let teOpenSlot = {}; // eventId -> slotIso currently expanded, per event card
 let teOpenStintPlan = {}; // teamId -> whether its stint plan is expanded
 let teMyStintsOnly = {}; // teamId -> whether its stint plan is filtered to only the current user's stints
 let teSelectedTimes = new Set();
-let teSelectedGame = 'lmu'; // which game the new-event form currently creates for
+let teEditorEventId = null; // id of the draft event currently open in the editor, or null
 
 let storedTeGame = 'lmu';
 try{ storedTeGame = localStorage.getItem('pitwall-te-game') || 'lmu'; }catch(e){}
@@ -2699,21 +2733,6 @@ function formatDuration(totalMinutes){
 
 document.getElementById('te-show-closed').addEventListener('change', loadTeamEvents);
 
-document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
-    btn.classList.toggle('active');
-    if(btn.classList.contains('active')) teSelectedTimes.add(btn.dataset.time);
-    else teSelectedTimes.delete(btn.dataset.time);
-  });
-});
-
-document.querySelectorAll('#te-game-select .filter-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
-    teSelectedGame = btn.dataset.game;
-    document.querySelectorAll('#te-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
-  });
-});
-
 document.querySelectorAll('#te-game-filter .filter-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     if(btn.classList.contains('active')) return;
@@ -2725,60 +2744,187 @@ document.querySelectorAll('#te-game-filter .filter-pill').forEach(btn => {
 });
 document.querySelectorAll('#te-game-filter .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.game === teGameFilter));
 
-document.getElementById('te-create-submit').addEventListener('click', async () => {
-  hideFormMessage('te-create-message');
-  const { data: { session } } = await pitwallClient.auth.getSession();
-  if(!session){
-    showFormMessage('te-create-message', 'Bitte zuerst im Rundenzeiten-Tab anmelden.');
-    return;
-  }
+// ---- Draft event editor: "+ Event erstellen" creates an unpublished row
+// right away (so teams/members can be attached to something real while
+// editing) and opens this two-pane view - form on the left, the exact
+// same renderEventCard() used everywhere else as a live preview on the
+// right. Nobody but the creator can even see an unpublished event (see
+// the "published" RLS check on team_events), so they can take their time
+// without anyone watching a half-finished event appear. ----
+
+function readEditorFormState(){
   const name = document.getElementById('te-name').value.trim();
   const startStr = document.getElementById('te-date-start').value;
   const endStr = document.getElementById('te-date-end').value || startStr;
   const durationH = parseInt(document.getElementById('te-duration-h').value, 10) || 0;
   const durationM = parseInt(document.getElementById('te-duration-m').value, 10) || 0;
   const durationMinutes = durationH * 60 + durationM;
-  if(!name || !startStr || teSelectedTimes.size === 0 || durationMinutes <= 0){
-    showFormMessage('te-create-message', 'Bitte Name, Datum, Renndauer und mindestens eine Uhrzeit angeben.');
-    return;
-  }
-  const start = new Date(startStr + 'T00:00:00');
-  const end = new Date(endStr + 'T00:00:00');
-  if(end < start){
-    showFormMessage('te-create-message', '"Bis"-Datum liegt vor dem "Von"-Datum.');
-    return;
-  }
-  if((end - start) / 86400000 > 30){
-    showFormMessage('te-create-message', 'Der Zeitraum darf höchstens 31 Tage umfassen.');
-    return;
-  }
-  const days = [];
-  for(let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
-    days.push(d.toISOString().slice(0, 10));
-  }
-  const slotTimes = [];
-  days.forEach(day => {
-    teSelectedTimes.forEach(t => slotTimes.push(new Date(`${day}T${t}:00`).toISOString()));
-  });
-  slotTimes.sort();
+  const activeGamePill = document.querySelector('#te-game-select .filter-pill.active');
+  const game = activeGamePill ? activeGamePill.dataset.game : 'lmu';
 
-  const { error } = await pitwallClient.from('team_events').insert({
-    name, event_date: startStr, slot_times: slotTimes,
-    source: 'manual', created_by: session.user.id,
-    duration_minutes: durationMinutes, game: teSelectedGame,
-  });
+  let slotTimes = [];
+  let dateError = null;
+  if(startStr && teSelectedTimes.size){
+    const start = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    if(end < start){
+      dateError = '"Bis"-Datum liegt vor dem "Von"-Datum.';
+    }else if((end - start) / 86400000 > 30){
+      dateError = 'Der Zeitraum darf höchstens 31 Tage umfassen.';
+    }else{
+      const days = [];
+      for(let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
+        days.push(d.toISOString().slice(0, 10));
+      }
+      days.forEach(day => {
+        teSelectedTimes.forEach(t => slotTimes.push(new Date(`${day}T${t}:00`).toISOString()));
+      });
+      slotTimes.sort();
+    }
+  }
+  return { name, startStr, endStr, durationMinutes, slotTimes, game, dateError };
+}
+
+async function saveEditorEvent(){
+  if(!teEditorEventId) return;
+  hideFormMessage('te-create-message');
+  const state = readEditorFormState();
+  if(state.dateError){
+    showFormMessage('te-create-message', state.dateError);
+    return;
+  }
+  const patch = {
+    name: state.name,
+    event_date: state.startStr || new Date().toISOString().slice(0, 10),
+    slot_times: state.slotTimes,
+    duration_minutes: state.durationMinutes || null,
+    game: state.game,
+  };
+  const { error } = await pitwallClient.from('team_events').update(patch).eq('id', teEditorEventId);
   if(error){
     showFormMessage('te-create-message', 'Konnte nicht gespeichert werden: ' + error.message);
     return;
   }
-  document.getElementById('te-name').value = '';
-  document.getElementById('te-date-start').value = '';
-  document.getElementById('te-date-end').value = '';
-  document.getElementById('te-duration-h').value = '';
-  document.getElementById('te-duration-m').value = '';
-  teSelectedTimes.clear();
-  document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => b.classList.remove('active'));
+  loadEventEditor();
+}
+
+function populateEditorForm(ev){
+  document.getElementById('te-name').value = ev.name || '';
+  const slotTimes = ev.slot_times || [];
+  if(slotTimes.length){
+    const dates = slotTimes.map(iso => new Date(iso)).sort((a, b) => a - b);
+    document.getElementById('te-date-start').value = localDayKey(dates[0]);
+    document.getElementById('te-date-end').value = localDayKey(dates[dates.length - 1]);
+  }else{
+    document.getElementById('te-date-start').value = ev.event_date || '';
+    document.getElementById('te-date-end').value = '';
+  }
+  document.getElementById('te-duration-h').value = ev.duration_minutes ? Math.floor(ev.duration_minutes / 60) || '' : '';
+  document.getElementById('te-duration-m').value = ev.duration_minutes ? (ev.duration_minutes % 60) || '' : '';
+  teSelectedTimes = new Set(slotTimes.map(iso => formatSlotTime(iso)));
+  document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => {
+    b.classList.toggle('active', teSelectedTimes.has(b.dataset.time));
+  });
+  document.querySelectorAll('#te-game-select .filter-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.game === (ev.game || 'lmu'));
+  });
+}
+
+async function loadEventEditor(){
+  if(!teEditorEventId) return;
+  const { data: ev, error } = await pitwallClient.from('team_events').select('*').eq('id', teEditorEventId).maybeSingle();
+  if(error || !ev){
+    if(error) console.error('Load draft event failed:', error.message);
+    closeEventEditor();
+    return;
+  }
+  populateEditorForm(ev);
+
+  const { data: teams, error: teamsError } = await pitwallClient
+    .from('team_event_teams')
+    .select(TEAM_EVENT_TEAMS_COLUMNS)
+    .eq('event_id', teEditorEventId)
+    .order('created_at', { ascending: true })
+    .order('position', { foreignTable: 'team_stints', ascending: true });
+  if(teamsError) console.error('Load draft teams failed:', teamsError.message);
+
+  const carData = await loadCarsByClass();
+  carData.allProfiles = await loadAllProfiles();
+  const preview = document.getElementById('te-editor-preview');
+  preview.innerHTML = '';
+  preview.appendChild(renderEventCard(ev, teams || [], carData, { isEditorPreview: true }));
+
+  const publishBtn = document.getElementById('te-publish-btn');
+  const canPublish = !!(ev.name && ev.duration_minutes > 0 && ev.slot_times && ev.slot_times.length);
+  publishBtn.disabled = !canPublish;
+  publishBtn.title = canPublish ? '' : 'Name, Renndauer und mindestens eine Uhrzeit werden benötigt';
+}
+
+function openEventEditor(eventId){
+  teEditorEventId = eventId;
+  teOpenSlot = {};
+  document.getElementById('te-list-view').hidden = true;
+  document.getElementById('te-editor-view').hidden = false;
+  loadEventEditor();
+}
+
+function closeEventEditor(){
+  teEditorEventId = null;
+  document.getElementById('te-editor-view').hidden = true;
+  document.getElementById('te-list-view').hidden = false;
   loadTeamEvents();
+}
+
+document.getElementById('te-open-editor-btn').addEventListener('click', async () => {
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  const { data: draft, error } = await pitwallClient.from('team_events').insert({
+    name: '', event_date: new Date().toISOString().slice(0, 10), slot_times: [],
+    source: 'manual', created_by: session.user.id, published: false, game: 'lmu',
+  }).select().single();
+  if(error){ console.error('Create draft event failed:', error.message); return; }
+  openEventEditor(draft.id);
+});
+
+document.getElementById('te-editor-close-btn').addEventListener('click', closeEventEditor);
+
+document.getElementById('te-publish-btn').addEventListener('click', async () => {
+  if(!teEditorEventId) return;
+  hideFormMessage('te-create-message');
+  const state = readEditorFormState();
+  if(state.dateError){
+    showFormMessage('te-create-message', state.dateError);
+    return;
+  }
+  if(!state.name || !state.slotTimes.length || !(state.durationMinutes > 0)){
+    showFormMessage('te-create-message', 'Bitte Name, Renndauer und mindestens eine Uhrzeit angeben.');
+    return;
+  }
+  await saveEditorEvent();
+  const { error } = await pitwallClient.from('team_events').update({ published: true }).eq('id', teEditorEventId);
+  if(error){
+    showFormMessage('te-create-message', 'Veröffentlichen fehlgeschlagen: ' + error.message);
+    return;
+  }
+  closeEventEditor();
+});
+
+document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('active');
+    if(btn.classList.contains('active')) teSelectedTimes.add(btn.dataset.time);
+    else teSelectedTimes.delete(btn.dataset.time);
+    saveEditorEvent();
+  });
+});
+document.querySelectorAll('#te-game-select .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#te-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    saveEditorEvent();
+  });
+});
+['te-name', 'te-date-start', 'te-date-end', 'te-duration-h', 'te-duration-m'].forEach(id => {
+  document.getElementById(id).addEventListener('change', saveEditorEvent);
 });
 
 async function deleteTeamEvent(id){
@@ -2825,6 +2971,12 @@ async function addManualMember(teamId, name){
   if(!trimmed) return;
   const { error } = await pitwallClient.from('team_event_members').insert({ team_id: teamId, manual_name: trimmed });
   if(error) console.error('Add manual member failed:', error.message);
+  loadTeamEvents();
+}
+
+async function addRegisteredMember(teamId, userId){
+  const { error } = await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: userId });
+  if(error) console.error('Add registered member failed:', error.message);
   loadTeamEvents();
 }
 
@@ -4011,6 +4163,32 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         });
         row.appendChild(manualNameInput);
         row.appendChild(addManualBtn);
+
+        // Team/event creator can add anyone with a Pitwall account straight
+        // on, without them having to join themselves - the only way to get
+        // someone onto a team while the event is still an unpublished
+        // draft, since nobody else can even see it to join.
+        const registeredOptions = (carData.allProfiles || []).filter(p => !members.some(m => m.user_id === p.id));
+        if(registeredOptions.length){
+          const memberSelect = document.createElement('select');
+          memberSelect.style.width = 'auto';
+          memberSelect.style.minWidth = '160px';
+          const placeholderOpt = document.createElement('option');
+          placeholderOpt.value = '';
+          placeholderOpt.textContent = 'Registrierten Nutzer wählen…';
+          memberSelect.appendChild(placeholderOpt);
+          registeredOptions.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.username;
+            memberSelect.appendChild(opt);
+          });
+          memberSelect.addEventListener('change', () => {
+            if(!memberSelect.value) return;
+            addRegisteredMember(t.id, memberSelect.value);
+          });
+          row.appendChild(memberSelect);
+        }
       }
     }
     const stintToggle = document.createElement('button');
@@ -4050,7 +4228,8 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   return detail;
 }
 
-function renderEventCard(ev, teams, carData){
+function renderEventCard(ev, teams, carData, opts){
+  opts = opts || {};
   const card = document.createElement('div');
   card.className = 'te-event';
 
@@ -4059,6 +4238,7 @@ function renderEventCard(ev, teams, carData){
   const left = document.createElement('div');
 
   const badges = [];
+  if(ev.published === false) badges.push('Entwurf');
   if(ev.source === 'auto') badges.push('Aus Schedule');
   if(ev.closed || isEventPast(ev)) badges.push('Abgeschlossen');
   if(badges.length){
@@ -4119,6 +4299,24 @@ function renderEventCard(ev, teams, carData){
   }
   card.appendChild(header);
 
+  // Unpublished: only the creator can even see this row (RLS), and only
+  // in the main list - the editor's own live preview passes isEditorPreview
+  // to skip this and render the real, fully interactive card below instead.
+  if(ev.published === false && !opts.isEditorPreview){
+    const draftNote = document.createElement('div');
+    draftNote.className = 'te-draft-note';
+    draftNote.textContent = 'Noch nicht veröffentlicht - nur du siehst dieses Event.';
+    card.appendChild(draftNote);
+    const resumeBtn = document.createElement('button');
+    resumeBtn.type = 'button';
+    resumeBtn.className = 'te-new-team-btn';
+    resumeBtn.style.marginTop = '8px';
+    resumeBtn.textContent = 'Entwurf bearbeiten';
+    resumeBtn.addEventListener('click', () => openEventEditor(ev.id));
+    card.appendChild(resumeBtn);
+    return card;
+  }
+
   // Keyed by epoch ms, not the raw string - team_event_teams.slot_time comes
   // back from Postgres as "...+00:00" while team_events.slot_times is our own
   // "...Z"-suffixed ISO strings; same instant, different string, so string
@@ -4178,6 +4376,11 @@ function renderEventCard(ev, teams, carData){
   return card;
 }
 
+// Shared between the main list and the single-event draft editor so the
+// two select() calls can't silently drift apart the way they already have
+// once this session.
+const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
+
 async function loadTeamEvents(){
   const container = document.getElementById('te-list');
   // Pulls every special-event schedule race up front (not just whichever
@@ -4188,46 +4391,48 @@ async function loadTeamEvents(){
 
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,game,created_by,closed,duration_minutes,car_classes,sr_requirement')
+    .select('id,name,event_date,slot_times,source,game,created_by,closed,published,duration_minutes,car_classes,sr_requirement')
     .order('event_date', { ascending: true });
 
   if(error){
     container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
-    return;
-  }
-  if(!allEvents || allEvents.length === 0){
+  }else if(!allEvents || allEvents.length === 0){
     container.innerHTML = '<div class="leaderboard-empty">Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.</div>';
-    return;
+  }else{
+    const showClosed = document.getElementById('te-show-closed').checked;
+    const events = allEvents.filter(ev =>
+      (ev.game || 'lmu') === teGameFilter && (showClosed || (!ev.closed && !isEventPast(ev)))
+    );
+    if(events.length === 0){
+      const gameLabel = teGameFilter === 'acc' ? 'ACC' : 'LMU';
+      container.innerHTML = `<div class="leaderboard-empty">Keine ${showClosed ? '' : 'offenen '}${gameLabel}-Team-Events.</div>`;
+    }else{
+      const { data: teams, error: teamsError } = await pitwallClient
+        .from('team_event_teams')
+        .select(TEAM_EVENT_TEAMS_COLUMNS)
+        .in('event_id', events.map(e => e.id))
+        .order('created_at', { ascending: true })
+        .order('position', { foreignTable: 'team_stints', ascending: true });
+
+      if(teamsError){
+        container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden der Teams: ${escapeText(teamsError.message)}</div>`;
+      }else{
+        const carData = await loadCarsByClass();
+        carData.allProfiles = await loadAllProfiles();
+        const teamsByEvent = {};
+        (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
+
+        container.innerHTML = '';
+        events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [], carData)));
+      }
+    }
   }
 
-  const showClosed = document.getElementById('te-show-closed').checked;
-  const events = allEvents.filter(ev =>
-    (ev.game || 'lmu') === teGameFilter && (showClosed || (!ev.closed && !isEventPast(ev)))
-  );
-  if(events.length === 0){
-    const gameLabel = teGameFilter === 'acc' ? 'ACC' : 'LMU';
-    container.innerHTML = `<div class="leaderboard-empty">Keine ${showClosed ? '' : 'offenen '}${gameLabel}-Team-Events.</div>`;
-    return;
-  }
-
-  const { data: teams, error: teamsError } = await pitwallClient
-    .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
-    .in('event_id', events.map(e => e.id))
-    .order('created_at', { ascending: true })
-    .order('position', { foreignTable: 'team_stints', ascending: true });
-
-  if(teamsError){
-    container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden der Teams: ${escapeText(teamsError.message)}</div>`;
-    return;
-  }
-
-  const carData = await loadCarsByClass();
-  const teamsByEvent = {};
-  (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
-
-  container.innerHTML = '';
-  events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [], carData)));
+  // Keeps the draft editor's live preview in sync with anything that just
+  // changed, regardless of whether the change came from the (hidden)
+  // editor preview itself or from elsewhere - every mutation in this file
+  // already funnels back through loadTeamEvents().
+  if(teEditorEventId) loadEventEditor();
 }
 
 let scheduleFirstLoadDone = false;
@@ -4250,16 +4455,6 @@ function showPanel(name){
 }
 
 showPanel('schedule');
-
-function setupMobileToggle(btnId, cardId, openText, closeText){
-  const btn = document.getElementById(btnId);
-  const card = document.getElementById(cardId);
-  btn.addEventListener('click', () => {
-    const collapsed = card.classList.toggle('collapsed');
-    btn.textContent = collapsed ? openText : closeText;
-  });
-}
-setupMobileToggle('te-mobile-toggle', 'te-create-card', '+ Event erstellen', '− Formular ausblenden');
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
