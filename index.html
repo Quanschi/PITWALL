@@ -429,7 +429,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
 .mobile-toggle-btn{
-  display:none;
+  display:block;
   width:100%;
   font-family:'JetBrains Mono',monospace;
   font-size:12.5px;
@@ -445,6 +445,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   transition:all .2s var(--ease);
 }
 .mobile-toggle-btn:hover{border-color:var(--muted);}
+.mobile-collapsible.collapsed{display:none;}
 .lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
 .lb-filter-toggle input{width:auto;}
 
@@ -906,8 +907,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .filter-row{margin:2px 0 12px 0;gap:6px;}
   .filter-pill{padding:6px 11px;font-size:10.5px;}
   .schedule-card{padding:14px 18px;}
-  .mobile-toggle-btn{display:block;}
-  .mobile-collapsible.collapsed{display:none;}
 
   /* table-layout:fixed (see desktop rule) divides the table width evenly
      across 7 columns so it fits without scrolling on a wide screen - on a
