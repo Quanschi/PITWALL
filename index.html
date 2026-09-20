@@ -641,6 +641,15 @@ input:focus{outline:none;border-color:var(--violet);}
   border-radius:10px;
   flex-shrink:0;
 }
+.stint-increased-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  color:var(--violet);
+  background:rgba(167,139,250,0.15);
+  padding:2px 7px;
+  border-radius:10px;
+  flex-shrink:0;
+}
 .stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
 .stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
 .stint-edited-badge{
@@ -3142,6 +3151,7 @@ function renderStintPlan(team, ev){
   const myStintsOnly = !!teMyStintsOnly[team.id];
 
   if(iAmIn){
+    const myStintCount = stints.filter(s => currentProfile && (s.user_id === currentProfile.id || s.spotter_id === currentProfile.id)).length;
     const filterLabel = document.createElement('label');
     filterLabel.className = 'lb-filter-toggle stint-mine-toggle';
     const filterCheckbox = document.createElement('input');
@@ -3152,7 +3162,7 @@ function renderStintPlan(team, ev){
       loadTeamEvents();
     });
     filterLabel.appendChild(filterCheckbox);
-    filterLabel.appendChild(document.createTextNode(' Nur meine Stints'));
+    filterLabel.appendChild(document.createTextNode(` Nur meine Stints (${myStintCount})`));
     header.appendChild(filterLabel);
   }
   wrap.appendChild(header);
@@ -3173,6 +3183,17 @@ function renderStintPlan(team, ev){
   function durationFor(laps){
     return lapTime > 0 ? Math.max(1, Math.round((laps * lapTime) / 60)) : 30;
   }
+  // Flags a following stint whose laps grew past what it had before (or a
+  // brand-new overflow stint, which by definition is pure added driving) -
+  // whoever's on it now has to drive more than they signed up for and
+  // should notice, separately from the generic "edited" badge (which also
+  // fires when a stint shrinks). Only during the live event, same reasoning
+  // as isEventLiveForTeam for "edited" - a pre-race planning tweak isn't a
+  // surprise to flag.
+  function increaseFlag(oldLaps, newLapsValue){
+    return live ? { laps_increased: newLapsValue > (oldLaps ?? 0) } : {};
+  }
+
   async function applyActualLaps(stint, newLaps){
     const idx = stints.findIndex(s => s.id === stint.id);
     if(idx === -1) return;
@@ -3180,7 +3201,7 @@ function renderStintPlan(team, ev){
     const remainingTotal = (stint.laps ?? 0) + following.reduce((sum, s) => sum + (s.laps ?? 0), 0);
     let toDistribute = Math.max(0, remainingTotal - newLaps);
 
-    const patches = [{ id: stint.id, laps: newLaps }];
+    const patches = [{ id: stint.id, laps: newLaps, ...increaseFlag(stint.laps, newLaps) }];
     const newStints = [];
 
     if(!maxLapsPerStint){
@@ -3191,7 +3212,8 @@ function renderStintPlan(team, ev){
         const base = Math.floor(toDistribute / following.length);
         following.forEach((s, i) => {
           const add = i < (toDistribute - base * following.length) ? 1 : 0;
-          patches.push({ id: s.id, laps: base + add });
+          const newVal = base + add;
+          patches.push({ id: s.id, laps: newVal, ...increaseFlag(s.laps, newVal) });
         });
       }
     }else{
@@ -3202,13 +3224,13 @@ function renderStintPlan(team, ev){
       following.forEach(s => {
         const l = Math.min(maxLapsPerStint, toDistribute);
         toDistribute -= l;
-        patches.push({ id: s.id, laps: l });
+        patches.push({ id: s.id, laps: l, ...increaseFlag(s.laps, l) });
       });
       let nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
       while(toDistribute > 0){
         const l = Math.min(maxLapsPerStint, toDistribute);
         toDistribute -= l;
-        newStints.push({ team_id: team.id, position: nextPosition, laps: l, duration_minutes: durationFor(l) });
+        newStints.push({ team_id: team.id, position: nextPosition, laps: l, duration_minutes: durationFor(l), laps_increased: live });
         nextPosition++;
       }
     }
@@ -3416,6 +3438,14 @@ function renderStintPlan(team, ev){
       zeroBadge.textContent = '⚠ 0 Runden';
       zeroBadge.title = 'Dieser Stint hat durch eine Neuverteilung keine Runden mehr - wird so nicht mehr gefahren, ggf. entfernen';
       row.appendChild(zeroBadge);
+    }
+
+    if(stint.laps_increased && !isZeroLaps){
+      const increasedBadge = document.createElement('span');
+      increasedBadge.className = 'stint-increased-badge';
+      increasedBadge.textContent = '⬆ mehr Runden als geplant';
+      increasedBadge.title = 'Ein anderer Stint wurde waehrend des Events verkuerzt - die Differenz wurde hierher verteilt, dieser Stint dauert jetzt laenger als urspruenglich geplant';
+      row.appendChild(increasedBadge);
     }
 
     const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
@@ -3919,7 +3949,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
