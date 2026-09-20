@@ -2624,38 +2624,74 @@ const REFERENCE_GAMES = {
 
 let referenceGame = 'lmu';
 const referenceCacheByGame = {}; // game -> { rows, fetchedAt }
-const REFERENCE_LAP_TIMES_MAX_AGE_MS = 15 * 60 * 1000; // refetch if older than 15 min
+const REFERENCE_LAP_TIMES_MAX_AGE_MS = 15 * 60 * 1000; // background-refetch if older than 15 min
+
+// The Google Sheets CSV export this pulls from is slow (no CDN on their
+// end, nothing we can do about that) and the in-memory cache above is
+// lost on every reload - so without this, opening the tab in a fresh
+// page load always eats that full round-trip. Persisting the last good
+// fetch means the table can appear instantly from what's on disk, while
+// a background refetch (see loadReferenceLapTimes) quietly checks
+// whether it's still current.
+function loadReferenceCacheFromStorage(game){
+  try{
+    const raw = localStorage.getItem('pitwall-reference-' + game);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && Array.isArray(parsed.rows) && parsed.fetchedAt) ? parsed : null;
+  }catch(e){ return null; }
+}
+function saveReferenceCacheToStorage(game, cache){
+  try{ localStorage.setItem('pitwall-reference-' + game, JSON.stringify(cache)); }catch(e){}
+}
 
 async function loadReferenceLapTimes(force){
   const game = referenceGame;
-  const cached = referenceCacheByGame[game];
-  const isStale = !cached || Date.now() - cached.fetchedAt > REFERENCE_LAP_TIMES_MAX_AGE_MS;
-  if(cached && !force && !isStale){
+  let cached = referenceCacheByGame[game] || loadReferenceCacheFromStorage(game);
+  if(cached) referenceCacheByGame[game] = cached;
+
+  if(cached){
     populateReferenceFilters(cached.rows);
     renderReferenceTimes();
-    return cached.rows;
+    updateReferenceStamp(cached.fetchedAt);
   }
+
+  const isStale = !cached || Date.now() - cached.fetchedAt > REFERENCE_LAP_TIMES_MAX_AGE_MS;
+  if(cached && !force && !isStale) return cached.rows;
+
   let rows;
   try{
     rows = await REFERENCE_GAMES[game].fetchRows();
-    const stamp = document.getElementById('ref-last-updated');
-    if(stamp) stamp.textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   }catch(err){
     console.error('Reference lap times load failed (' + game + '):', err.message);
+    if(cached) return cached.rows; // keep showing the last good data rather than clearing it on a failed refresh
     rows = [];
   }
-  referenceCacheByGame[game] = { rows, fetchedAt: Date.now() };
+  const fresh = { rows, fetchedAt: Date.now() };
+  referenceCacheByGame[game] = fresh;
+  saveReferenceCacheToStorage(game, fresh);
   populateReferenceFilters(rows);
   renderReferenceTimes();
+  updateReferenceStamp(fresh.fetchedAt);
   return rows;
+}
+
+function updateReferenceStamp(fetchedAt){
+  const stamp = document.getElementById('ref-last-updated');
+  if(stamp) stamp.textContent = new Date(fetchedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
 function populateReferenceFilters(rows){
   const trackSelect = document.getElementById('ref-track-filter');
   if(!trackSelect) return;
+  // Keeps whatever track was already selected instead of resetting to the
+  // placeholder - matters when this runs again after a silent background
+  // refetch while someone's actively looking at a track's times.
+  const previousValue = trackSelect.value;
   const tracks = [...new Set(rows.map(r => r.track))].sort();
   trackSelect.innerHTML = '<option value="">Strecke wählen…</option>' +
     tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
+  if(tracks.includes(previousValue)) trackSelect.value = previousValue;
 }
 
 // Green-to-red gradient so a glance at the row tells you which column is
