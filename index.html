@@ -3476,10 +3476,15 @@ function renderStintPlan(team, ev){
           // Default: whoever just drove spots for the next stint (they
           // know the current track/car state best) - still just a
           // starting point, the spotter field right after this stays
-          // manually editable if that's wrong for this handover.
+          // manually editable if that's wrong for this handover. Skipped
+          // when the same person is already driving that next stint too
+          // (a double stint) - someone can't spot for themselves.
           const idx = stints.findIndex(s => s.id === stint.id);
           const nextStint = idx !== -1 ? stints[idx + 1] : null;
-          if(nextStint) updateStint(nextStint.id, { spotter_id: userId, spotter_name: manualName }, live);
+          if(nextStint){
+            const nextIsSamePerson = userId ? nextStint.user_id === userId : (manualName && nextStint.driver_name === manualName);
+            if(!nextIsSamePerson) updateStint(nextStint.id, { spotter_id: userId, spotter_name: manualName }, live);
+          }
         });
       row.appendChild(driverField);
 
