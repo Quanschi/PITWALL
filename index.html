@@ -705,16 +705,22 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-duration-input{width:76px !important;flex-shrink:0;text-align:center;}
 .stint-duration-unit{font-size:12px;color:var(--muted);flex-shrink:0;}
 .stint-laps{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);flex-shrink:0;}
-.stint-tire-wrap{position:relative;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;}
+/* Plain inline flow (not nested flexbox) so the icon and label reliably
+   stay side by side - a flex container nested inside a flex-wrap parent
+   (.stint-row-controls) is a known trouble spot for inconsistent sizing
+   across mobile browsers. */
+.stint-tire-wrap{position:relative;flex-shrink:0;white-space:nowrap;}
 .stint-tire-icon{
-  display:grid;
+  display:inline-grid;
   grid-template-columns:repeat(2, 8px);
   grid-template-rows:repeat(2, 8px);
   gap:2px;
   padding:3px;
+  vertical-align:middle;
+  margin-right:6px;
 }
 .stint-tire-icon.clickable{cursor:pointer;}
-.stint-tire-label{font-size:11px;color:var(--muted);flex-shrink:0;}
+.stint-tire-label{font-size:11px;color:var(--muted);vertical-align:middle;}
 .stint-tire-label.clickable{cursor:pointer;}
 .stint-tire-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,0.3);}
 .stint-tire-menu{
