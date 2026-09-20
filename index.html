@@ -4597,6 +4597,24 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
 
       const myMember = members.find(m => m.user_id === currentProfile.id);
       const iAmCreator = currentProfile.id === t.created_by;
+
+      // Lets a team member add drivers - either reserving a slot for
+      // someone without a Pitwall account yet (joins seamlessly into it
+      // later by signing up/joining with the exact same username, see
+      // joinTeam) or, for the team/event creator, adding anyone with a
+      // Pitwall account straight on without them having to join themselves
+      // (the only way to get someone onto a team while the event is still
+      // an unpublished draft, since nobody else can even see it to join).
+      // Both go through the same modal so several can be queued up at once.
+      if(iAmIn){
+        const addDriversBtn = document.createElement('button');
+        addDriversBtn.type = 'button';
+        addDriversBtn.className = 'te-team-btn';
+        addDriversBtn.textContent = '+ Fahrer';
+        addDriversBtn.addEventListener('click', () => openAddDriversModal(t, members, carData.allProfiles));
+        row.appendChild(addDriversBtn);
+      }
+
       const actionBtn = document.createElement('button');
       actionBtn.type = 'button';
       actionBtn.className = 'te-team-btn' + (iAmIn ? ' leave' : '');
@@ -4621,25 +4639,11 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         delTeamBtn.className = 'te-team-btn leave';
         delTeamBtn.textContent = '✕';
         delTeamBtn.title = 'Team entfernen';
-        delTeamBtn.addEventListener('click', () => deleteTeam(t.id));
+        delTeamBtn.addEventListener('click', async () => {
+          if(!(await pitwallConfirm('Team wirklich löschen? Alle Mitglieder und der Stintplan gehen dabei unwiderruflich verloren.', { danger: true }))) return;
+          deleteTeam(t.id);
+        });
         row.appendChild(delTeamBtn);
-      }
-
-      // Lets a team member add drivers - either reserving a slot for
-      // someone without a Pitwall account yet (joins seamlessly into it
-      // later by signing up/joining with the exact same username, see
-      // joinTeam) or, for the team/event creator, adding anyone with a
-      // Pitwall account straight on without them having to join themselves
-      // (the only way to get someone onto a team while the event is still
-      // an unpublished draft, since nobody else can even see it to join).
-      // Both go through the same modal so several can be queued up at once.
-      if(iAmIn){
-        const addDriversBtn = document.createElement('button');
-        addDriversBtn.type = 'button';
-        addDriversBtn.className = 'te-team-btn';
-        addDriversBtn.textContent = '+ Fahrer';
-        addDriversBtn.addEventListener('click', () => openAddDriversModal(t, members, carData.allProfiles));
-        row.appendChild(addDriversBtn);
       }
     }
     const stintToggle = document.createElement('button');
