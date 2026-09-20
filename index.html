@@ -1105,6 +1105,51 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .pitwall-modal-btn.primary:hover{background:rgba(255,176,32,0.1);}
 .pitwall-modal-btn.danger{border-color:var(--red);color:var(--red);}
 .pitwall-modal-btn.danger:hover{background:rgba(232,92,74,0.1);}
+.pitwall-modal-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.pitwall-modal-title{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:18px;
+  color:var(--text);
+  margin:0 0 14px 0;
+}
+.adddrivers-row{display:flex;gap:8px;margin-bottom:10px;}
+.adddrivers-row select, .adddrivers-row input{flex:1;min-width:0;width:auto;}
+.adddrivers-add-btn{
+  flex-shrink:0;
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  padding:0 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:none;
+  color:var(--muted);
+  cursor:pointer;
+}
+.adddrivers-add-btn:hover{color:var(--text);border-color:var(--muted);}
+.adddrivers-pending{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 18px 0;min-height:20px;}
+.adddrivers-chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12.5px;
+  color:var(--text);
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:4px 6px 4px 12px;
+}
+.adddrivers-chip button{
+  background:none;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:13px;
+  line-height:1;
+  padding:2px 4px;
+}
+.adddrivers-chip button:hover{color:var(--red);}
+.adddrivers-empty-hint{font-size:12px;color:var(--muted);}
 
 </style>
 </head>
@@ -3186,18 +3231,160 @@ async function joinTeam(teamId, note){
   loadTeamEvents();
 }
 
-async function addManualMember(teamId, name){
-  const trimmed = (name || '').trim();
-  if(!trimmed) return;
-  const { error } = await pitwallClient.from('team_event_members').insert({ team_id: teamId, manual_name: trimmed });
-  if(error) console.error('Add manual member failed:', error.message);
-  loadTeamEvents();
-}
+// One modal for both ways to add a driver (pick a registered account or
+// type a name for someone without one) instead of two separate inline
+// controls in the slot - also lets several be queued up and added in one
+// go instead of one round-trip per driver.
+function openAddDriversModal(team, members, allProfiles){
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'pitwall-modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'pitwall-modal';
+    overlay.appendChild(modal);
 
-async function addRegisteredMember(teamId, userId){
-  const { error } = await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: userId });
-  if(error) console.error('Add registered member failed:', error.message);
-  loadTeamEvents();
+    const title = document.createElement('div');
+    title.className = 'pitwall-modal-title';
+    title.textContent = 'Fahrer hinzufügen';
+    modal.appendChild(title);
+
+    const pending = []; // { type: 'registered', id, label } | { type: 'manual', name }
+
+    const registeredOptions = (allProfiles || []).filter(p =>
+      !members.some(m => m.user_id === p.id) && !pending.some(x => x.type === 'registered' && x.id === p.id)
+    );
+
+    const regRow = document.createElement('div');
+    regRow.className = 'adddrivers-row';
+    const regSelect = document.createElement('select');
+    const regPlaceholder = document.createElement('option');
+    regPlaceholder.value = '';
+    regPlaceholder.textContent = registeredOptions.length ? 'Registrierten Nutzer wählen…' : 'Alle registrierten Nutzer schon im Team';
+    regSelect.appendChild(regPlaceholder);
+    registeredOptions.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.username;
+      regSelect.appendChild(opt);
+    });
+    if(!registeredOptions.length) regSelect.disabled = true;
+    const regAddBtn = document.createElement('button');
+    regAddBtn.type = 'button';
+    regAddBtn.className = 'adddrivers-add-btn';
+    regAddBtn.textContent = '+';
+    regRow.appendChild(regSelect);
+    regRow.appendChild(regAddBtn);
+    modal.appendChild(regRow);
+
+    const manualRow = document.createElement('div');
+    manualRow.className = 'adddrivers-row';
+    const manualInput = document.createElement('input');
+    manualInput.type = 'text';
+    manualInput.placeholder = 'Name ohne Konto eintragen…';
+    const manualAddBtn = document.createElement('button');
+    manualAddBtn.type = 'button';
+    manualAddBtn.className = 'adddrivers-add-btn';
+    manualAddBtn.textContent = '+';
+    manualRow.appendChild(manualInput);
+    manualRow.appendChild(manualAddBtn);
+    modal.appendChild(manualRow);
+
+    const pendingList = document.createElement('div');
+    pendingList.className = 'adddrivers-pending';
+    modal.appendChild(pendingList);
+
+    const actions = document.createElement('div');
+    actions.className = 'pitwall-modal-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'pitwall-modal-btn';
+    cancelBtn.textContent = 'Abbrechen';
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'pitwall-modal-btn primary';
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    modal.appendChild(actions);
+
+    function renderPending(){
+      pendingList.innerHTML = '';
+      if(!pending.length){
+        const hint = document.createElement('span');
+        hint.className = 'adddrivers-empty-hint';
+        hint.textContent = 'Noch niemand vorgemerkt.';
+        pendingList.appendChild(hint);
+      }
+      pending.forEach((p, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'adddrivers-chip';
+        chip.appendChild(document.createTextNode(p.type === 'manual' ? p.name : p.label));
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.textContent = '✕';
+        rm.addEventListener('click', () => { pending.splice(i, 1); renderPending(); refreshRegisteredOptions(); });
+        chip.appendChild(rm);
+        pendingList.appendChild(chip);
+      });
+      confirmBtn.textContent = pending.length ? `${pending.length} Fahrer hinzufügen` : 'Hinzufügen';
+      confirmBtn.disabled = !pending.length;
+    }
+    function refreshRegisteredOptions(){
+      [...regSelect.options].slice(1).forEach(o => o.remove());
+      const opts = (allProfiles || []).filter(p =>
+        !members.some(m => m.user_id === p.id) && !pending.some(x => x.type === 'registered' && x.id === p.id)
+      );
+      opts.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.username;
+        regSelect.appendChild(opt);
+      });
+      regSelect.value = '';
+    }
+
+    regAddBtn.addEventListener('click', () => {
+      if(!regSelect.value) return;
+      const p = registeredOptions.find(x => x.id === regSelect.value) || (allProfiles || []).find(x => x.id === regSelect.value);
+      if(!p) return;
+      pending.push({ type: 'registered', id: p.id, label: p.username });
+      renderPending();
+      refreshRegisteredOptions();
+    });
+    function addManual(){
+      const name = manualInput.value.trim();
+      if(!name) return;
+      pending.push({ type: 'manual', name });
+      manualInput.value = '';
+      renderPending();
+    }
+    manualAddBtn.addEventListener('click', addManual);
+    manualInput.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addManual(); } });
+
+    renderPending();
+    document.body.appendChild(overlay);
+
+    function cleanup(result){
+      overlay.remove();
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onKeydown(e){ if(e.key === 'Escape') cleanup(false); }
+    overlay.addEventListener('click', e => { if(e.target === overlay) cleanup(false); });
+    document.addEventListener('keydown', onKeydown);
+    cancelBtn.addEventListener('click', () => cleanup(false));
+    confirmBtn.addEventListener('click', async () => {
+      if(!pending.length) return;
+      const toAdd = pending.slice();
+      cleanup(true);
+      const results = await Promise.all(toAdd.map(p => p.type === 'manual'
+        ? pitwallClient.from('team_event_members').insert({ team_id: team.id, manual_name: p.name })
+        : pitwallClient.from('team_event_members').insert({ team_id: team.id, user_id: p.id })
+      ));
+      const failed = results.find(r => r.error);
+      if(failed) console.error('Add drivers failed:', failed.error.message);
+      loadTeamEvents();
+    });
+  });
 }
 
 async function removeManualMember(memberId){
@@ -3594,17 +3781,17 @@ async function applyCalculatedStints(teamId, existingStints, plan, members){
   const roundedSum = durations.reduce((a, b) => a + b, 0);
   durations[durations.length - 1] += Math.round(exactTotal) - roundedSum;
 
-  // Spotter defaults to whoever drove the stint before it (same rule as
+  // Spotter defaults to whoever drives the *next* stint (same rule as
   // manually changing a driver - see the driver onChange handler in
   // renderStintPlan), skipped when that person is already this stint's own
   // driver (round-robin with few members can wrap onto the same person).
   const inserts = plan.stints.map((s, i) => {
     const member = members.length ? members[i % members.length] : null;
-    const prevMember = i > 0 && members.length ? members[(i - 1) % members.length] : null;
-    const samePerson = prevMember && member && (
-      (prevMember.user_id || member.user_id) ? prevMember.user_id === member.user_id : prevMember.manual_name === member.manual_name
+    const nextMember = i < plan.stints.length - 1 && members.length ? members[(i + 1) % members.length] : null;
+    const samePerson = nextMember && member && (
+      (nextMember.user_id || member.user_id) ? nextMember.user_id === member.user_id : nextMember.manual_name === member.manual_name
     );
-    const spotter = prevMember && !samePerson ? prevMember : null;
+    const spotter = nextMember && !samePerson ? nextMember : null;
     return {
       team_id: teamId,
       position: i,
@@ -4099,17 +4286,18 @@ function renderStintPlan(team, ev){
       const driverField = makePersonField('stint-driver-select', 'Fahrer offen', stint.user_id, stint.driver_name,
         ({ userId, manualName }) => {
           updateStint(stint.id, { user_id: userId, driver_name: manualName }, live);
-          // Default: whoever just drove spots for the next stint (they
-          // know the current track/car state best) - still just a
-          // starting point, the spotter field right after this stays
-          // manually editable if that's wrong for this handover. Skipped
-          // when the same person is already driving that next stint too
-          // (a double stint) - someone can't spot for themselves.
+          // Default: whoever's driving next spots for the active stint
+          // right before them - they're already up and paying attention,
+          // waiting to get in - still just a starting point, the spotter
+          // field on that earlier stint stays manually editable if that's
+          // wrong for this handover. Skipped when the same person is
+          // already driving that earlier stint too (a double stint) -
+          // someone can't spot for themselves.
           const idx = stints.findIndex(s => s.id === stint.id);
-          const nextStint = idx !== -1 ? stints[idx + 1] : null;
-          if(nextStint){
-            const nextIsSamePerson = userId ? nextStint.user_id === userId : (manualName && nextStint.driver_name === manualName);
-            if(!nextIsSamePerson) updateStint(nextStint.id, { spotter_id: userId, spotter_name: manualName }, live);
+          const prevStint = idx > 0 ? stints[idx - 1] : null;
+          if(prevStint){
+            const prevIsSamePerson = userId ? prevStint.user_id === userId : (manualName && prevStint.driver_name === manualName);
+            if(!prevIsSamePerson) updateStint(prevStint.id, { spotter_id: userId, spotter_name: manualName }, live);
           }
         });
       groupPeople.appendChild(driverField);
@@ -4437,51 +4625,21 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         row.appendChild(delTeamBtn);
       }
 
-      // Reserves a slot for someone without a Pitwall account yet (or who
-      // just hasn't joined this event) - joins seamlessly into it later by
-      // signing up/joining with the exact same username (see joinTeam).
+      // Lets a team member add drivers - either reserving a slot for
+      // someone without a Pitwall account yet (joins seamlessly into it
+      // later by signing up/joining with the exact same username, see
+      // joinTeam) or, for the team/event creator, adding anyone with a
+      // Pitwall account straight on without them having to join themselves
+      // (the only way to get someone onto a team while the event is still
+      // an unpublished draft, since nobody else can even see it to join).
+      // Both go through the same modal so several can be queued up at once.
       if(iAmIn){
-        const manualNameInput = document.createElement('input');
-        manualNameInput.type = 'text';
-        manualNameInput.placeholder = 'Fahrer ohne Konto hinzufügen…';
-        manualNameInput.style.width = 'auto';
-        manualNameInput.style.minWidth = '180px';
-        const addManualBtn = document.createElement('button');
-        addManualBtn.type = 'button';
-        addManualBtn.className = 'te-team-btn';
-        addManualBtn.textContent = '+ Fahrer';
-        addManualBtn.addEventListener('click', () => {
-          if(!manualNameInput.value.trim()) return;
-          addManualMember(t.id, manualNameInput.value.trim());
-        });
-        row.appendChild(manualNameInput);
-        row.appendChild(addManualBtn);
-
-        // Team/event creator can add anyone with a Pitwall account straight
-        // on, without them having to join themselves - the only way to get
-        // someone onto a team while the event is still an unpublished
-        // draft, since nobody else can even see it to join.
-        const registeredOptions = (carData.allProfiles || []).filter(p => !members.some(m => m.user_id === p.id));
-        if(registeredOptions.length){
-          const memberSelect = document.createElement('select');
-          memberSelect.style.width = 'auto';
-          memberSelect.style.minWidth = '160px';
-          const placeholderOpt = document.createElement('option');
-          placeholderOpt.value = '';
-          placeholderOpt.textContent = 'Registrierten Nutzer wählen…';
-          memberSelect.appendChild(placeholderOpt);
-          registeredOptions.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = p.username;
-            memberSelect.appendChild(opt);
-          });
-          memberSelect.addEventListener('change', () => {
-            if(!memberSelect.value) return;
-            addRegisteredMember(t.id, memberSelect.value);
-          });
-          row.appendChild(memberSelect);
-        }
+        const addDriversBtn = document.createElement('button');
+        addDriversBtn.type = 'button';
+        addDriversBtn.className = 'te-team-btn';
+        addDriversBtn.textContent = '+ Fahrer';
+        addDriversBtn.addEventListener('click', () => openAddDriversModal(t, members, carData.allProfiles));
+        row.appendChild(addDriversBtn);
       }
     }
     const stintToggle = document.createElement('button');
