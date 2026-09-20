@@ -2406,17 +2406,17 @@ async function deleteTeam(teamId){
 
 // Rough ballpark presets to prefill the calculator with as few clicks as
 // possible - not official LMU data (we have no telemetry access), just
-// reasonable starting points the user is expected to check/adjust. VE
-// (Virtual Energy) is always a 0-100% scale in LMU regardless of class, so
-// there's no separate "tank size" - consumptionPercent is per lap, a full
-// charge is 100. Pace factors are relative to Hypercar; track paces are
-// Hypercar reference laps.
+// reasonable starting points the user is expected to check/adjust. Only
+// the Hypercar class runs on Virtual Energy (0-100% scale, hybrid energy
+// management) - LMP2/LMP3/GTE/LMGT3 are conventional combustion classes
+// and use plain fuel (tank size + liters/lap) instead. Pace factors are
+// relative to Hypercar; track paces are Hypercar reference laps.
 const STINT_CLASS_PRESETS = {
-  Hypercar: { consumptionPercent: 4.0, paceFactor: 1.00 },
-  LMP2: { consumptionPercent: 3.8, paceFactor: 1.07 },
-  LMP3: { consumptionPercent: 3.3, paceFactor: 1.15 },
-  GTE: { consumptionPercent: 2.8, paceFactor: 1.12 },
-  LMGT3: { consumptionPercent: 2.8, paceFactor: 1.12 },
+  Hypercar: { resource: 'VE', consumptionPercent: 4.0, paceFactor: 1.00 },
+  LMP2: { resource: 'Fuel', tankLiters: 75, consumptionPerLap: 3.0, paceFactor: 1.07 },
+  LMP3: { resource: 'Fuel', tankLiters: 75, consumptionPerLap: 2.6, paceFactor: 1.15 },
+  GTE: { resource: 'Fuel', tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
+  LMGT3: { resource: 'Fuel', tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
 };
 const STINT_TRACK_PRESETS = {
   'Le Mans': { hypercarLapSeconds: 208.0 },
@@ -2431,25 +2431,43 @@ const STINT_TRACK_PRESETS = {
   'Qatar': { hypercarLapSeconds: 98.0 },
 };
 
-// Pure calculation: given pace/VE inputs, works out how many stints the
-// race needs and how they should be sized - full charges first, the last
-// stint takes only the remainder (avoids needing a late top-up "splash &
-// dash" stop). VE is always 0-100%, so a full charge lasts
-// floor(100 / consumptionPercent) laps - no separate tank size needed.
-function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, consumptionPercent }){
+// How many laps a full charge/tank lasts, capped by an optional max stint
+// time (e.g. a driver-fatigue rule). VE is always 0-100%, so a full charge
+// lasts floor(100 / consumption) laps; fuel classes need an actual tank
+// size instead. Shared by the initial plan and by the per-stint
+// redistribution when someone logs fewer/more laps than planned.
+function computeMaxLapsPerStint(team, lapTimeSeconds){
+  let max = null;
+  if(team.resource_type === 'Fuel'){
+    if(team.tank_liters > 0 && team.consumption_per_lap > 0) max = Math.floor(team.tank_liters / team.consumption_per_lap);
+  }else if(team.consumption_per_lap > 0){
+    max = Math.floor(100 / team.consumption_per_lap);
+  }
+  if(team.max_stint_minutes > 0 && lapTimeSeconds > 0){
+    const byTime = Math.max(1, Math.floor((team.max_stint_minutes * 60) / lapTimeSeconds));
+    max = max != null ? Math.min(max, byTime) : byTime;
+  }
+  return max > 0 ? max : null;
+}
+
+// Pure calculation: given pace and a max stint length, works out how many
+// stints the race needs and how they should be sized - full stints first,
+// the last one takes only the remainder (avoids needing a late top-up
+// "splash & dash" stop).
+function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, maxLapsPerStint }){
   const totalLaps = Math.ceil((raceDurationMinutes * 60) / lapTimeSeconds);
-  const maxLapsPerStint = Math.max(1, Math.floor(100 / consumptionPercent));
-  const numStints = Math.max(1, Math.ceil(totalLaps / maxLapsPerStint));
+  const safeMax = Math.max(1, maxLapsPerStint);
+  const numStints = Math.max(1, Math.ceil(totalLaps / safeMax));
 
   let remaining = totalLaps;
   const stints = [];
   for(let i = 0; i < numStints; i++){
-    const laps = i < numStints - 1 ? Math.min(maxLapsPerStint, remaining) : remaining;
+    const laps = i < numStints - 1 ? Math.min(safeMax, remaining) : remaining;
     stints.push({ laps, durationMinutes: (laps * lapTimeSeconds) / 60 });
     remaining -= laps;
   }
 
-  return { totalLaps, numStints, stints, totalVe: (totalLaps + 1.5) * consumptionPercent };
+  return { totalLaps, numStints, stints };
 }
 
 // Best-effort auto-detection so nobody has to manually repeat the track/
@@ -2497,22 +2515,24 @@ function renderStintCalculator(team, ev, stints){
 
   // One-time auto-fill from the event/team's own data, only while the team
   // hasn't entered anything yet - never overwrites existing values.
-  if(!team.est_lap_time_seconds && !team.consumption_per_lap){
+  if(!team.est_lap_time_seconds && !team.resource_type){
     const trackKey = detectTrackPreset(ev);
     const classKey = detectClassPreset(team);
     if(trackKey && classKey){
       const trackPreset = STINT_TRACK_PRESETS[trackKey];
       const classPreset = STINT_CLASS_PRESETS[classKey];
-      team = { ...team,
+      const patch = {
         est_lap_time_seconds: trackPreset.hypercarLapSeconds * classPreset.paceFactor,
-        consumption_per_lap: classPreset.consumptionPercent,
+        resource_type: classPreset.resource,
+        consumption_per_lap: classPreset.resource === 'Fuel' ? classPreset.consumptionPerLap : classPreset.consumptionPercent,
+        tank_liters: classPreset.resource === 'Fuel' ? classPreset.tankLiters : null,
       };
-      updateTeamCalcInputs(team.id, {
-        est_lap_time_seconds: team.est_lap_time_seconds,
-        consumption_per_lap: team.consumption_per_lap,
-      });
+      team = { ...team, ...patch };
+      updateTeamCalcInputs(team.id, patch);
     }
   }
+
+  const resourceType = team.resource_type === 'Fuel' ? 'Fuel' : 'VE';
 
   const row = document.createElement('div');
   row.className = 'stint-calc-row';
@@ -2541,33 +2561,55 @@ function renderStintCalculator(team, ev, stints){
   lapTimeInput.placeholder = '1:46.500';
   lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
   lapTimeInput.className = 'stint-calc-input';
-  const consumptionInput = numberField('z.B. 3.80', team.consumption_per_lap, '0.01');
+
+  // Only Hypercar runs on Virtual Energy - everything else uses plain
+  // fuel (tank + liters/lap). Switching this re-saves immediately, which
+  // reloads and re-renders with the matching field set below.
+  const resourceSel = document.createElement('select');
+  resourceSel.className = 'stint-calc-input';
+  [['VE', 'VE (%)'], ['Fuel', 'Sprit (Liter)']].forEach(([value, label]) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    if(value === resourceType) opt.selected = true;
+    resourceSel.appendChild(opt);
+  });
+
+  const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
+  const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
+  const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
+
   row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
-  row.appendChild(field('VE-Verbrauch (%/Runde)', consumptionInput));
+  row.appendChild(field('Energieart', resourceSel));
+  if(resourceType === 'Fuel') row.appendChild(field('Tank (Liter)', tankInput));
+  row.appendChild(field(resourceType === 'Fuel' ? 'Verbrauch (Liter/Runde)' : 'VE-Verbrauch (%/Runde)', consumptionInput));
+  row.appendChild(field('Max. Stint-Zeit (min)', maxStintInput));
   box.appendChild(row);
 
   const saveInputs = () => {
-    updateTeamCalcInputs(team.id, {
+    const patch = {
       est_lap_time_seconds: parseLapTimeToSeconds(lapTimeInput.value),
+      resource_type: resourceSel.value,
       consumption_per_lap: parseFloat(consumptionInput.value) || null,
-    });
+      max_stint_minutes: parseInt(maxStintInput.value, 10) || null,
+    };
+    if(resourceSel.value === 'Fuel') patch.tank_liters = parseFloat(tankInput.value) || null;
+    updateTeamCalcInputs(team.id, patch);
   };
-  [lapTimeInput, consumptionInput].forEach(el => el.addEventListener('change', saveInputs));
+  [lapTimeInput, resourceSel, tankInput, consumptionInput, maxStintInput].forEach(el => el.addEventListener('change', saveInputs));
 
   const lapTime = team.est_lap_time_seconds;
-  const consumptionPercent = team.consumption_per_lap;
   const raceDuration = ev.duration_minutes;
+  const maxLapsPerStint = computeMaxLapsPerStint(team, lapTime);
 
-  if(lapTime > 0 && consumptionPercent > 0 && raceDuration > 0){
+  if(lapTime > 0 && maxLapsPerStint > 0 && raceDuration > 0){
     // No separate preview table here on purpose - fill in the numbers,
     // click the button, the real (editable, drag-reorderable) stint list
     // below appears. One place to look at, not two.
-    const plan = computeStintPlan({
-      raceDurationMinutes: raceDuration, lapTimeSeconds: lapTime, consumptionPercent,
-    });
+    const plan = computeStintPlan({ raceDurationMinutes: raceDuration, lapTimeSeconds: lapTime, maxLapsPerStint });
     const result = document.createElement('div');
     result.className = 'stint-calc-result';
-    result.textContent = `→ ${plan.numStints} Stint${plan.numStints === 1 ? '' : 's'} · VE-Ziel ${(plan.totalVe / plan.totalLaps).toFixed(2)}%/Runde`;
+    result.textContent = `→ ${plan.numStints} Stint${plan.numStints === 1 ? '' : 's'} · ${plan.totalLaps} Runden gesamt`;
     box.appendChild(result);
 
     const applyBtn = document.createElement('button');
@@ -2582,7 +2624,9 @@ function renderStintCalculator(team, ev, stints){
   }else{
     const hint = document.createElement('div');
     hint.className = 'stint-calc-hint';
-    hint.textContent = 'Rundenzeit und VE-Verbrauch pro Runde eintragen, um den Stintplan zu berechnen (bei bekannter Strecke/Klasse wird das automatisch vorbelegt).';
+    hint.textContent = resourceType === 'Fuel'
+      ? 'Rundenzeit, Tank und Verbrauch eintragen, um den Stintplan zu berechnen (bei bekannter Strecke/Klasse wird das automatisch vorbelegt).'
+      : 'Rundenzeit und VE-Verbrauch pro Runde eintragen, um den Stintplan zu berechnen (bei bekannter Strecke/Klasse wird das automatisch vorbelegt).';
     box.appendChild(hint);
   }
 
@@ -2751,16 +2795,15 @@ function renderStintPlan(team, ev){
 
   // Entering how many laps a stint actually took (e.g. cut short by an
   // incident) reflows the remaining laps across the stints still ahead of
-  // it. Packed VE-first (full charges, remainder on the last one) rather
-  // than split evenly - an even split can strand VE (e.g. "10 laps with
+  // it. Packed full-stints-first (remainder on the last one) rather than
+  // split evenly - an even split can strand fuel/VE (e.g. "10 laps with
   // half a charge left") just to make stint lengths match; packing keeps
-  // stints as close to a full, efficient charge as possible, same logic
-  // computeStintPlan uses for the initial plan. Driver/spotter/tire
+  // stints as close to a full, efficient stint as possible, same logic
+  // computeStintPlan uses for the initial plan (and the same VE/Fuel/max-
+  // stint-time cap, via computeMaxLapsPerStint). Driver/spotter/tire
   // choices on those following stints are left untouched, only their lap
   // count shifts.
-  const maxLapsPerStint = team.consumption_per_lap > 0
-    ? Math.max(1, Math.floor(100 / team.consumption_per_lap))
-    : null;
+  const maxLapsPerStint = computeMaxLapsPerStint(team, lapTime);
   function durationFor(laps){
     return lapTime > 0 ? Math.max(1, Math.round((laps * lapTime) / 60)) : 30;
   }
@@ -3446,7 +3489,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
