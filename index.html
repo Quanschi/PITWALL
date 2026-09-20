@@ -484,7 +484,7 @@ input:focus{outline:none;border-color:var(--violet);}
 .link-btn-inline:hover{color:var(--text);}
 
 /* ---- Team Events tab ---- */
-.te-toolbar{margin-bottom:16px;}
+.te-toolbar{margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .te-login-hint{color:var(--muted);font-size:13px;}
 #te-list{
   display:grid;
@@ -984,14 +984,20 @@ input:focus{outline:none;border-color:var(--violet);}
   </div>
 
   <div id="logbook-section" hidden class="ref-times-section">
-    <p class="section-label" style="margin-top:0">Strecke</p>
+    <p class="section-label" style="margin-top:0">Spiel</p>
+    <div class="filter-row" id="ref-game-filter">
+      <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+      <button type="button" class="filter-pill" data-game="acc">ACC</button>
+    </div>
+
+    <p class="section-label">Strecke</p>
     <select id="ref-track-filter">
       <option value="">Strecke wählen…</option>
     </select>
 
     <div id="ref-times-table"></div>
     <p class="ref-times-credit">
-      Quelle: <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
+      Quelle: <a id="ref-sheet-link" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
       · Stand: <span id="ref-last-updated">–</span>
       · <button type="button" id="ref-refresh-btn" class="link-btn-inline">Aktualisieren</button>
     </p>
@@ -1014,6 +1020,13 @@ input:focus{outline:none;border-color:var(--violet);}
     <button type="button" class="mobile-toggle-btn" id="te-mobile-toggle">+ Event erstellen</button>
     <div class="auth-card mobile-collapsible collapsed" id="te-create-card">
       <p class="section-label" style="margin-top:0">Neues Team Event</p>
+      <div class="field">
+        <label>Spiel</label>
+        <div class="filter-row" id="te-game-select">
+          <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+          <button type="button" class="filter-pill" data-game="acc">ACC</button>
+        </div>
+      </div>
       <div class="field">
         <label for="te-name">Name</label>
         <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
@@ -1071,6 +1084,10 @@ input:focus{outline:none;border-color:var(--violet);}
 
     <div class="split-col-right">
     <div class="te-toolbar">
+      <div class="filter-row" id="te-game-filter">
+        <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+        <button type="button" class="filter-pill" data-game="acc">ACC</button>
+      </div>
       <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
     </div>
     <div id="te-list"></div>
@@ -2034,11 +2051,10 @@ function renderSrBadge(raw){
 }
 
 // ---- Reference lap times (Logbuch): pulls a public, actively-maintained
-// pace-tier spreadsheet ("Ohne Speed's LMU laptimes spreadsheet", published
-// via Google Sheets' own "Publish to the web" CSV export, which sets
-// permissive CORS headers unlike the pubhtml page itself) so people can
-// compare against community pace benchmarks without leaving Pitwall.
-const REFERENCE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pub?gid=1766901750&single=true&output=csv';
+// pace-tier spreadsheet (Ohne Speed's LMU/ACC laptimes spreadsheets,
+// published via Google Sheets' own "Publish to the web" CSV export, which
+// sets permissive CORS headers unlike the pubhtml page itself) so people
+// can compare against community pace benchmarks without leaving Pitwall.
 
 function parseCsvLine(line){
   const out = [];
@@ -2061,46 +2077,117 @@ function parseCsvLine(line){
   return out;
 }
 
-let referenceLapTimesCache = null;
-let referenceLapTimesFetchedAt = 0;
+// LMU: one tab, one class column per row. Column positions confirmed by
+// inspecting the live sheet (2026-09-19): 1=Track, 4-11=pace tiers (Alien/
+// Competitive/Good x2/Midpack x2/Tail-ender/Offline), 16=class. If the
+// sheet owner reorders columns this parsing breaks silently (falls back
+// to "no data") - nothing we can guard against from the consuming side of
+// someone else's sheet.
+async function fetchLmuReferenceRows(){
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pub?gid=1766901750&single=true&output=csv';
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  const rows = text.split('\r\n')
+    .filter(line => line.trim())
+    .map(parseCsvLine)
+    .filter(cols => cols.length > 16 && /^[A-Za-z0-9]+$/.test(cols[16]) && cols[1]);
+  return rows.map(cols => ({
+    track: cols[1],
+    class: cols[16],
+    alien: cols[4],
+    competitive: cols[5],
+    good: cols[6] && cols[7] ? `${cols[6]}–${cols[7]}` : (cols[6] || cols[7] || ''),
+    midpack: cols[8] && cols[9] ? `${cols[8]}–${cols[9]}` : (cols[8] || cols[9] || ''),
+    tailender: cols[10],
+    offline: cols[11],
+  }));
+}
+
+// ACC: no class column - GT3 and GT4 each live in their own tab instead,
+// and each tab stacks several lookalike tables below the first one
+// (per-car BOP breakdowns reusing the very same columns). Bounding the
+// parse to the contiguous block right after the first "101%" header row
+// (stopping as soon as a row's track/time cells stop looking like one)
+// avoids pulling in those unrelated rows.
+const ACC_DOC_ID = '2PACX-1vSncrVjB4T_yMxl19TSF78QTRz5kdlRuHvnanFDrgOZo2Il3pJTL0sOQkiLrWGwrBPMHkq4yyfK4g0s';
+const ACC_SOURCES = [
+  { class: 'GT3', gid: '1766901750', trackCol: 0, alienCol: 3 },
+  { class: 'GT4', gid: '2109333702', trackCol: 0, alienCol: 2 },
+];
+function parseAccSection(text, { trackCol, alienCol, class: className }){
+  const lines = text.split('\r\n');
+  const headerIdx = lines.findIndex(l => l.includes('101%'));
+  if(headerIdx === -1) return [];
+  const rows = [];
+  for(let i = headerIdx + 1; i < lines.length; i++){
+    const cols = parseCsvLine(lines[i]);
+    const track = (cols[trackCol] || '').replace(/^\*+/, '').trim();
+    const alien = (cols[alienCol] || '').trim();
+    if(!track || !/^\d{1,2}:\d{2}\.\d{2}$/.test(alien)) break; // end of this table block
+    const c = alienCol;
+    rows.push({
+      track, class: className,
+      alien: cols[c],
+      competitive: cols[c + 1],
+      good: cols[c + 2] && cols[c + 3] ? `${cols[c + 2]}–${cols[c + 3]}` : (cols[c + 2] || cols[c + 3] || ''),
+      midpack: cols[c + 4] && cols[c + 5] ? `${cols[c + 4]}–${cols[c + 5]}` : (cols[c + 4] || cols[c + 5] || ''),
+      tailender: cols[c + 6],
+      offline: cols[c + 7],
+    });
+  }
+  return rows;
+}
+async function fetchAccReferenceRows(){
+  const perSource = await Promise.all(ACC_SOURCES.map(async src => {
+    const url = `https://docs.google.com/spreadsheets/d/e/${ACC_DOC_ID}/pub?gid=${src.gid}&single=true&output=csv`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status + ' (' + src.class + ')');
+    const text = await res.text();
+    return parseAccSection(text, src);
+  }));
+  return perSource.flat();
+}
+
+const REFERENCE_GAMES = {
+  lmu: {
+    sheetLink: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml',
+    sheetLabel: "Ohne Speed's LMU laptimes spreadsheet",
+    fetchRows: fetchLmuReferenceRows,
+  },
+  acc: {
+    sheetLink: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSncrVjB4T_yMxl19TSF78QTRz5kdlRuHvnanFDrgOZo2Il3pJTL0sOQkiLrWGwrBPMHkq4yyfK4g0s/pubhtml',
+    sheetLabel: "Ohne Speed's ACC laptimes spreadsheet",
+    fetchRows: fetchAccReferenceRows,
+  },
+};
+
+let referenceGame = 'lmu';
+const referenceCacheByGame = {}; // game -> { rows, fetchedAt }
 const REFERENCE_LAP_TIMES_MAX_AGE_MS = 15 * 60 * 1000; // refetch if older than 15 min
 
 async function loadReferenceLapTimes(force){
-  const isStale = Date.now() - referenceLapTimesFetchedAt > REFERENCE_LAP_TIMES_MAX_AGE_MS;
-  if(referenceLapTimesCache && !force && !isStale) return referenceLapTimesCache;
-  try{
-    const res = await fetch(REFERENCE_SHEET_CSV_URL);
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    // Column positions confirmed by inspecting the live sheet (2026-09-19):
-    // 1=Track, 4-11=pace tiers (Alien/Competitive/Good x2/Midpack x2/
-    // Tail-ender/Offline), 16=class. If the sheet owner reorders columns
-    // this parsing breaks silently (falls back to "no data") - nothing we
-    // can guard against from the consuming side of someone else's sheet.
-    const rows = text.split('\r\n')
-      .filter(line => line.trim())
-      .map(parseCsvLine)
-      .filter(cols => cols.length > 16 && /^[A-Za-z0-9]+$/.test(cols[16]) && cols[1]);
-    referenceLapTimesCache = rows.map(cols => ({
-      track: cols[1],
-      class: cols[16],
-      alien: cols[4],
-      competitive: cols[5],
-      good: cols[6] && cols[7] ? `${cols[6]}–${cols[7]}` : (cols[6] || cols[7] || ''),
-      midpack: cols[8] && cols[9] ? `${cols[8]}–${cols[9]}` : (cols[8] || cols[9] || ''),
-      tailender: cols[10],
-      offline: cols[11],
-    }));
-    referenceLapTimesFetchedAt = Date.now();
-    const stamp = document.getElementById('ref-last-updated');
-    if(stamp) stamp.textContent = new Date(referenceLapTimesFetchedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  }catch(err){
-    console.error('Reference lap times load failed:', err.message);
-    referenceLapTimesCache = [];
+  const game = referenceGame;
+  const cached = referenceCacheByGame[game];
+  const isStale = !cached || Date.now() - cached.fetchedAt > REFERENCE_LAP_TIMES_MAX_AGE_MS;
+  if(cached && !force && !isStale){
+    populateReferenceFilters(cached.rows);
+    renderReferenceTimes();
+    return cached.rows;
   }
-  populateReferenceFilters(referenceLapTimesCache);
+  let rows;
+  try{
+    rows = await REFERENCE_GAMES[game].fetchRows();
+    const stamp = document.getElementById('ref-last-updated');
+    if(stamp) stamp.textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }catch(err){
+    console.error('Reference lap times load failed (' + game + '):', err.message);
+    rows = [];
+  }
+  referenceCacheByGame[game] = { rows, fetchedAt: Date.now() };
+  populateReferenceFilters(rows);
   renderReferenceTimes();
-  return referenceLapTimesCache;
+  return rows;
 }
 
 function populateReferenceFilters(rows){
@@ -2136,14 +2223,15 @@ function normalizeRefClassName(raw){
 
 async function renderReferenceTimes(){
   const container = document.getElementById('ref-times-table');
-  if(!container || !referenceLapTimesCache) return;
+  const cached = referenceCacheByGame[referenceGame];
+  if(!container || !cached) return;
   const track = document.getElementById('ref-track-filter').value;
   if(!track){
     container.className = '';
     container.innerHTML = '<div class="ref-times-hint">Strecke wählen, um Referenzzeiten zu sehen.</div>';
     return;
   }
-  const classRows = referenceLapTimesCache.filter(r => r.track === track);
+  const classRows = cached.rows.filter(r => r.track === track);
   if(!classRows.length){
     container.className = '';
     container.innerHTML = '<div class="ref-times-hint">Keine Daten für diese Strecke.</div>';
@@ -2189,6 +2277,19 @@ async function renderReferenceTimes(){
 
 document.getElementById('ref-track-filter').addEventListener('change', renderReferenceTimes);
 document.getElementById('ref-refresh-btn').addEventListener('click', () => loadReferenceLapTimes(true));
+document.querySelectorAll('#ref-game-filter .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('active')) return;
+    referenceGame = btn.dataset.game;
+    document.querySelectorAll('#ref-game-filter .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    const g = REFERENCE_GAMES[referenceGame];
+    const link = document.getElementById('ref-sheet-link');
+    link.href = g.sheetLink;
+    link.textContent = g.sheetLabel;
+    document.getElementById('ref-last-updated').textContent = '–';
+    loadReferenceLapTimes();
+  });
+});
 
 // ---- Team Events tab: coordinate who's available when, for events that
 // need a full team. Special-event schedule races that need a team (flagged
@@ -2201,6 +2302,11 @@ document.getElementById('ref-refresh-btn').addEventListener('click', () => loadR
 let teOpenSlot = {}; // eventId -> slotIso currently expanded, per event card
 let teOpenStintPlan = {}; // teamId -> whether its stint plan is expanded
 let teSelectedTimes = new Set();
+let teSelectedGame = 'lmu'; // which game the new-event form currently creates for
+
+let storedTeGame = 'lmu';
+try{ storedTeGame = localStorage.getItem('pitwall-te-game') || 'lmu'; }catch(e){}
+let teGameFilter = storedTeGame; // which game's events the list currently shows
 
 async function ensureTeamEventsForSpecialCards(cards){
   const { data: { session } } = await pitwallClient.auth.getSession();
@@ -2213,6 +2319,8 @@ async function ensureTeamEventsForSpecialCards(cards){
       event_date: card.times[0].toISOString().slice(0, 10),
       slot_times: card.times.map(d => d.toISOString()),
       source: 'auto',
+      game: 'lmu', // Schedule/lmuportal only ever covers LMU races
+
       race_series_id: card.series_id,
       week_key: card.week_key,
       duration_minutes: card.race_duration_minutes || null,
@@ -2289,6 +2397,24 @@ document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
   });
 });
 
+document.querySelectorAll('#te-game-select .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    teSelectedGame = btn.dataset.game;
+    document.querySelectorAll('#te-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
+document.querySelectorAll('#te-game-filter .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('active')) return;
+    teGameFilter = btn.dataset.game;
+    try{ localStorage.setItem('pitwall-te-game', teGameFilter); }catch(e){}
+    document.querySelectorAll('#te-game-filter .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    loadTeamEvents();
+  });
+});
+document.querySelectorAll('#te-game-filter .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.game === teGameFilter));
+
 document.getElementById('te-create-submit').addEventListener('click', async () => {
   hideFormMessage('te-create-message');
   const { data: { session } } = await pitwallClient.auth.getSession();
@@ -2329,7 +2455,7 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
   const { error } = await pitwallClient.from('team_events').insert({
     name, event_date: startStr, slot_times: slotTimes,
     source: 'manual', created_by: session.user.id,
-    duration_minutes: durationMinutes,
+    duration_minutes: durationMinutes, game: teSelectedGame,
   });
   if(error){
     showFormMessage('te-create-message', 'Konnte nicht gespeichert werden: ' + error.message);
@@ -3468,7 +3594,7 @@ async function loadTeamEvents(){
 
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,created_by,closed,duration_minutes,car_classes,sr_requirement')
+    .select('id,name,event_date,slot_times,source,game,created_by,closed,duration_minutes,car_classes,sr_requirement')
     .order('event_date', { ascending: true });
 
   if(error){
@@ -3481,9 +3607,12 @@ async function loadTeamEvents(){
   }
 
   const showClosed = document.getElementById('te-show-closed').checked;
-  const events = showClosed ? allEvents : allEvents.filter(ev => !ev.closed && !isEventPast(ev));
+  const events = allEvents.filter(ev =>
+    (ev.game || 'lmu') === teGameFilter && (showClosed || (!ev.closed && !isEventPast(ev)))
+  );
   if(events.length === 0){
-    container.innerHTML = '<div class="leaderboard-empty">Keine offenen Team Events — alle abgeschlossen.</div>';
+    const gameLabel = teGameFilter === 'acc' ? 'ACC' : 'LMU';
+    container.innerHTML = `<div class="leaderboard-empty">Keine ${showClosed ? '' : 'offenen '}${gameLabel}-Team-Events.</div>`;
     return;
   }
 
