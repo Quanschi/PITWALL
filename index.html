@@ -622,6 +622,16 @@ input:focus{outline:none;border-color:var(--violet);}
 .stint-row.dragging{opacity:0.4;}
 .stint-row.completed{opacity:0.5;}
 .stint-row.completed .stint-time{text-decoration:line-through;}
+.stint-row.zero-laps{background:rgba(232,92,74,0.1);border-radius:8px;padding:4px 6px;}
+.stint-zero-warning{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  color:var(--red);
+  background:rgba(232,92,74,0.15);
+  padding:2px 7px;
+  border-radius:10px;
+  flex-shrink:0;
+}
 .stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
 .stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
 .stint-edited-badge{
@@ -716,7 +726,7 @@ input:focus{outline:none;border-color:var(--violet);}
 }
 .stint-add-btn:hover{color:var(--text);border-color:var(--text);}
 .stint-total{font-size:11.5px;color:var(--muted);margin-top:8px;}
-.stint-total.over{color:var(--red);}
+.stint-total.over, .stint-total.under{color:var(--red);}
 .stint-calc{
   flex-basis:100%;
   background:var(--panel-2);
@@ -2122,7 +2132,13 @@ function parseAccSection(text, { trackCol, alienCol, class: className }){
   const rows = [];
   for(let i = headerIdx + 1; i < lines.length; i++){
     const cols = parseCsvLine(lines[i]);
-    const track = (cols[trackCol] || '').replace(/^\*+/, '').trim();
+    // Sheet marks a handful of tracks with asterisks (leading on the GT3
+    // tab, trailing on the GT4 tab - e.g. "*Laguna Seca" vs. "COTA**"),
+    // meaning something like "based on limited data". Strip them from
+    // wherever they appear so the same track name matches across both
+    // tabs instead of showing up as two separate dropdown entries with
+    // only one class each.
+    const track = (cols[trackCol] || '').replace(/\*+/g, '').trim();
     const alien = (cols[alienCol] || '').trim();
     if(!track || !/^\d{1,2}:\d{2}\.\d{2}$/.test(alien)) break; // end of this table block
     const c = alienCol;
@@ -2545,16 +2561,83 @@ const STINT_CLASS_PRESETS = {
   LMGT3: { resource: 'Fuel', tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
 };
 const STINT_TRACK_PRESETS = {
-  'Le Mans': { hypercarLapSeconds: 208.0 },
-  'Spa-Francorchamps': { hypercarLapSeconds: 125.0 },
-  'Sebring': { hypercarLapSeconds: 107.0 },
-  'Monza': { hypercarLapSeconds: 96.0 },
-  'Fuji': { hypercarLapSeconds: 90.0 },
-  'Bahrain': { hypercarLapSeconds: 109.0 },
-  'Portimão': { hypercarLapSeconds: 94.0 },
-  'Imola': { hypercarLapSeconds: 97.0 },
-  'COTA': { hypercarLapSeconds: 108.0 },
-  'Qatar': { hypercarLapSeconds: 98.0 },
+  'Le Mans': { refLapSeconds: 208.0 },
+  'Spa-Francorchamps': { refLapSeconds: 125.0 },
+  'Sebring': { refLapSeconds: 107.0 },
+  'Monza': { refLapSeconds: 96.0 },
+  'Fuji': { refLapSeconds: 90.0 },
+  'Bahrain': { refLapSeconds: 109.0 },
+  'Portimão': { refLapSeconds: 94.0 },
+  'Imola': { refLapSeconds: 97.0 },
+  'COTA': { refLapSeconds: 108.0 },
+  'Qatar': { refLapSeconds: 98.0 },
+};
+
+// Same idea for ACC: rough ballparks, not official data. Pace factors are
+// relative to GT3 (derived from the Ohne Speed ACC sheet's own Barcelona
+// alien times for each class, generalized to every track); track paces are
+// GT3 reference laps, also read from that sheet (2026-09-20).
+const ACC_CLASS_PRESETS = {
+  GT3: { resource: 'Fuel', tankLiters: 120, consumptionPerLap: 3.0, paceFactor: 1.00 },
+  GT4: { resource: 'Fuel', tankLiters: 65, consumptionPerLap: 2.4, paceFactor: 1.09 },
+  GTC: { resource: 'Fuel', tankLiters: 100, consumptionPerLap: 2.8, paceFactor: 1.02 },
+  M2: { resource: 'Fuel', tankLiters: 60, consumptionPerLap: 2.2, paceFactor: 1.15 },
+};
+const ACC_TRACK_PRESETS = {
+  'Barcelona': { refLapSeconds: 102.43 },
+  'Brands Hatch': { refLapSeconds: 82.02 },
+  'COTA': { refLapSeconds: 124.16 },
+  'Donington Park': { refLapSeconds: 85.34 },
+  'Hungaroring': { refLapSeconds: 102.17 },
+  'Imola': { refLapSeconds: 99.24 },
+  'Indianapolis': { refLapSeconds: 94.85 },
+  'Kyalami': { refLapSeconds: 99.40 },
+  'Laguna Seca': { refLapSeconds: 81.14 },
+  'Misano': { refLapSeconds: 92.33 },
+  'Monza': { refLapSeconds: 105.70 },
+  'Mount Panorama': { refLapSeconds: 118.82 },
+  'Nordschleife': { refLapSeconds: 483.36 },
+  'Nürburgring': { refLapSeconds: 112.41 },
+  'Oulton Park': { refLapSeconds: 91.75 },
+  'Paul Ricard': { refLapSeconds: 111.98 },
+  'Red Bull Ring': { refLapSeconds: 86.96 },
+  'Silverstone': { refLapSeconds: 116.41 },
+  'Snetterton': { refLapSeconds: 105.02 },
+  'Spa': { refLapSeconds: 135.17 },
+  'Suzuka': { refLapSeconds: 117.76 },
+  'Valencia': { refLapSeconds: 89.60 },
+  'Watkins Glen': { refLapSeconds: 102.39 },
+  'Zandvoort': { refLapSeconds: 94.59 },
+  'Zolder': { refLapSeconds: 86.72 },
+};
+// Car roster per class for the "+ Neues Team" picker - GT3/tracks read off
+// the Ohne Speed ACC sheet (2026-09-20); GT4/GTC/M2 cars are ACC's known
+// content packs (no equivalent sheet column to read them from).
+// Plain labels, no parentheses - they get embedded as "Car (Class)" and
+// parsed back out via a regex that only expects one paren group at the end
+// (see detectClassPreset), same constraint the LMU class names already
+// have to follow.
+const ACC_CLASSES = [
+  { class_id: 'GT3', display_name: 'GT3' },
+  { class_id: 'GT4', display_name: 'GT4' },
+  { class_id: 'GTC', display_name: 'GTC' },
+  { class_id: 'M2', display_name: 'M2' },
+];
+const ACC_CARS_BY_CLASS = {
+  GT3: [
+    'Ferrari 296 GT3 (2023)', 'Porsche 992 GT3 R (2023)', 'McLaren 720S GT3 Evo (2023)',
+    'Bentley Continental GT3 (2018)', 'Mercedes-AMG GT3 (2020)', 'Aston Martin Vantage AMR GT3 (2019)',
+    'Lamborghini Huracán GT3 EVO2 (2023)', 'Lexus RC F GT3 (2016)', 'BMW M4 GT3 (2021)',
+    'BMW M6 GT3 (2017)', 'Ford Mustang GT3 (2024)', 'Nissan GT-R Nismo GT3 (2018)',
+    'Audi R8 LMS GT3 evo II (2022)',
+  ],
+  GT4: [
+    'BMW M4 GT4', 'Mercedes-AMG GT4', 'McLaren 570S GT4', 'Audi R8 LMS GT4',
+    'Porsche 718 Cayman GT4 Clubsport MR', 'Chevrolet Camaro GT4.R', 'Ginetta G55 GT4',
+    'KTM X-Bow GT4', 'Maserati MC GT4', 'Alpine A110 GT4', 'Aston Martin Vantage AMR GT4',
+  ],
+  GTC: ['Porsche 911 GT3 Cup (992)'],
+  M2: ['BMW M2 CS Racing'],
 };
 
 // How many laps a full charge/tank lasts, capped by an optional max stint
@@ -2596,16 +2679,28 @@ function computeStintPlan({ raceDurationMinutes, lapTimeSeconds, maxLapsPerStint
   return { totalLaps, numStints, stints };
 }
 
+function trackPresetsForGame(game){
+  return game === 'acc' ? ACC_TRACK_PRESETS : STINT_TRACK_PRESETS;
+}
+function classPresetsForGame(game){
+  return game === 'acc' ? ACC_CLASS_PRESETS : STINT_CLASS_PRESETS;
+}
+
 // Best-effort auto-detection so nobody has to manually repeat the track/
 // class the event and team already imply. Falls back to nothing (blank
 // fields, filled in by hand) rather than guessing wrong.
 function detectTrackPreset(ev){
   const name = (ev.name || '').toLowerCase();
-  return Object.keys(STINT_TRACK_PRESETS).find(k => name.includes(k.toLowerCase())) || null;
+  const presets = trackPresetsForGame(ev && ev.game);
+  return Object.keys(presets).find(k => name.includes(k.toLowerCase())) || null;
 }
-function detectClassPreset(team){
+function detectClassPreset(team, ev){
   const match = (team.car || '').match(/\(([^)]+)\)\s*$/);
   const raw = (match ? match[1] : '').replace(/_ELMS$/i, '').trim().toUpperCase();
+  if(ev && ev.game === 'acc'){
+    const accAliases = { GT3: 'GT3', GT4: 'GT4', GTC: 'GTC', CUP: 'GTC', M2: 'M2' };
+    return accAliases[raw] || null;
+  }
   const aliases = { LMH: 'Hypercar', HYPERCAR: 'Hypercar', LMP2: 'LMP2', LMP3: 'LMP3', GTE: 'GTE', LMGT3: 'LMGT3', GT3: 'LMGT3' };
   return aliases[raw] || null;
 }
@@ -2643,12 +2738,12 @@ function renderStintCalculator(team, ev, stints){
   // hasn't entered anything yet - never overwrites existing values.
   if(!team.est_lap_time_seconds && !team.resource_type){
     const trackKey = detectTrackPreset(ev);
-    const classKey = detectClassPreset(team);
+    const classKey = detectClassPreset(team, ev);
     if(trackKey && classKey){
-      const trackPreset = STINT_TRACK_PRESETS[trackKey];
-      const classPreset = STINT_CLASS_PRESETS[classKey];
+      const trackPreset = trackPresetsForGame(ev.game)[trackKey];
+      const classPreset = classPresetsForGame(ev.game)[classKey];
       const patch = {
-        est_lap_time_seconds: trackPreset.hypercarLapSeconds * classPreset.paceFactor,
+        est_lap_time_seconds: trackPreset.refLapSeconds * classPreset.paceFactor,
         resource_type: classPreset.resource,
         consumption_per_lap: classPreset.resource === 'Fuel' ? classPreset.consumptionPerLap : classPreset.consumptionPercent,
         tank_liters: classPreset.resource === 'Fuel' ? classPreset.tankLiters : null,
@@ -2658,7 +2753,10 @@ function renderStintCalculator(team, ev, stints){
     }
   }
 
-  const resourceType = team.resource_type === 'Fuel' ? 'Fuel' : 'VE';
+  // ACC has no Virtual Energy - every class there runs on plain fuel, so
+  // there's no real choice to offer.
+  const isAcc = ev.game === 'acc';
+  const resourceType = isAcc ? 'Fuel' : (team.resource_type === 'Fuel' ? 'Fuel' : 'VE');
 
   const row = document.createElement('div');
   row.className = 'stint-calc-row';
@@ -2688,25 +2786,32 @@ function renderStintCalculator(team, ev, stints){
   lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
   lapTimeInput.className = 'stint-calc-input';
 
-  // Only Hypercar runs on Virtual Energy - everything else uses plain
-  // fuel (tank + liters/lap). Switching this re-saves immediately, which
-  // reloads and re-renders with the matching field set below.
-  const resourceSel = document.createElement('select');
-  resourceSel.className = 'stint-calc-input';
-  [['VE', 'VE (%)'], ['Fuel', 'Sprit (Liter)']].forEach(([value, label]) => {
-    const opt = document.createElement('option');
-    opt.value = value;
-    opt.textContent = label;
-    if(value === resourceType) opt.selected = true;
-    resourceSel.appendChild(opt);
-  });
+  // Only Hypercar (LMU) runs on Virtual Energy - every ACC class and every
+  // other LMU class uses plain fuel (tank + liters/lap) instead. ACC never
+  // gets the choice at all since it has no VE concept. Switching this
+  // re-saves immediately, which reloads and re-renders with the matching
+  // field set below.
+  let resourceSel = null;
+  if(isAcc){
+    resourceSel = { value: 'Fuel' }; // stand-in so the code below can treat it uniformly
+  }else{
+    resourceSel = document.createElement('select');
+    resourceSel.className = 'stint-calc-input';
+    [['VE', 'VE (%)'], ['Fuel', 'Sprit (Liter)']].forEach(([value, label]) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      if(value === resourceType) opt.selected = true;
+      resourceSel.appendChild(opt);
+    });
+  }
 
   const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
   const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
   const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
 
   row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
-  row.appendChild(field('Energieart', resourceSel));
+  if(!isAcc) row.appendChild(field('Energieart', resourceSel));
   if(resourceType === 'Fuel') row.appendChild(field('Tank (Liter)', tankInput));
   row.appendChild(field(resourceType === 'Fuel' ? 'Verbrauch (Liter/Runde)' : 'VE-Verbrauch (%/Runde)', consumptionInput));
   row.appendChild(field('Max. Stint-Zeit (min)', maxStintInput));
@@ -2722,7 +2827,8 @@ function renderStintCalculator(team, ev, stints){
     if(resourceSel.value === 'Fuel') patch.tank_liters = parseFloat(tankInput.value) || null;
     updateTeamCalcInputs(team.id, patch);
   };
-  [lapTimeInput, resourceSel, tankInput, consumptionInput, maxStintInput].forEach(el => el.addEventListener('change', saveInputs));
+  [lapTimeInput, tankInput, consumptionInput, maxStintInput].forEach(el => el.addEventListener('change', saveInputs));
+  if(!isAcc) resourceSel.addEventListener('change', saveInputs);
 
   const lapTime = team.est_lap_time_seconds;
   const raceDuration = ev.duration_minutes;
@@ -2986,6 +3092,7 @@ function renderStintPlan(team, ev){
   }
 
   let cumMinutes = 0;
+  let zeroLapStints = 0;
   if(!stints.length){
     const empty = document.createElement('div');
     empty.style.cssText = 'font-size:12.5px;color:var(--muted);margin-bottom:6px;';
@@ -3070,9 +3177,16 @@ function renderStintPlan(team, ev){
       ? Math.round((stint.duration_minutes * 60) / lapTime)
       : null;
     const displayLaps = stint.laps ?? estimatedLaps;
+    // A stint that lost all its laps to a redistribution (see
+    // applyActualLaps) isn't automatically deleted - the driver/tire
+    // assignment on it might still matter to someone - but it no longer
+    // does anything, so it's flagged instead of just quietly sitting there
+    // looking like a normal planned stint.
+    const isZeroLaps = displayLaps === 0;
+    if(isZeroLaps) zeroLapStints++;
 
     const row = document.createElement('div');
-    row.className = 'stint-row';
+    row.className = 'stint-row' + (isZeroLaps ? ' zero-laps' : '');
     if(stintEnd.getTime() <= Date.now()) row.classList.add('completed');
     row.dataset.stintId = stint.id;
 
@@ -3136,6 +3250,14 @@ function renderStintPlan(team, ev){
       row.appendChild(editedBadge);
     }
 
+    if(isZeroLaps){
+      const zeroBadge = document.createElement('span');
+      zeroBadge.className = 'stint-zero-warning';
+      zeroBadge.textContent = '⚠ 0 Runden';
+      zeroBadge.title = 'Dieser Stint hat durch eine Neuverteilung keine Runden mehr - wird so nicht mehr gefahren, ggf. entfernen';
+      row.appendChild(zeroBadge);
+    }
+
     const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
     const spotterLabel = (stint.spotter && stint.spotter.username) || stint.spotter_name || null;
 
@@ -3180,9 +3302,16 @@ function renderStintPlan(team, ev){
   }
 
   if(ev.duration_minutes){
+    // A couple of minutes' slack for rounding - only flag genuine gaps/
+    // overruns, not the usual +/-1min laps-to-minutes rounding noise.
+    const diff = cumMinutes - ev.duration_minutes;
+    const mismatchClass = diff > 2 ? ' over' : (diff < -2 ? ' under' : '');
     const total = document.createElement('div');
-    total.className = 'stint-total' + (cumMinutes > ev.duration_minutes ? ' over' : '');
-    total.textContent = `${cumMinutes} von ${ev.duration_minutes} min geplant`;
+    total.className = 'stint-total' + mismatchClass;
+    let text = `${cumMinutes} von ${ev.duration_minutes} min geplant`;
+    if(mismatchClass === ' under') text += ' - Plan deckt die Renndauer nicht ab';
+    if(zeroLapStints > 0) text += ` · ⚠ ${zeroLapStints} Stint${zeroLapStints === 1 ? '' : 's'} ohne Runden`;
+    total.textContent = text;
     wrap.appendChild(total);
   }
 
@@ -3251,9 +3380,14 @@ async function createTeamAtSlot(eventId, slotIso, car, note){
 
 let teNewTeamOpen = null; // "eventId::slotIso" of the currently-open "new team" mini-form, or null
 
-function renderNewTeamForm(eventId, slotIso, carData){
+function renderNewTeamForm(eventId, slotIso, carData, game){
   const wrap = document.createElement('div');
   wrap.className = 'te-new-team-form';
+
+  // lmuportal's live car/class data only covers LMU - ACC gets its own
+  // hardcoded roster (ACC_CLASSES/ACC_CARS_BY_CLASS) instead, same shape.
+  const classes = game === 'acc' ? ACC_CLASSES : carData.classes;
+  const carsByClass = game === 'acc' ? ACC_CARS_BY_CLASS : carData.carsByClass;
 
   const classSel = document.createElement('select');
   const classPlaceholder = document.createElement('option');
@@ -3262,7 +3396,7 @@ function renderNewTeamForm(eventId, slotIso, carData){
   classPlaceholder.selected = true;
   classPlaceholder.textContent = 'Klasse wählen…';
   classSel.appendChild(classPlaceholder);
-  carData.classes.forEach(c => {
+  classes.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.class_id;
     opt.textContent = c.display_name;
@@ -3281,7 +3415,7 @@ function renderNewTeamForm(eventId, slotIso, carData){
   classSel.addEventListener('change', () => {
     carSel.innerHTML = '';
     carSel.appendChild(carPlaceholder.cloneNode(true));
-    (carData.carsByClass[classSel.value] || []).forEach(name => {
+    (carsByClass[classSel.value] || []).forEach(name => {
       const opt = document.createElement('option');
       opt.value = name;
       opt.textContent = name;
@@ -3443,7 +3577,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
 
   const key = `${ev.id}::${slotIso}`;
   if(teNewTeamOpen === key){
-    detail.appendChild(renderNewTeamForm(ev.id, slotIso, carData));
+    detail.appendChild(renderNewTeamForm(ev.id, slotIso, carData, ev.game));
   }else{
     const newTeamBtn = document.createElement('button');
     newTeamBtn.type = 'button';
