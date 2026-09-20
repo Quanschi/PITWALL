@@ -769,6 +769,9 @@ input:focus{outline:none;border-color:var(--violet);}
   margin-top:6px;
 }
 .stint-calc-apply:hover{background:rgba(255,176,32,0.1);}
+.stint-calc-apply:disabled{opacity:0.5;cursor:not-allowed;border-color:var(--muted);color:var(--muted);}
+.stint-calc-apply:disabled:hover{background:none;}
+.stint-lock-toggle{display:block;margin:6px 0 4px 0;}
 .te-new-team-btn{
   align-self:flex-start;
   font-family:'JetBrains Mono',monospace;
@@ -2816,6 +2819,30 @@ function renderStintCalculator(team, ev, stints){
   title.textContent = 'Stint-Rechner';
   box.appendChild(title);
 
+  // Only the team creator gets this - a safeguard against fat-fingering
+  // "Stints neu berechnen" mid-event and wiping the whole plan. Confirmed
+  // both ways (native confirm() dialog - already the app's own pattern for
+  // "are you sure", e.g. the overwrite-warning just below) since locking
+  // and unlocking are both meaningful, deliberate actions.
+  if(currentProfile && currentProfile.id === team.created_by){
+    const lockBtn = document.createElement('button');
+    lockBtn.type = 'button';
+    lockBtn.className = 'te-team-btn stint-lock-toggle';
+    lockBtn.textContent = team.stints_locked ? '🔓 Neuberechnen entsperren' : '🔒 Neuberechnen sperren';
+    lockBtn.title = 'Verhindert, dass "Stints (neu) berechnen" versehentlich gedrückt wird';
+    lockBtn.addEventListener('click', async () => {
+      const wantLock = !team.stints_locked;
+      const msg = wantLock
+        ? 'Den "Stints (neu) berechnen"-Button für dieses Team wirklich sperren?'
+        : 'Den "Stints (neu) berechnen"-Button für dieses Team wieder entsperren?';
+      if(!confirm(msg)) return;
+      const { error } = await pitwallClient.from('team_event_teams').update({ stints_locked: wantLock }).eq('id', team.id);
+      if(error) console.error('Toggle stints lock failed:', error.message);
+      loadTeamEvents();
+    });
+    box.appendChild(lockBtn);
+  }
+
   // One-time auto-fill from the event/team's own data, only while the team
   // hasn't entered anything yet - never overwrites existing values.
   if(!team.est_lap_time_seconds && !team.resource_type){
@@ -2929,11 +2956,17 @@ function renderStintCalculator(team, ev, stints){
     const applyBtn = document.createElement('button');
     applyBtn.type = 'button';
     applyBtn.className = 'stint-calc-apply';
-    applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
-    applyBtn.addEventListener('click', () => {
-      if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
-      applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
-    });
+    if(team.stints_locked){
+      applyBtn.textContent = '🔒 Neuberechnen gesperrt';
+      applyBtn.disabled = true;
+      applyBtn.title = 'Vom Team-Ersteller gesperrt, um ein versehentliches Überschreiben zu verhindern';
+    }else{
+      applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
+      applyBtn.addEventListener('click', () => {
+        if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
+        applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
+      });
+    }
     box.appendChild(applyBtn);
   }else{
     const hint = document.createElement('div');
@@ -3614,6 +3647,12 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         const name = (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt';
         const chip = document.createElement('span');
         chip.className = 'te-member-chip';
+        if(m.user_id && m.user_id === t.created_by){
+          const crown = document.createElement('span');
+          crown.textContent = '👑';
+          crown.title = 'Team-Ersteller';
+          chip.appendChild(crown);
+        }
         let label = name;
         if(m.note) label += ` (${m.note})`;
         chip.appendChild(document.createTextNode(label));
@@ -3880,7 +3919,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
