@@ -531,10 +531,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   padding:2px 7px;
 }
 .te-draft-note{color:var(--muted);font-size:12.5px;margin-top:8px;}
-.te-merge-box{margin-top:8px;}
 .te-merge-toggle{color:var(--amber);font-size:11px;}
-.te-merge-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+.te-merge-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 14px 0;}
 .te-merge-row select{width:auto;flex:1;min-width:160px;font-size:12px;padding:6px 8px;}
+.te-event-header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;}
 .te-delete-btn:hover{color:var(--red);}
@@ -4378,15 +4378,16 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   return detail;
 }
 
+// Returns the small toggle (sits in the header, left of the ✓/✕ icons) and
+// the expandable picker row (sits below the header, full width, since a
+// select+button doesn't fit inline in the header) separately - the two
+// share only the hidden/shown state via the toggle's click handler.
 function renderScheduleMergeControl(ev, candidates){
-  const box = document.createElement('div');
-  box.className = 'te-merge-box';
-
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'link-btn-inline te-merge-toggle';
-  toggle.textContent = '⚠ Mögliches Duplikat – Daten übertragen';
-  box.appendChild(toggle);
+  toggle.textContent = '⚠ Mögliches Duplikat';
+  toggle.title = 'Alle Teams dieses Events auf ein passendes Schedule-Event übertragen';
 
   const row = document.createElement('div');
   row.className = 'te-merge-row';
@@ -4414,8 +4415,7 @@ function renderScheduleMergeControl(ev, candidates){
   });
   row.appendChild(select);
   row.appendChild(mergeBtn);
-  box.appendChild(row);
-  return box;
+  return { toggle, row };
 }
 
 function renderEventCard(ev, teams, carData, opts){
@@ -4465,29 +4465,50 @@ function renderEventCard(ev, teams, carData, opts){
   }
   header.appendChild(left);
 
-  if(currentProfile && ev.created_by === currentProfile.id){
-    const actions = document.createElement('div');
-    actions.className = 'te-event-actions';
+  // A manually-created event whose race also exists as an auto-synced
+  // Schedule event is a likely accidental duplicate - offer to consolidate
+  // onto the Schedule one (see mergeManualEventIntoSchedule) rather than
+  // leaving people's already-built teams/stint plans stranded on the copy
+  // nobody else will find. Schedule/lmuportal only ever covers LMU, so
+  // this only ever applies to LMU events.
+  let mergeControl = null;
+  if(ev.source === 'manual' && (ev.game || 'lmu') === 'lmu' && ev.published !== false && !opts.isEditorPreview){
+    const candidates = opts.autoEventCandidates || [];
+    if(candidates.length) mergeControl = renderScheduleMergeControl(ev, candidates);
+  }
 
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'te-delete-btn';
-    closeBtn.textContent = ev.closed ? '↺' : '✓';
-    closeBtn.title = ev.closed ? 'Event wieder öffnen' : 'Event abschließen';
-    closeBtn.addEventListener('click', () => setTeamEventClosed(ev.id, !ev.closed));
-    actions.appendChild(closeBtn);
+  const isCreator = currentProfile && ev.created_by === currentProfile.id;
+  if(mergeControl || isCreator){
+    const headerRight = document.createElement('div');
+    headerRight.className = 'te-event-header-right';
+    if(mergeControl) headerRight.appendChild(mergeControl.toggle);
 
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'te-delete-btn';
-    delBtn.textContent = '✕';
-    delBtn.title = 'Event entfernen';
-    delBtn.addEventListener('click', () => deleteTeamEvent(ev.id));
-    actions.appendChild(delBtn);
+    if(isCreator){
+      const actions = document.createElement('div');
+      actions.className = 'te-event-actions';
 
-    header.appendChild(actions);
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'te-delete-btn';
+      closeBtn.textContent = ev.closed ? '↺' : '✓';
+      closeBtn.title = ev.closed ? 'Event wieder öffnen' : 'Event abschließen';
+      closeBtn.addEventListener('click', () => setTeamEventClosed(ev.id, !ev.closed));
+      actions.appendChild(closeBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'te-delete-btn';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Event entfernen';
+      delBtn.addEventListener('click', () => deleteTeamEvent(ev.id));
+      actions.appendChild(delBtn);
+
+      headerRight.appendChild(actions);
+    }
+    header.appendChild(headerRight);
   }
   card.appendChild(header);
+  if(mergeControl) card.appendChild(mergeControl.row);
 
   // Unpublished: only the creator can even see this row (RLS), and only
   // in the main list - the editor's own live preview passes isEditorPreview
@@ -4505,18 +4526,6 @@ function renderEventCard(ev, teams, carData, opts){
     resumeBtn.addEventListener('click', () => openEventEditor(ev.id));
     card.appendChild(resumeBtn);
     return card;
-  }
-
-  // A manually-created event whose race also exists as an auto-synced
-  // Schedule event is a likely accidental duplicate - offer to consolidate
-  // onto the Schedule one (see mergeManualEventIntoSchedule) rather than
-  // leaving people's already-built teams/stint plans stranded on the copy
-  // nobody else will find. Schedule/lmuportal only ever covers LMU, so
-  // this only ever applies to LMU events (auto-events are always LMU too,
-  // but gating explicitly on the event's own game keeps that obvious).
-  if(ev.source === 'manual' && (ev.game || 'lmu') === 'lmu' && !opts.isEditorPreview){
-    const candidates = opts.autoEventCandidates || [];
-    if(candidates.length) card.appendChild(renderScheduleMergeControl(ev, candidates));
   }
 
   // Keyed by epoch ms, not the raw string - team_event_teams.slot_time comes
