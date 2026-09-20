@@ -626,6 +626,14 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   margin:14px 0 8px 0;
 }
 .stint-plan-title:first-child{margin-top:0;}
+.stint-locked-heading{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:21px;
+  letter-spacing:0.3px;
+  color:var(--amber);
+  margin:0 0 4px 0;
+}
 .stint-plan-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .stint-mine-toggle{font-size:11.5px;}
 .stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
@@ -2825,8 +2833,13 @@ function renderStintCalculator(team, ev, stints){
   box.className = 'stint-calc';
 
   const title = document.createElement('div');
-  title.className = 'stint-plan-title';
-  title.textContent = 'Stint-Rechner';
+  if(team.stints_locked){
+    title.className = 'stint-locked-heading';
+    title.textContent = '🔒 Geplante Stints';
+  }else{
+    title.className = 'stint-plan-title';
+    title.textContent = 'Stint-Rechner';
+  }
   box.appendChild(title);
 
   // Only the team creator gets this - a safeguard against fat-fingering
@@ -2877,89 +2890,84 @@ function renderStintCalculator(team, ev, stints){
   const isAcc = ev.game === 'acc';
   const resourceType = isAcc ? 'Fuel' : (team.resource_type === 'Fuel' ? 'Fuel' : 'VE');
 
-  const row = document.createElement('div');
-  row.className = 'stint-calc-row';
+  // Locked: freeze the whole basis the plan was calculated from, not just
+  // the apply button - otherwise someone could still change the lap time
+  // or consumption and the numbers behind the (now supposedly final) plan
+  // would quietly drift. Rather than just disabling the inputs, hide them
+  // entirely - there's nothing left to fill in once the plan is locked in.
+  if(!team.stints_locked){
+    const row = document.createElement('div');
+    row.className = 'stint-calc-row';
 
-  function field(labelText, inputEl){
-    const wrap = document.createElement('div');
-    wrap.className = 'stint-calc-field';
-    const label = document.createElement('label');
-    label.textContent = labelText;
-    wrap.appendChild(label);
-    wrap.appendChild(inputEl);
-    return wrap;
-  }
-  function numberField(placeholder, value, step){
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.step = step;
-    input.min = '0';
-    input.placeholder = placeholder;
-    input.value = value || '';
-    input.className = 'stint-calc-input';
-    return input;
-  }
-  const lapTimeInput = document.createElement('input');
-  lapTimeInput.type = 'text';
-  lapTimeInput.placeholder = '1:46.500';
-  lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
-  lapTimeInput.className = 'stint-calc-input';
+    function field(labelText, inputEl){
+      const wrap = document.createElement('div');
+      wrap.className = 'stint-calc-field';
+      const label = document.createElement('label');
+      label.textContent = labelText;
+      wrap.appendChild(label);
+      wrap.appendChild(inputEl);
+      return wrap;
+    }
+    function numberField(placeholder, value, step){
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = step;
+      input.min = '0';
+      input.placeholder = placeholder;
+      input.value = value || '';
+      input.className = 'stint-calc-input';
+      return input;
+    }
+    const lapTimeInput = document.createElement('input');
+    lapTimeInput.type = 'text';
+    lapTimeInput.placeholder = '1:46.500';
+    lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
+    lapTimeInput.className = 'stint-calc-input';
 
-  // Only Hypercar (LMU) runs on Virtual Energy - every ACC class and every
-  // other LMU class uses plain fuel (tank + liters/lap) instead. ACC never
-  // gets the choice at all since it has no VE concept. Switching this
-  // re-saves immediately, which reloads and re-renders with the matching
-  // field set below.
-  let resourceSel = null;
-  if(isAcc){
-    resourceSel = { value: 'Fuel' }; // stand-in so the code below can treat it uniformly
-  }else{
-    resourceSel = document.createElement('select');
-    resourceSel.className = 'stint-calc-input';
-    [['VE', 'VE (%)'], ['Fuel', 'Sprit (Liter)']].forEach(([value, label]) => {
-      const opt = document.createElement('option');
-      opt.value = value;
-      opt.textContent = label;
-      if(value === resourceType) opt.selected = true;
-      resourceSel.appendChild(opt);
-    });
-  }
+    // Only Hypercar (LMU) runs on Virtual Energy - every ACC class and
+    // every other LMU class uses plain fuel (tank + liters/lap) instead.
+    // ACC never gets the choice at all since it has no VE concept.
+    // Switching this re-saves immediately, which reloads and re-renders
+    // with the matching field set below.
+    let resourceSel = null;
+    if(isAcc){
+      resourceSel = { value: 'Fuel' }; // stand-in so the code below can treat it uniformly
+    }else{
+      resourceSel = document.createElement('select');
+      resourceSel.className = 'stint-calc-input';
+      [['VE', 'VE (%)'], ['Fuel', 'Sprit (Liter)']].forEach(([value, label]) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        if(value === resourceType) opt.selected = true;
+        resourceSel.appendChild(opt);
+      });
+    }
 
-  const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
-  const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
-  const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
+    const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
+    const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
+    const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
 
-  // Locking is meant to freeze the whole basis the plan was calculated
-  // from, not just the button - otherwise someone could still change the
-  // lap time or consumption and the (now-hidden) numbers behind the plan
-  // would quietly drift out of sync with what's actually on track.
-  if(team.stints_locked){
-    lapTimeInput.disabled = true;
-    if(!isAcc) resourceSel.disabled = true;
-    tankInput.disabled = true;
-    consumptionInput.disabled = true;
-    maxStintInput.disabled = true;
-  }
+    row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
+    if(!isAcc) row.appendChild(field('Energieart', resourceSel));
+    if(resourceType === 'Fuel') row.appendChild(field('Tank (Liter)', tankInput));
+    row.appendChild(field(resourceType === 'Fuel' ? 'Verbrauch (Liter/Runde)' : 'VE-Verbrauch (%/Runde)', consumptionInput));
+    row.appendChild(field('Max. Stint-Zeit (min)', maxStintInput));
+    box.appendChild(row);
 
-  row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
-  if(!isAcc) row.appendChild(field('Energieart', resourceSel));
-  if(resourceType === 'Fuel') row.appendChild(field('Tank (Liter)', tankInput));
-  row.appendChild(field(resourceType === 'Fuel' ? 'Verbrauch (Liter/Runde)' : 'VE-Verbrauch (%/Runde)', consumptionInput));
-  row.appendChild(field('Max. Stint-Zeit (min)', maxStintInput));
-  box.appendChild(row);
-
-  const saveInputs = () => {
-    const patch = {
-      est_lap_time_seconds: parseLapTimeToSeconds(lapTimeInput.value),
-      resource_type: resourceSel.value,
-      consumption_per_lap: parseFloat(consumptionInput.value) || null,
-      max_stint_minutes: parseInt(maxStintInput.value, 10) || null,
+    const saveInputs = () => {
+      const patch = {
+        est_lap_time_seconds: parseLapTimeToSeconds(lapTimeInput.value),
+        resource_type: resourceSel.value,
+        consumption_per_lap: parseFloat(consumptionInput.value) || null,
+        max_stint_minutes: parseInt(maxStintInput.value, 10) || null,
+      };
+      if(resourceSel.value === 'Fuel') patch.tank_liters = parseFloat(tankInput.value) || null;
+      updateTeamCalcInputs(team.id, patch);
     };
-    if(resourceSel.value === 'Fuel') patch.tank_liters = parseFloat(tankInput.value) || null;
-    updateTeamCalcInputs(team.id, patch);
-  };
-  [lapTimeInput, tankInput, consumptionInput, maxStintInput].forEach(el => el.addEventListener('change', saveInputs));
-  if(!isAcc) resourceSel.addEventListener('change', saveInputs);
+    [lapTimeInput, tankInput, consumptionInput, maxStintInput].forEach(el => el.addEventListener('change', saveInputs));
+    if(!isAcc) resourceSel.addEventListener('change', saveInputs);
+  }
 
   const lapTime = team.est_lap_time_seconds;
   const raceDuration = ev.duration_minutes;
@@ -2975,21 +2983,17 @@ function renderStintCalculator(team, ev, stints){
     result.textContent = `→ ${plan.numStints} Stint${plan.numStints === 1 ? '' : 's'} · ${plan.totalLaps} Runden gesamt`;
     box.appendChild(result);
 
-    const applyBtn = document.createElement('button');
-    applyBtn.type = 'button';
-    applyBtn.className = 'stint-calc-apply';
-    if(team.stints_locked){
-      applyBtn.textContent = '🔒 Neuberechnen gesperrt';
-      applyBtn.disabled = true;
-      applyBtn.title = 'Vom Team-Ersteller gesperrt, um ein versehentliches Überschreiben zu verhindern';
-    }else{
+    if(!team.stints_locked){
+      const applyBtn = document.createElement('button');
+      applyBtn.type = 'button';
+      applyBtn.className = 'stint-calc-apply';
       applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
       applyBtn.addEventListener('click', () => {
         if(stints.length && !confirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen gehen dabei verloren.')) return;
         applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
       });
+      box.appendChild(applyBtn);
     }
-    box.appendChild(applyBtn);
   }else{
     const hint = document.createElement('div');
     hint.className = 'stint-calc-hint';
