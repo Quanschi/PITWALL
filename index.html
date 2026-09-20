@@ -885,6 +885,21 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 }
 .account-dropdown-item:hover{background:var(--panel-2);}
 .account-dropdown .form-message{margin:4px 10px;font-size:11.5px;}
+.account-notif-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
+#account-leave-requests{border-bottom:1px solid var(--line);margin-bottom:6px;padding-bottom:6px;}
+.account-leave-request{padding:8px 10px;font-size:12px;color:var(--text);line-height:1.4;}
+.account-leave-request-actions{display:flex;gap:6px;margin-top:6px;}
+.account-leave-request-actions button{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:6px;
+  border:1px solid var(--line);
+  background:none;
+  cursor:pointer;
+}
+.account-leave-request-actions .accept{border-color:var(--violet);color:var(--violet);}
+.account-leave-request-actions .decline{border-color:var(--red);color:var(--red);}
 .account-username-form{padding:4px 10px 8px;}
 .account-username-form input{margin-bottom:6px;padding:8px 10px;font-size:13px;}
 .account-username-form .te-team-btn{width:100%;}
@@ -961,7 +976,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   <div class="header-top">
     <div class="header-titles">
       <p class="title">Pit<span>wall</span></p>
-      <p class="subtitle">LMU · Schedule · Logbuch · Team Events</p>
+      <p class="subtitle">LMU · Schedule · Rundenzeiten · Team Events</p>
     </div>
     <div class="stamp">
       <div id="account-area">
@@ -971,8 +986,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
             <img id="account-avatar-img" class="account-avatar" hidden alt="">
             <span id="account-avatar-fallback" class="account-avatar-fallback"></span>
             <span id="account-username-label"></span>
+            <span id="account-notif-dot" class="account-notif-dot" hidden></span>
           </button>
           <div id="account-dropdown" class="account-dropdown" hidden>
+            <div id="account-leave-requests" hidden></div>
             <label class="account-dropdown-item" for="account-avatar-input">Profilbild ändern</label>
             <input type="file" id="account-avatar-input" accept="image/*" hidden>
             <div class="form-message" id="account-avatar-message" hidden></div>
@@ -996,7 +1013,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 
 <div class="tabs" id="tabs-nav">
   <div class="tab active schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
-  <div class="tab logbook" id="tab-logbook" onclick="showPanel('logbook')">Logbuch</div>
+  <div class="tab logbook" id="tab-logbook" onclick="showPanel('logbook')">Rundenzeiten</div>
   <div class="tab teamevents" id="tab-teamevents" onclick="showPanel('teamevents')">Team Events</div>
 </div>
 
@@ -1887,6 +1904,7 @@ document.getElementById('account-profile-btn').addEventListener('click', (e) => 
   e.stopPropagation();
   const dropdown = document.getElementById('account-dropdown');
   dropdown.hidden = !dropdown.hidden;
+  if(!dropdown.hidden) refreshLeaveRequests();
 });
 document.addEventListener('click', (e) => {
   const dropdown = document.getElementById('account-dropdown');
@@ -1994,6 +2012,7 @@ async function updateAccountArea(){
   loginLink.hidden = true;
   profileArea.hidden = false;
   document.getElementById('account-username-label').textContent = currentProfile.username;
+  refreshLeaveRequests();
   const img = document.getElementById('account-avatar-img');
   const fallback = document.getElementById('account-avatar-fallback');
   const path = extractAvatarPath(currentProfile.avatar_url);
@@ -2009,6 +2028,74 @@ async function updateAccountArea(){
   img.hidden = true;
   fallback.hidden = false;
   fallback.textContent = (currentProfile.username || '?').charAt(0).toUpperCase();
+}
+
+// Notifies a team creator when a member wants out of a locked (finalized)
+// stint plan, since they can't just leave outright anymore - see
+// requestLeaveTeam(). Shown under the account dropdown, "under their
+// profile" being the closest thing this app has to a notification center.
+async function loadPendingLeaveRequests(){
+  if(!currentProfile) return [];
+  const { data, error } = await pitwallClient
+    .from('team_event_members')
+    .select('id,profiles(username),team_event_teams!inner(id,car,created_by,team_events(name))')
+    .eq('leave_requested', true)
+    .eq('team_event_teams.created_by', currentProfile.id);
+  if(error){ console.error('Load leave requests failed:', error.message); return []; }
+  return data || [];
+}
+
+function renderLeaveRequests(requests){
+  const box = document.getElementById('account-leave-requests');
+  const dot = document.getElementById('account-notif-dot');
+  if(!box || !dot) return;
+  box.innerHTML = '';
+  if(!requests.length){
+    box.hidden = true;
+    dot.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  dot.hidden = false;
+  requests.forEach(r => {
+    const name = (r.profiles && r.profiles.username) || 'Unbekannt';
+    const teamInfo = r.team_event_teams || {};
+    const eventName = (teamInfo.team_events && teamInfo.team_events.name) || 'Event';
+    const item = document.createElement('div');
+    item.className = 'account-leave-request';
+    const text = document.createElement('div');
+    text.textContent = `${name} möchte "${teamInfo.car || eventName}" (${eventName}) verlassen`;
+    item.appendChild(text);
+    const actions = document.createElement('div');
+    actions.className = 'account-leave-request-actions';
+    const acceptBtn = document.createElement('button');
+    acceptBtn.type = 'button';
+    acceptBtn.className = 'accept';
+    acceptBtn.textContent = '✓ Annehmen';
+    acceptBtn.addEventListener('click', () => resolveLeaveRequest(r.id, true));
+    const declineBtn = document.createElement('button');
+    declineBtn.type = 'button';
+    declineBtn.className = 'decline';
+    declineBtn.textContent = '✕ Ablehnen';
+    declineBtn.addEventListener('click', () => resolveLeaveRequest(r.id, false));
+    actions.appendChild(acceptBtn);
+    actions.appendChild(declineBtn);
+    item.appendChild(actions);
+    box.appendChild(item);
+  });
+}
+
+async function refreshLeaveRequests(){
+  renderLeaveRequests(await loadPendingLeaveRequests());
+}
+
+async function resolveLeaveRequest(memberId, accept){
+  const { error } = accept
+    ? (await pitwallClient.from('team_event_members').delete().eq('id', memberId))
+    : (await pitwallClient.from('team_event_members').update({ leave_requested: false }).eq('id', memberId));
+  if(error) console.error('Resolve leave request failed:', error.message);
+  refreshLeaveRequests();
+  loadTeamEvents();
 }
 
 function updateAuthUI(session){
@@ -2530,7 +2617,7 @@ document.getElementById('te-create-submit').addEventListener('click', async () =
   hideFormMessage('te-create-message');
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session){
-    showFormMessage('te-create-message', 'Bitte zuerst im Logbuch-Tab anmelden.');
+    showFormMessage('te-create-message', 'Bitte zuerst im Rundenzeiten-Tab anmelden.');
     return;
   }
   const name = document.getElementById('te-name').value.trim();
@@ -3586,6 +3673,26 @@ async function leaveTeam(teamId){
   loadTeamEvents();
 }
 
+// While the stint plan is locked, a member can't just vanish from an
+// already-finalized plan - they request to leave instead, and the team
+// creator accepts or declines it (see renderLeaveRequests/account dropdown).
+async function requestLeaveTeam(teamId){
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  if(!confirm('Der Stintplan für dieses Team ist gesperrt - du kannst nicht mehr direkt austreten. Stattdessen eine Anfrage an den Team-Ersteller senden?')) return;
+  const { error } = await pitwallClient.from('team_event_members').update({ leave_requested: true }).eq('team_id', teamId).eq('user_id', session.user.id);
+  if(error) console.error('Request leave team failed:', error.message);
+  loadTeamEvents();
+}
+
+async function cancelLeaveRequest(teamId){
+  const { data: { session } } = await pitwallClient.auth.getSession();
+  if(!session) return;
+  const { error } = await pitwallClient.from('team_event_members').update({ leave_requested: false }).eq('team_id', teamId).eq('user_id', session.user.id);
+  if(error) console.error('Cancel leave request failed:', error.message);
+  loadTeamEvents();
+}
+
 async function createTeamAtSlot(eventId, slotIso, car, note){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
@@ -3716,6 +3823,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         }
         let label = name;
         if(m.note) label += ` (${m.note})`;
+        if(m.leave_requested) label += ' · Austritt angefragt';
         chip.appendChild(document.createTextNode(label));
         if(isManual && iAmIn){
           const rm = document.createElement('button');
@@ -3743,11 +3851,24 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         row.appendChild(noteInput);
       }
 
+      const myMember = members.find(m => m.user_id === currentProfile.id);
+      const iAmCreator = currentProfile.id === t.created_by;
       const actionBtn = document.createElement('button');
       actionBtn.type = 'button';
       actionBtn.className = 'te-team-btn' + (iAmIn ? ' leave' : '');
-      actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
-      actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id, noteInput.value.trim()));
+      if(iAmIn && t.stints_locked && !iAmCreator){
+        if(myMember && myMember.leave_requested){
+          actionBtn.textContent = 'Anfrage zurückziehen';
+          actionBtn.addEventListener('click', () => cancelLeaveRequest(t.id));
+        }else{
+          actionBtn.textContent = 'Austritt anfragen';
+          actionBtn.title = 'Stintplan ist gesperrt - nur der Team-Ersteller kann dich jetzt noch entfernen';
+          actionBtn.addEventListener('click', () => requestLeaveTeam(t.id));
+        }
+      }else{
+        actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
+        actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id, noteInput.value.trim()));
+      }
       row.appendChild(actionBtn);
 
       if(currentProfile.id === t.created_by || currentProfile.id === ev.created_by){
@@ -3798,7 +3919,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   if(!currentProfile){
     const hint = document.createElement('div');
     hint.className = 'te-login-hint';
-    hint.textContent = 'Zum Beitreten oder ein Team erstellen bitte im Logbuch-Tab anmelden.';
+    hint.textContent = 'Zum Beitreten oder ein Team erstellen bitte im Rundenzeiten-Tab anmelden.';
     detail.appendChild(hint);
     return detail;
   }
@@ -3980,7 +4101,7 @@ async function loadTeamEvents(){
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
-    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
+    .select('id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))')
     .in('event_id', events.map(e => e.id))
     .order('created_at', { ascending: true })
     .order('position', { foreignTable: 'team_stints', ascending: true });
