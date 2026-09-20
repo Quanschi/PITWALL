@@ -835,6 +835,33 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-new-team-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
 .te-new-team-form select{width:auto;min-width:150px;}
 
+/* Desktop default: invisible to layout, so .te-team is still one flat
+   flex-wrap row of individual buttons exactly as if this group didn't
+   exist - see the mobile override below. */
+.te-team-actions{display:contents;}
+
+/* ---- Mobile: Team Events tab. .te-team crammed team info and up to 4
+   action buttons into one wrapping row - clear things into two blocks
+   (info, then a button cluster) that each take the full card width
+   instead of scattering individually, and stack the new-team form's
+   several fields instead of squeezing them onto one line. ---- */
+@media (max-width:640px){
+  .te-event{padding:16px;}
+  .te-event-header{flex-direction:column;align-items:stretch;}
+  .te-event-header-right{margin-top:2px;}
+  .te-team{flex-direction:column;align-items:stretch;justify-content:flex-start;padding:12px;}
+  .te-team-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+  }
+  .te-team-actions input{width:100%;min-width:0;}
+  .te-new-team-form{flex-direction:column;align-items:stretch;}
+  .te-new-team-form select, .te-new-team-form input{width:100%;min-width:0;}
+  .te-slot{max-width:none;flex:1 1 calc(50% - 9px);}
+}
+
 /* Desktop default: each group is invisible to layout, so .stint-row is
    still one flat flex-wrap row exactly as if these groups didn't exist. */
 .stint-row-group{display:contents;}
@@ -4620,6 +4647,16 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     info.appendChild(membersEl);
     row.appendChild(info);
 
+    // Groups every action button into one unit, separate from `info`
+    // above - on desktop it's `display:contents` (invisible to layout, so
+    // this is pixel-identical to before: every button is still its own
+    // flex item of `.te-team`), on mobile it becomes a real box so the
+    // buttons cluster and wrap together underneath the team info instead
+    // of scattering individually across the row.
+    const actionsGroup = document.createElement('div');
+    actionsGroup.className = 'te-team-actions';
+    row.appendChild(actionsGroup);
+
     if(currentProfile){
       let noteInput = null;
       if(!iAmIn){
@@ -4628,7 +4665,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         noteInput.placeholder = 'Notiz (optional)';
         noteInput.style.width = 'auto';
         noteInput.style.minWidth = '140px';
-        row.appendChild(noteInput);
+        actionsGroup.appendChild(noteInput);
       }
 
       const myMember = members.find(m => m.user_id === currentProfile.id);
@@ -4648,7 +4685,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         addDriversBtn.className = 'te-team-btn';
         addDriversBtn.textContent = '+ Fahrer';
         addDriversBtn.addEventListener('click', () => openAddDriversModal(t, members, carData.allProfiles));
-        row.appendChild(addDriversBtn);
+        actionsGroup.appendChild(addDriversBtn);
       }
 
       const actionBtn = document.createElement('button');
@@ -4667,7 +4704,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
         actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id, noteInput.value.trim()));
       }
-      row.appendChild(actionBtn);
+      actionsGroup.appendChild(actionBtn);
 
       if(currentProfile.id === t.created_by || currentProfile.id === ev.created_by){
         const delTeamBtn = document.createElement('button');
@@ -4679,7 +4716,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
           if(!(await pitwallConfirm('Team wirklich löschen? Alle Mitglieder und der Stintplan gehen dabei unwiderruflich verloren.', { danger: true }))) return;
           deleteTeam(t.id);
         });
-        row.appendChild(delTeamBtn);
+        actionsGroup.appendChild(delTeamBtn);
       }
     }
     const stintToggle = document.createElement('button');
