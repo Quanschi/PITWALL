@@ -4428,12 +4428,14 @@ async function loadTeamEvents(){
     container.innerHTML = '<div class="leaderboard-empty">Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.</div>';
   }else{
     const showClosed = document.getElementById('te-show-closed').checked;
-    const events = allEvents.filter(ev =>
-      (ev.game || 'lmu') === teGameFilter && (showClosed || (!ev.closed && !isEventPast(ev)))
-    );
+    const events = allEvents.filter(ev => {
+      if((ev.game || 'lmu') !== teGameFilter) return false;
+      const isDone = ev.closed || isEventPast(ev);
+      return showClosed ? isDone : !isDone;
+    });
     if(events.length === 0){
       const gameLabel = teGameFilter === 'acc' ? 'ACC' : 'LMU';
-      container.innerHTML = `<div class="leaderboard-empty">Keine ${showClosed ? '' : 'offenen '}${gameLabel}-Team-Events.</div>`;
+      container.innerHTML = `<div class="leaderboard-empty">Keine ${showClosed ? 'abgeschlossenen' : 'offenen'} ${gameLabel}-Team-Events.</div>`;
     }else{
       const { data: teams, error: teamsError } = await pitwallClient
         .from('team_event_teams')
