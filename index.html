@@ -411,6 +411,7 @@ input[type="text"], input[type="email"], input[type="password"], input[type="dat
   width:100%;
 }
 input:focus{outline:none;border-color:var(--violet);}
+input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .form-message{
   margin:12px 0;
   font-size:12.5px;
@@ -780,7 +781,7 @@ input:focus{outline:none;border-color:var(--violet);}
 .stint-calc-apply:hover{background:rgba(255,176,32,0.1);}
 .stint-calc-apply:disabled{opacity:0.5;cursor:not-allowed;border-color:var(--muted);color:var(--muted);}
 .stint-calc-apply:disabled:hover{background:none;}
-.stint-lock-toggle{display:block;margin:6px 0 4px 0;}
+.stint-lock-toggle{display:block;margin:6px 0 14px 0;}
 .te-new-team-btn{
   align-self:flex-start;
   font-family:'JetBrains Mono',monospace;
@@ -2927,6 +2928,18 @@ function renderStintCalculator(team, ev, stints){
   const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
   const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
   const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
+
+  // Locking is meant to freeze the whole basis the plan was calculated
+  // from, not just the button - otherwise someone could still change the
+  // lap time or consumption and the (now-hidden) numbers behind the plan
+  // would quietly drift out of sync with what's actually on track.
+  if(team.stints_locked){
+    lapTimeInput.disabled = true;
+    if(!isAcc) resourceSel.disabled = true;
+    tankInput.disabled = true;
+    consumptionInput.disabled = true;
+    maxStintInput.disabled = true;
+  }
 
   row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
   if(!isAcc) row.appendChild(field('Energieart', resourceSel));
