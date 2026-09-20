@@ -3168,7 +3168,8 @@ function renderStintPlan(team, ev){
   const myStintsOnly = !!teMyStintsOnly[team.id];
 
   if(iAmIn){
-    const myStintCount = stints.filter(s => currentProfile && (s.user_id === currentProfile.id || s.spotter_id === currentProfile.id)).length;
+    const myDriverCount = stints.filter(s => currentProfile && s.user_id === currentProfile.id).length;
+    const mySpotterCount = stints.filter(s => currentProfile && s.spotter_id === currentProfile.id).length;
     const filterLabel = document.createElement('label');
     filterLabel.className = 'lb-filter-toggle stint-mine-toggle';
     const filterCheckbox = document.createElement('input');
@@ -3179,7 +3180,7 @@ function renderStintPlan(team, ev){
       loadTeamEvents();
     });
     filterLabel.appendChild(filterCheckbox);
-    filterLabel.appendChild(document.createTextNode(` Nur meine Stints (${myStintCount})`));
+    filterLabel.appendChild(document.createTextNode(` Nur meine Stints (${myDriverCount} Fahrerstints / ${mySpotterCount} Spotterstints)`));
     header.appendChild(filterLabel);
   }
   wrap.appendChild(header);
@@ -3470,7 +3471,16 @@ function renderStintPlan(team, ev){
 
     if(iAmIn){
       const driverField = makePersonField('stint-driver-select', 'Fahrer offen', stint.user_id, stint.driver_name,
-        ({ userId, manualName }) => updateStint(stint.id, { user_id: userId, driver_name: manualName }, live));
+        ({ userId, manualName }) => {
+          updateStint(stint.id, { user_id: userId, driver_name: manualName }, live);
+          // Default: whoever just drove spots for the next stint (they
+          // know the current track/car state best) - still just a
+          // starting point, the spotter field right after this stays
+          // manually editable if that's wrong for this handover.
+          const idx = stints.findIndex(s => s.id === stint.id);
+          const nextStint = idx !== -1 ? stints[idx + 1] : null;
+          if(nextStint) updateStint(nextStint.id, { spotter_id: userId, spotter_name: manualName }, live);
+        });
       row.appendChild(driverField);
 
       const spotterField = makePersonField('stint-spotter-select', 'Spotter offen', stint.spotter_id, stint.spotter_name,
