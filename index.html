@@ -652,6 +652,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-mine-toggle{font-size:11.5px;}
 .stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .stint-row.dragging{opacity:0.4;}
+.stint-drop-indicator{height:3px;background:#3B82C4;border-radius:2px;margin:3px 0;}
 .stint-row.completed{opacity:0.5;}
 .stint-row.completed .stint-time{text-decoration:line-through;}
 .stint-row.active{background:rgba(34,197,94,0.12);border-radius:8px;padding:4px 6px;}
@@ -3979,12 +3980,28 @@ function renderStintPlan(team, ev){
         draggedStintId = stint.id;
         row.classList.add('dragging');
       });
-      row.addEventListener('dragend', () => row.classList.remove('dragging'));
-      row.addEventListener('dragover', e => e.preventDefault());
-      row.addEventListener('drop', e => {
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        removeDropIndicator();
+      });
+      row.addEventListener('dragover', e => {
         e.preventDefault();
         if(!draggedStintId || draggedStintId === stint.id) return;
-        reorderStints(stints, draggedStintId, stint.id);
+        // Shows where the dragged stint would land if dropped right now -
+        // above the row if the cursor's in its top half, below it
+        // otherwise - so the drop target isn't a guess.
+        const rect = row.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        const indicator = getDropIndicator();
+        row.parentNode.insertBefore(indicator, before ? row : row.nextSibling);
+      });
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        const rect = row.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        removeDropIndicator();
+        if(!draggedStintId || draggedStintId === stint.id) return;
+        reorderStints(stints, draggedStintId, stint.id, before);
       });
 
       const handle = document.createElement('span');
@@ -4151,15 +4168,31 @@ function renderStintPlan(team, ev){
 }
 
 let draggedStintId = null;
+let dropIndicatorEl = null;
+function getDropIndicator(){
+  if(!dropIndicatorEl){
+    dropIndicatorEl = document.createElement('div');
+    dropIndicatorEl.className = 'stint-drop-indicator';
+  }
+  return dropIndicatorEl;
+}
+function removeDropIndicator(){
+  if(dropIndicatorEl && dropIndicatorEl.parentNode) dropIndicatorEl.parentNode.removeChild(dropIndicatorEl);
+}
 
-async function reorderStints(stints, draggedId, targetId){
+async function reorderStints(stints, draggedId, targetId, before){
   const fromIdx = stints.findIndex(s => s.id === draggedId);
-  const toIdx = stints.findIndex(s => s.id === targetId);
+  const targetIdx = stints.findIndex(s => s.id === targetId);
   draggedStintId = null;
-  if(fromIdx === -1 || toIdx === -1) return;
+  if(fromIdx === -1 || targetIdx === -1) return;
   const reordered = stints.slice();
   const [moved] = reordered.splice(fromIdx, 1);
-  reordered.splice(toIdx, 0, moved);
+  // targetIdx was found before the removal above - if the dragged stint
+  // sat earlier in the list, removing it shifts the target left by one.
+  let insertIdx = targetIdx;
+  if(fromIdx < targetIdx) insertIdx -= 1;
+  if(!before) insertIdx += 1;
+  reordered.splice(insertIdx, 0, moved);
   const { error } = await Promise.all(
     reordered.map((s, i) => pitwallClient.from('team_stints').update({ position: i }).eq('id', s.id))
   ).then(results => ({ error: results.find(r => r.error)?.error }));
