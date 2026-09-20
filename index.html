@@ -650,6 +650,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-row.dragging{opacity:0.4;}
 .stint-row.completed{opacity:0.5;}
 .stint-row.completed .stint-time{text-decoration:line-through;}
+.stint-row.active{background:rgba(34,197,94,0.12);border-radius:8px;padding:4px 6px;}
+.stint-row.active .stint-time{color:#22c55e;font-weight:700;}
 .stint-row.zero-laps{background:rgba(232,92,74,0.1);border-radius:8px;padding:4px 6px;}
 .stint-zero-warning{
   font-family:'JetBrains Mono',monospace;
@@ -2793,6 +2795,9 @@ async function saveEditorEvent(){
     showFormMessage('te-create-message', state.dateError);
     return;
   }
+  // event_date only has to be a valid placeholder until a real start date
+  // is picked (the column is not-null) - never fed back into the form (see
+  // refreshEventEditorPreview), so this default is invisible to the user.
   const patch = {
     name: state.name,
     event_date: state.startStr || new Date().toISOString().slice(0, 10),
@@ -2805,9 +2810,18 @@ async function saveEditorEvent(){
     showFormMessage('te-create-message', 'Konnte nicht gespeichert werden: ' + error.message);
     return;
   }
-  loadEventEditor();
+  refreshEventEditorPreview();
 }
 
+// Only called once, when a draft is first opened - never on every save/
+// refresh. slot_times is a derived cross-product of dates x times, so it
+// can't losslessly round-trip "only a date is set" or "only times are set
+// so far" back into separate fields; re-populating the form from it on
+// every change was wiping out whichever half the user hadn't filled in
+// yet (e.g. typing an end date reset it back to empty on the very next
+// autosave, since slot_times was still empty without a start date too).
+// The form inputs are the source of truth once editing starts - only the
+// live preview needs to reflect the saved state after that.
 function populateEditorForm(ev){
   document.getElementById('te-name').value = ev.name || '';
   const slotTimes = ev.slot_times || [];
@@ -2830,7 +2844,10 @@ function populateEditorForm(ev){
   });
 }
 
-async function loadEventEditor(){
+// Refreshes only the live preview card (and publish-button state) - safe
+// to call after any change, anywhere, without disturbing whatever the user
+// currently has typed into the form on the left.
+async function refreshEventEditorPreview(){
   if(!teEditorEventId) return;
   const { data: ev, error } = await pitwallClient.from('team_events').select('*').eq('id', teEditorEventId).maybeSingle();
   if(error || !ev){
@@ -2838,7 +2855,6 @@ async function loadEventEditor(){
     closeEventEditor();
     return;
   }
-  populateEditorForm(ev);
 
   const { data: teams, error: teamsError } = await pitwallClient
     .from('team_event_teams')
@@ -2860,12 +2876,19 @@ async function loadEventEditor(){
   publishBtn.title = canPublish ? '' : 'Name, Renndauer und mindestens eine Uhrzeit werden benötigt';
 }
 
-function openEventEditor(eventId){
+async function openEventEditor(eventId){
   teEditorEventId = eventId;
   teOpenSlot = {};
   document.getElementById('te-list-view').hidden = true;
   document.getElementById('te-editor-view').hidden = false;
-  loadEventEditor();
+  const { data: ev, error } = await pitwallClient.from('team_events').select('*').eq('id', eventId).maybeSingle();
+  if(error || !ev){
+    if(error) console.error('Load draft event failed:', error.message);
+    closeEventEditor();
+    return;
+  }
+  populateEditorForm(ev);
+  refreshEventEditorPreview();
 }
 
 function closeEventEditor(){
@@ -3710,7 +3733,12 @@ function renderStintPlan(team, ev){
 
     const row = document.createElement('div');
     row.className = 'stint-row' + (isZeroLaps ? ' zero-laps' : '');
-    if(stintEnd.getTime() <= Date.now()) row.classList.add('completed');
+    const now = Date.now();
+    if(stintEnd.getTime() <= now) row.classList.add('completed');
+    // Shown to everyone looking at this plan, not just team members - "who's
+    // on track right now" is useful to know regardless of whether you've
+    // joined.
+    if(stintStart.getTime() <= now && now < stintEnd.getTime()) row.classList.add('active');
     row.dataset.stintId = stint.id;
 
     if(iAmIn){
@@ -4432,7 +4460,7 @@ async function loadTeamEvents(){
   // changed, regardless of whether the change came from the (hidden)
   // editor preview itself or from elsewhere - every mutation in this file
   // already funnels back through loadTeamEvents().
-  if(teEditorEventId) loadEventEditor();
+  if(teEditorEventId) refreshEventEditorPreview();
 }
 
 let scheduleFirstLoadDone = false;
