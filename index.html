@@ -1006,6 +1006,7 @@ input:focus{outline:none;border-color:var(--violet);}
     </select>
 
     <div id="ref-times-table"></div>
+    <p class="ref-times-credit" id="ref-methodology-note" hidden></p>
     <p class="ref-times-credit">
       Quelle: <a id="ref-sheet-link" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml" target="_blank" rel="noopener">Ohne Speed's LMU laptimes spreadsheet</a>
       · Stand: <span id="ref-last-updated">–</span>
@@ -2093,15 +2094,47 @@ function parseCsvLine(line){
 // sheet owner reorders columns this parsing breaks silently (falls back
 // to "no data") - nothing we can guard against from the consuming side of
 // someone else's sheet.
+// lmuportal's own track list is the closest thing to ground truth for
+// "does this track actually exist in LMU" - the community sheet sometimes
+// carries entries for tracks that got renamed/aren't in the current game.
+// Cached like loadCarsByClass(); a failed fetch fails open (shows
+// everything) rather than hiding real data over a network hiccup.
+let lmuTrackNamesPromise = null;
+function loadLmuTrackNames(){
+  if(!lmuTrackNamesPromise){
+    lmuTrackNamesPromise = supabaseSelect('tracks', 'select=track_name,short_name,aliases')
+      .then(rows => {
+        const set = new Set();
+        rows.forEach(r => {
+          if(r.track_name) set.add(r.track_name.toLowerCase());
+          if(r.short_name) set.add(r.short_name.toLowerCase());
+          (r.aliases || []).forEach(a => set.add(a.toLowerCase()));
+        });
+        return set;
+      })
+      .catch(() => null);
+  }
+  return lmuTrackNamesPromise;
+}
+// The sheet appends a variant tag for some tracks, e.g. "Bahrain (wec)" /
+// "Bahrain (endurance)" - strip that before matching against the base
+// track name, but keep it in what's actually displayed.
+function isKnownLmuTrackName(name, knownTracks){
+  if(!knownTracks) return true;
+  const base = name.replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase();
+  return knownTracks.has(base);
+}
+
 async function fetchLmuReferenceRows(){
   const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pub?gid=1766901750&single=true&output=csv';
-  const res = await fetch(url);
+  const [res, knownTracks] = await Promise.all([fetch(url), loadLmuTrackNames()]);
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const text = await res.text();
   const rows = text.split('\r\n')
     .filter(line => line.trim())
     .map(parseCsvLine)
-    .filter(cols => cols.length > 16 && /^[A-Za-z0-9]+$/.test(cols[16]) && cols[1]);
+    .filter(cols => cols.length > 16 && /^[A-Za-z0-9]+$/.test(cols[16]) && cols[1])
+    .filter(cols => isKnownLmuTrackName(cols[1], knownTracks));
   return rows.map(cols => ({
     track: cols[1],
     class: cols[16],
@@ -2293,6 +2326,21 @@ async function renderReferenceTimes(){
 
 document.getElementById('ref-track-filter').addEventListener('change', renderReferenceTimes);
 document.getElementById('ref-refresh-btn').addEventListener('click', () => loadReferenceLapTimes(true));
+// ACC's sheet averages across several cars per track (Top 8 for GT3, Top 4
+// for GT4) instead of using a single car's best time - worth calling out
+// since it's a different methodology than it looks at a glance, and the
+// two classes in the same table don't even use the same car count.
+function updateReferenceMethodologyNote(){
+  const note = document.getElementById('ref-methodology-note');
+  if(referenceGame === 'acc'){
+    note.hidden = false;
+    note.textContent = 'Basis: Durchschnitt der Top-8-Fahrzeuge je Strecke für GT3, Top-4 für GT4 (nicht die Einzelbestzeit eines Autos).';
+  }else{
+    note.hidden = true;
+  }
+}
+updateReferenceMethodologyNote();
+
 document.querySelectorAll('#ref-game-filter .filter-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     if(btn.classList.contains('active')) return;
@@ -2303,6 +2351,7 @@ document.querySelectorAll('#ref-game-filter .filter-pill').forEach(btn => {
     link.href = g.sheetLink;
     link.textContent = g.sheetLabel;
     document.getElementById('ref-last-updated').textContent = '–';
+    updateReferenceMethodologyNote();
     loadReferenceLapTimes();
   });
 });
@@ -2581,7 +2630,7 @@ const ACC_CLASS_PRESETS = {
   GT3: { resource: 'Fuel', tankLiters: 120, consumptionPerLap: 3.0, paceFactor: 1.00 },
   GT4: { resource: 'Fuel', tankLiters: 65, consumptionPerLap: 2.4, paceFactor: 1.09 },
   GTC: { resource: 'Fuel', tankLiters: 100, consumptionPerLap: 2.8, paceFactor: 1.02 },
-  M2: { resource: 'Fuel', tankLiters: 60, consumptionPerLap: 2.2, paceFactor: 1.15 },
+  TCX: { resource: 'Fuel', tankLiters: 60, consumptionPerLap: 2.2, paceFactor: 1.15 },
 };
 const ACC_TRACK_PRESETS = {
   'Barcelona': { refLapSeconds: 102.43 },
@@ -2611,8 +2660,11 @@ const ACC_TRACK_PRESETS = {
   'Zolder': { refLapSeconds: 86.72 },
 };
 // Car roster per class for the "+ Neues Team" picker - GT3/tracks read off
-// the Ohne Speed ACC sheet (2026-09-20); GT4/GTC/M2 cars are ACC's known
-// content packs (no equivalent sheet column to read them from).
+// the Ohne Speed ACC sheet (2026-09-20); GT4/GTC/TCX rosters cross-checked
+// against coachdaveacademy.com's ACC car list (2026-09-20) since the sheet
+// itself doesn't break those down by car. GT2 isn't included - it's not
+// covered by the pace sheet this group uses, so there's no lap-time preset
+// for it either.
 // Plain labels, no parentheses - they get embedded as "Car (Class)" and
 // parsed back out via a regex that only expects one paren group at the end
 // (see detectClassPreset), same constraint the LMU class names already
@@ -2621,7 +2673,7 @@ const ACC_CLASSES = [
   { class_id: 'GT3', display_name: 'GT3' },
   { class_id: 'GT4', display_name: 'GT4' },
   { class_id: 'GTC', display_name: 'GTC' },
-  { class_id: 'M2', display_name: 'M2' },
+  { class_id: 'TCX', display_name: 'TCX' },
 ];
 const ACC_CARS_BY_CLASS = {
   GT3: [
@@ -2636,8 +2688,12 @@ const ACC_CARS_BY_CLASS = {
     'Porsche 718 Cayman GT4 Clubsport MR', 'Chevrolet Camaro GT4.R', 'Ginetta G55 GT4',
     'KTM X-Bow GT4', 'Maserati MC GT4', 'Alpine A110 GT4', 'Aston Martin Vantage AMR GT4',
   ],
-  GTC: ['Porsche 911 GT3 Cup (992)'],
-  M2: ['BMW M2 CS Racing'],
+  GTC: [
+    'Porsche 911 GT3 Cup (992) (2021)', 'Porsche 911 GT3 Cup (2017)',
+    'Lamborghini Huracán Super Trofeo EVO2 (2021)', 'Lamborghini Huracán Super Trofeo (2015)',
+    'Ferrari 488 Challenge Evo (2020)',
+  ],
+  TCX: ['BMW M2 CS (2020)'],
 };
 
 // How many laps a full charge/tank lasts, capped by an optional max stint
@@ -2698,7 +2754,7 @@ function detectClassPreset(team, ev){
   const match = (team.car || '').match(/\(([^)]+)\)\s*$/);
   const raw = (match ? match[1] : '').replace(/_ELMS$/i, '').trim().toUpperCase();
   if(ev && ev.game === 'acc'){
-    const accAliases = { GT3: 'GT3', GT4: 'GT4', GTC: 'GTC', CUP: 'GTC', M2: 'M2' };
+    const accAliases = { GT3: 'GT3', GT4: 'GT4', GTC: 'GTC', CUP: 'GTC', TCX: 'TCX', M2: 'TCX' };
     return accAliases[raw] || null;
   }
   const aliases = { LMH: 'Hypercar', HYPERCAR: 'Hypercar', LMP2: 'LMP2', LMP3: 'LMP3', GTE: 'GTE', LMGT3: 'LMGT3', GT3: 'LMGT3' };
