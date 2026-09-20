@@ -531,10 +531,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   padding:2px 7px;
 }
 .te-draft-note{color:var(--muted);font-size:12.5px;margin-top:8px;}
-.te-merge-box{background:rgba(255,176,32,0.08);border:1px solid rgba(255,176,32,0.3);border-radius:8px;padding:10px 12px;margin-top:10px;}
-.te-merge-label{font-size:12px;color:var(--amber);margin-bottom:8px;}
-.te-merge-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.te-merge-row select{width:auto;flex:1;min-width:180px;}
+.te-merge-box{margin-top:8px;}
+.te-merge-toggle{color:var(--amber);font-size:11px;}
+.te-merge-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+.te-merge-row select{width:auto;flex:1;min-width:160px;font-size:12px;padding:6px 8px;}
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;}
 .te-delete-btn:hover{color:var(--red);}
@@ -1242,7 +1242,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
               <button type="button" class="filter-pill" data-time="23:00">23:00</button>
             </div>
           </div>
-          <div class="field">
+          <div class="field" id="te-link-schedule-field">
             <label for="te-link-schedule">Schedule-Rennen verknüpfen (optional)</label>
             <select id="te-link-schedule">
               <option value="">Kein passendes Schedule-Rennen…</option>
@@ -2853,6 +2853,14 @@ function populateEditorForm(ev){
   document.querySelectorAll('#te-game-select .filter-pill').forEach(b => {
     b.classList.toggle('active', b.dataset.game === (ev.game || 'lmu'));
   });
+  updateScheduleLinkVisibility(ev.game || 'lmu');
+}
+
+// Schedule/lmuportal only ever covers LMU races, so linking only makes
+// sense there - ACC drafts never get a duplicate from Schedule to worry
+// about in the first place.
+function updateScheduleLinkVisibility(game){
+  document.getElementById('te-link-schedule-field').hidden = game !== 'lmu';
 }
 
 // Refreshes only the live preview card (and publish-button state) - safe
@@ -2984,6 +2992,7 @@ document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
 document.querySelectorAll('#te-game-select .filter-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#te-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    updateScheduleLinkVisibility(btn.dataset.game);
     saveEditorEvent();
   });
 });
@@ -4372,13 +4381,17 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
 function renderScheduleMergeControl(ev, candidates){
   const box = document.createElement('div');
   box.className = 'te-merge-box';
-  const label = document.createElement('div');
-  label.className = 'te-merge-label';
-  label.textContent = '⚠ Es gibt Schedule-Event(s) für dieses Spiel - könnte ein Duplikat sein.';
-  box.appendChild(label);
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'link-btn-inline te-merge-toggle';
+  toggle.textContent = '⚠ Mögliches Duplikat – Daten übertragen';
+  box.appendChild(toggle);
 
   const row = document.createElement('div');
   row.className = 'te-merge-row';
+  row.hidden = true;
+  toggle.addEventListener('click', () => { row.hidden = !row.hidden; });
   const select = document.createElement('select');
   candidates.forEach(c => {
     const opt = document.createElement('option');
@@ -4498,9 +4511,11 @@ function renderEventCard(ev, teams, carData, opts){
   // Schedule event is a likely accidental duplicate - offer to consolidate
   // onto the Schedule one (see mergeManualEventIntoSchedule) rather than
   // leaving people's already-built teams/stint plans stranded on the copy
-  // nobody else will find.
-  if(ev.source === 'manual' && !opts.isEditorPreview){
-    const candidates = (opts.autoEventCandidates || []).filter(c => (c.game || 'lmu') === (ev.game || 'lmu'));
+  // nobody else will find. Schedule/lmuportal only ever covers LMU, so
+  // this only ever applies to LMU events (auto-events are always LMU too,
+  // but gating explicitly on the event's own game keeps that obvious).
+  if(ev.source === 'manual' && (ev.game || 'lmu') === 'lmu' && !opts.isEditorPreview){
+    const candidates = opts.autoEventCandidates || [];
     if(candidates.length) card.appendChild(renderScheduleMergeControl(ev, candidates));
   }
 
