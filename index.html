@@ -618,6 +618,8 @@ input:focus{outline:none;border-color:var(--violet);}
   margin:14px 0 8px 0;
 }
 .stint-plan-title:first-child{margin-top:0;}
+.stint-plan-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.stint-mine-toggle{font-size:11.5px;}
 .stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .stint-row.dragging{opacity:0.4;}
 .stint-row.completed{opacity:0.5;}
@@ -2366,6 +2368,7 @@ document.querySelectorAll('#ref-game-filter .filter-pill').forEach(btn => {
 // start a new one. ----
 let teOpenSlot = {}; // eventId -> slotIso currently expanded, per event card
 let teOpenStintPlan = {}; // teamId -> whether its stint plan is expanded
+let teMyStintsOnly = {}; // teamId -> whether its stint plan is filtered to only the current user's stints
 let teSelectedTimes = new Set();
 let teSelectedGame = 'lmu'; // which game the new-event form currently creates for
 
@@ -3067,10 +3070,12 @@ function renderStintPlan(team, ev){
   const wrap = document.createElement('div');
   wrap.className = 'stint-plan';
 
+  const header = document.createElement('div');
+  header.className = 'stint-plan-header';
   const title = document.createElement('div');
   title.className = 'stint-plan-title';
   title.textContent = 'Stintplan';
-  wrap.appendChild(title);
+  header.appendChild(title);
 
   const members = team.team_event_members || [];
   const stints = team.team_stints || [];
@@ -3078,6 +3083,23 @@ function renderStintPlan(team, ev){
   const startMs = new Date(team.slot_time).getTime();
   const lapTime = team.est_lap_time_seconds;
   const live = isEventLiveForTeam(team, ev);
+  const myStintsOnly = !!teMyStintsOnly[team.id];
+
+  if(iAmIn){
+    const filterLabel = document.createElement('label');
+    filterLabel.className = 'lb-filter-toggle stint-mine-toggle';
+    const filterCheckbox = document.createElement('input');
+    filterCheckbox.type = 'checkbox';
+    filterCheckbox.checked = myStintsOnly;
+    filterCheckbox.addEventListener('change', () => {
+      teMyStintsOnly[team.id] = filterCheckbox.checked;
+      loadTeamEvents();
+    });
+    filterLabel.appendChild(filterCheckbox);
+    filterLabel.appendChild(document.createTextNode(' Nur meine Stints'));
+    header.appendChild(filterLabel);
+  }
+  wrap.appendChild(header);
 
   if(iAmIn) wrap.appendChild(renderStintCalculator(team, ev, stints));
 
@@ -3289,6 +3311,30 @@ function renderStintPlan(team, ev){
       unit.className = 'stint-duration-unit';
       unit.textContent = 'Runden';
       row.appendChild(unit);
+
+      // Separate from the laps field on purpose: laps assumes everyone
+      // keeps the planned pace, but someone fuel-saving (or pushing) genuinely
+      // drives longer or shorter than that without necessarily doing a
+      // different number of laps. Editing this only shifts this stint's own
+      // clock time (and, since every following start/end is just the
+      // running total of durations, every stint after it shifts too) -
+      // it doesn't touch laps or trigger the fuel/VE redistribution.
+      const minutesInput = document.createElement('input');
+      minutesInput.type = 'number';
+      minutesInput.className = 'stint-duration-input';
+      minutesInput.min = '1';
+      minutesInput.value = stint.duration_minutes;
+      minutesInput.title = 'Tatsächliche Stintzeit (z.B. länger durch Sprit sparen) - verschiebt nur die Uhrzeiten der folgenden Stints, nicht die Rundenverteilung';
+      minutesInput.addEventListener('change', () => {
+        const val = parseInt(minutesInput.value, 10);
+        if(!isNaN(val) && val > 0) updateStint(stint.id, { duration_minutes: val }, live);
+      });
+      row.appendChild(minutesInput);
+
+      const minutesUnit = document.createElement('span');
+      minutesUnit.className = 'stint-duration-unit';
+      minutesUnit.textContent = 'min';
+      row.appendChild(minutesUnit);
     }else{
       const lapsEl = document.createElement('span');
       lapsEl.className = 'stint-laps';
@@ -3341,7 +3387,8 @@ function renderStintPlan(team, ev){
       row.appendChild(driverText);
     }
 
-    wrap.appendChild(row);
+    const isMyStint = currentProfile && (stint.user_id === currentProfile.id || stint.spotter_id === currentProfile.id);
+    if(!myStintsOnly || isMyStint) wrap.appendChild(row);
   });
 
   if(iAmIn){
