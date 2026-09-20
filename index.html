@@ -35,6 +35,13 @@ body{
   color:var(--text);
   font-family:'Inter',sans-serif;
   padding:0 0 60px 0;
+  /* Safety net: an absolutely-positioned popover (tire menu, account
+     dropdown) or a fixed-width table anchored near the right edge would
+     otherwise widen the whole page and force a horizontal scrollbar on
+     narrow screens - clip instead of scroll. Nothing in the layout relies
+     on body-level horizontal scroll (wide tables/grids scroll within their
+     own wrapper instead). */
+  overflow-x:hidden;
 }
 
 /* ---- Header / signature: racing line divider ---- */
@@ -880,6 +887,22 @@ input:focus{outline:none;border-color:var(--violet);}
   .schedule-card{padding:14px 18px;}
   .mobile-toggle-btn{display:block;}
   .mobile-collapsible.collapsed{display:none;}
+
+  /* table-layout:fixed (see desktop rule) divides the table width evenly
+     across 7 columns so it fits without scrolling on a wide screen - on a
+     phone that leaves ~45px per column, nowhere near enough for a lap time
+     range like "1:44.48–1:45.51". Fall back to natural sizing and let the
+     wrapper's own horizontal scroll handle it instead - unavoidable at
+     this width no matter the layout. */
+  .ref-times-table{table-layout:auto;}
+  .ref-times-table th, .ref-times-table td{white-space:nowrap;padding:9px 10px;}
+
+  /* Tire popover is anchored to the icon's own position, which can land
+     anywhere along a wrapped stint row - anchoring its right edge instead
+     of its left keeps it from running past the right edge of a narrow
+     screen in the common case (icon sitting left-of-center in the row).
+  */
+  .stint-tire-menu{left:auto;right:0;}
 }
 
 /* ---- Wide desktop ---- */
