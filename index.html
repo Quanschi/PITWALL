@@ -1124,6 +1124,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .split-columns{flex-direction:row;gap:40px;align-items:flex-start;}
   .split-col-left{flex:0 0 460px;}
   .split-col-right{flex:1;max-width:none;}
+  /* The Sprit tab's form has more/longer fields (class picker, dual
+     Sprit+VE inputs, formation lap) than Team Events' create-form - give
+     it more room than the shared 460px default. */
+  #panel-fuelcalc .split-col-left{flex-basis:560px;}
 }
 
 /* ---- Pitwall-styled confirm dialog (replaces native confirm()) ---- */
@@ -5381,13 +5385,25 @@ function updateFuelCalc(){
   const pitStops = stintLaps.length - 1;
   const rawStartFuel = useFuel ? stintLaps[0] * consumption + formationFuel : null;
   const rawStartVe = useVe ? stintLaps[0] * veConsumption + formationVe : null;
-  const startFuel = useFuel ? Math.min(tank, rawStartFuel) : null;
-  const startVe = useVe ? Math.min(veTank, rawStartVe) : null;
+  // You start a race with a completely full tank and a full VE charge,
+  // regardless of how many laps stint 1 actually needs - unlike a mid-race
+  // pit stop, there's no "start light" option for the grid start. Only the
+  // warning below (checked against the raw need, not this) cares whether
+  // that first stint would have overflowed capacity anyway.
+  const startFuel = useFuel ? tank : null;
+  const startVe = useVe ? veTank : null;
+
+  // Fuel ratio: how much of a full tank one lap costs, as a percentage -
+  // a quick gut-check for roughly how many laps per tank, independent of
+  // the actual liter numbers. (Not the same "Fuel Ratio" LMU's own setup
+  // menu uses for the hybrid fuel/VE split - this is just consumption/tank.)
+  const fuelRatio = useFuel ? (consumption / tank) * 100 : null;
 
   let html = '<div class="fc-summary">';
   html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
   if(useFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
   if(useVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
+  if(useFuel) html += `Fuel Ratio: <strong>${fuelRatio.toFixed(1)}% Tank/Runde</strong><br>`;
   if(useFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
   if(useVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
@@ -5419,7 +5435,9 @@ function updateFuelCalc(){
     const fuelForStint = useFuel ? laps * consumption : null;
     const veForStint = useVe ? laps * veConsumption : null;
     const over = i === 0 && warnings.length > 0;
-    const refill = [useFuel ? `${fuelForStint.toFixed(1)}L` : null, useVe ? `${veForStint.toFixed(0)}%` : null].filter(Boolean).join(' / ');
+    const refill = i === 0
+      ? [useFuel ? `${startFuel.toFixed(1)}L` : null, useVe ? `${startVe.toFixed(0)}%` : null].filter(Boolean).join(' / ')
+      : [useFuel ? `${fuelForStint.toFixed(1)}L` : null, useVe ? `${veForStint.toFixed(0)}%` : null].filter(Boolean).join(' / ');
     html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
     if(useFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
     if(useVe) html += `<td>${veForStint.toFixed(0)}%</td>`;
