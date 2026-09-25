@@ -1460,7 +1460,9 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
     <button type="button" class="filter-pill" data-game="acc">ACC</button>
   </div>
 
-  <div class="auth-card" id="fuel-calc-card" style="max-width:520px;">
+  <div class="split-columns" style="max-width:1200px;">
+  <div class="split-col-left">
+  <div class="auth-card" id="fuel-calc-card">
     <div class="field">
       <label for="fc-class-select">Klasse</label>
       <select id="fc-class-select"></select>
@@ -1535,8 +1537,12 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
       <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
     </div>
+  </div>
+  </div>
 
+  <div class="split-col-right">
     <div id="fc-result"></div>
+  </div>
   </div>
 </div>
 
@@ -5356,10 +5362,16 @@ function updateFuelCalc(){
   const startFuel = hasFuel ? Math.min(tank, rawStartFuel) : null;
   const startVe = hasVe ? Math.min(veTank, rawStartVe) : null;
 
+  // Fuel ratio: how much of a full tank one lap costs, as a percentage -
+  // an easy gut-check for "roughly how many laps per tank" independent of
+  // the actual liter numbers.
+  const fuelRatio = hasFuel ? (consumption / tank) * 100 : null;
+
   let html = '<div class="fc-summary">';
   html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
   if(hasFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
   if(hasVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
+  if(hasFuel) html += `Fuel Ratio: <strong>${fuelRatio.toFixed(1)}% Tank/Runde</strong><br>`;
   if(hasFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
   if(hasVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
