@@ -5395,17 +5395,18 @@ function updateFuelCalc(){
   const startFuel = useFuel ? Math.min(tank, rawStartFuel) : null;
   const startVe = useVe ? veTank : null;
 
-  // Fuel ratio: how much of a full tank one lap costs, as a percentage -
-  // a quick gut-check for roughly how many laps per tank, independent of
-  // the actual liter numbers. (Not the same "Fuel Ratio" LMU's own setup
-  // menu uses for the hybrid fuel/VE split - this is just consumption/tank.)
-  const fuelRatio = useFuel ? (consumption / tank) * 100 : null;
+  // Fuel Ratio: liters of fuel carried per 1% (or MJ) of Virtual Energy -
+  // only meaningful with both resources active. A ratio matching the
+  // car's actual fuel/VE consumption per lap means both run out at
+  // exactly the same time - no dead weight from leftover fuel, no
+  // penalty risk from running dry on VE first.
+  const fuelRatio = (useFuel && useVe) ? consumption / veConsumption : null;
 
   let html = '<div class="fc-summary">';
   html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
   if(useFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
   if(useVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
-  if(useFuel) html += `Fuel Ratio: <strong>${fuelRatio.toFixed(1)}% Tank/Runde</strong><br>`;
+  if(useFuel && useVe) html += `Fuel Ratio: <strong>${fuelRatio.toFixed(2)}</strong> (L Sprit je 1% VE)<br>`;
   if(useFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
   if(useVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
