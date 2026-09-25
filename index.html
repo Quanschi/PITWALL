@@ -3796,6 +3796,17 @@ function formatSecondsToLapTime(totalSeconds){
   const s = totalSeconds - m * 60;
   return `${m}:${s.toFixed(3).padStart(6, '0')}`;
 }
+// Auto-inserts the m:ss.mmm punctuation as someone types digits into a lap
+// time field, so they never have to hit ":" or "." themselves - "146500"
+// becomes "1:46.500" live. Attach as an 'input' listener, registered before
+// whatever handler reads the field's value.
+function maskLapTimeInput(el){
+  const digits = el.value.replace(/\D/g, '').slice(0, 6);
+  let out = digits.slice(0, 1);
+  if(digits.length > 1) out += ':' + digits.slice(1, 3);
+  if(digits.length > 3) out += '.' + digits.slice(3, 6);
+  el.value = out;
+}
 
 function renderStintCalculator(team, ev, stints){
   const box = document.createElement('div');
@@ -3891,6 +3902,7 @@ function renderStintCalculator(team, ev, stints){
     lapTimeInput.placeholder = '1:46.500';
     lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
     lapTimeInput.className = 'stint-calc-input';
+    lapTimeInput.addEventListener('input', () => maskLapTimeInput(lapTimeInput));
 
     // Only Hypercar (LMU) runs on Virtual Energy - every ACC class and
     // every other LMU class uses plain fuel (tank + liters/lap) instead.
@@ -5444,6 +5456,7 @@ document.querySelectorAll('#fc-resource-select .filter-pill').forEach(btn => {
   });
 });
 document.getElementById('fc-formation-lap').addEventListener('change', updateFuelCalc);
+document.getElementById('fc-laptime').addEventListener('input', () => maskLapTimeInput(document.getElementById('fc-laptime')));
 [
   'fc-laptime', 'fc-tank', 'fc-consumption', 'fc-ve-consumption',
   'fc-duration-h', 'fc-duration-m', 'fc-lapcount',
