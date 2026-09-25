@@ -5499,6 +5499,16 @@ function updateFuelCalc(){
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
   html += '</div>';
 
+  // In LMU, fuel isn't dialed in per stop - the pit menu locks fuel to a
+  // ratio against the requested VE%, set once and left alone (recomputing
+  // it mid-race by hand is exactly the kind of mistake this calculator is
+  // meant to avoid). So this ratio is the one real input for the whole
+  // race: set it once before the green flag, then every stop only needs a
+  // VE% target and the matching fuel follows automatically.
+  if(useFuel && useVe){
+    html += `<p class="stint-calc-hint">Ratio ${fuelRatio.toFixed(2)} einmal vor dem Start im Boxenstopp-Menü einstellen - danach an jedem Stopp nur noch die gewünschte VE% wählen, der Sprit tankt automatisch passend mit.</p>`;
+  }
+
   if(useVe || maxLapsStintTime != null){
     html += `<div class="fc-limiting">Limitierender Faktor: ${escapeText(limitingFactor)} (${effectiveMaxLaps} Runden/Stint)</div>`;
   }
