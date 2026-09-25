@@ -5438,9 +5438,14 @@ function updateFuelCalc(){
     const fuelForStint = useFuel ? laps * consumption : null;
     const veForStint = useVe ? laps * veConsumption : null;
     const over = i === 0 && warnings.length > 0;
-    const refill = i === 0
-      ? [useFuel ? `${startFuel.toFixed(1)}L` : null, useVe ? `${startVe.toFixed(0)}%` : null].filter(Boolean).join(' / ')
-      : [useFuel ? `${fuelForStint.toFixed(1)}L` : null, useVe ? `${veForStint.toFixed(0)}%` : null].filter(Boolean).join(' / ');
+    // Fuel: only load what that stint actually needs (i===0 uses the
+    // capped/optimal startFuel, same reasoning as before). VE: always
+    // recharges to a full 100% at every stop, not just the first - unlike
+    // fuel there's no "top up less" choice, ever.
+    const refill = [
+      useFuel ? `${(i === 0 ? startFuel : fuelForStint).toFixed(1)}L` : null,
+      useVe ? `${veTank.toFixed(0)}%` : null,
+    ].filter(Boolean).join(' / ');
     html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
     if(useFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
     if(useVe) html += `<td>${veForStint.toFixed(0)}%</td>`;
