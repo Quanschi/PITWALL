@@ -855,18 +855,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .fc-stint-table-wrap{overflow-x:auto;}
 .fc-preset-row{display:flex;gap:8px;align-items:center;}
 .fc-preset-row select{flex:1;min-width:0;}
-.fc-advanced{margin-top:8px;}
-.fc-advanced summary{
-  cursor:pointer;
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;
-  letter-spacing:0.4px;
-  text-transform:uppercase;
-  color:var(--muted);
-  padding:4px 0;
-}
-.fc-advanced summary:hover{color:var(--text);}
-.fc-advanced[open] summary{margin-bottom:10px;}
 .stint-calc-apply{
   font-family:'JetBrains Mono',monospace;
   font-size:11.5px;
@@ -1491,11 +1479,11 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       </div>
     </div>
 
-    <p class="stint-plan-title">Fahrzeug</p>
     <div class="field">
       <label for="fc-class-select">Klasse</label>
       <select id="fc-class-select"></select>
     </div>
+
     <div class="field" id="fc-resource-field" hidden>
       <label>Energieart</label>
       <div class="filter-row" id="fc-resource-select">
@@ -1503,24 +1491,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
         <button type="button" class="filter-pill" data-resource="VE">VE (%)</button>
       </div>
     </div>
-    <div class="field" id="fc-tank-field">
-      <label for="fc-tank">Tank (Liter)</label>
-      <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
-    </div>
-    <div class="field" id="fc-consumption-field">
-      <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
-      <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
-    </div>
-    <div class="field" id="fc-ve-field" hidden>
-      <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
-      <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
-    </div>
 
-    <p class="stint-plan-title">Strecke &amp; Renndistanz</p>
-    <div class="field">
-      <label for="fc-laptime">Rundenzeit (mm:ss:mmm)</label>
-      <input type="text" id="fc-laptime" placeholder="01:46:500">
-    </div>
     <div class="field">
       <label>Modus</label>
       <div class="filter-row" id="fc-mode-select">
@@ -1528,6 +1499,12 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
         <button type="button" class="filter-pill" data-mode="laps">Rundenbasiert</button>
       </div>
     </div>
+
+    <div class="field">
+      <label for="fc-laptime">Rundenzeit (mm:ss:mmm)</label>
+      <input type="text" id="fc-laptime" placeholder="01:46:500">
+    </div>
+
     <div class="field" id="fc-duration-field">
       <label>Renndauer</label>
       <div class="laptime-inputs">
@@ -1542,28 +1519,40 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <input type="number" id="fc-lapcount" min="1" step="1" placeholder="z.B. 340">
     </div>
 
-    <details class="fc-advanced">
-      <summary>Erweiterte Optionen</summary>
-      <label class="lb-filter-toggle" style="display:block;margin:2px 0 10px 0;">
-        <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
-      </label>
-      <div class="field" id="fc-formation-fields" hidden>
-        <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
-        <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
-      </div>
-      <div class="field" id="fc-formation-ve-field" hidden>
-        <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
-        <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
-      </div>
-      <div class="field">
-        <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
-        <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
-      </div>
-      <div class="field">
-        <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
-        <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
-      </div>
-    </details>
+    <div class="field" id="fc-tank-field">
+      <label for="fc-tank">Tank (Liter)</label>
+      <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
+    </div>
+    <div class="field" id="fc-consumption-field">
+      <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
+      <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
+    </div>
+    <div class="field" id="fc-ve-field" hidden>
+      <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
+      <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
+    </div>
+
+    <label class="lb-filter-toggle" style="display:block;margin:6px 0 10px 0;">
+      <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
+    </label>
+    <div class="field" id="fc-formation-fields" hidden>
+      <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
+      <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
+    </div>
+    <div class="field" id="fc-formation-ve-field" hidden>
+      <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
+      <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
+    </div>
+
+    <div class="field">
+      <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
+      <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
+    </div>
+
+    <div class="field">
+      <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
+      <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
+    </div>
   </div>
   </div>
 
@@ -5447,14 +5436,28 @@ function updateFuelCalc(){
   const maxLapsVe = useVe ? Math.floor(veTank / veConsumption) : null;
   const maxLapsStintTime = (maxStintMinutes > 0) ? Math.max(1, Math.floor((maxStintMinutes * 60) / lapTimeSeconds)) : null;
 
-  // Whichever resource (or the stint-time cap) allows the fewest laps sets
-  // the real stint length - a Hypercar/LMGT3 team can be limited by either
-  // its tank or its Virtual Energy budget depending on setup.
+  // Virtual Energy, when present, is always the resource stints are planned
+  // around: the sanctioning body fixes how many laps a full 100% charge
+  // buys, so you always want to run a stint on full VE unless the race is
+  // finished before it's used up (only the last stint). Fuel tank size no
+  // longer shortens the stint - it's just reported for however many laps
+  // the VE-length stint turns out to be, and if it doesn't fit the tank
+  // that's a warning, not a shorter stint. Without VE, fuel (or an
+  // explicit stint-time cap) still sets stint length as before.
   let effectiveMaxLaps = null;
   let limitingFactor = null;
-  [[maxLapsFuel, 'Sprit'], [maxLapsVe, 'Virtual Energy'], [maxLapsStintTime, 'Max. Stint-Zeit']].forEach(([laps, label]) => {
-    if(laps != null && (effectiveMaxLaps == null || laps < effectiveMaxLaps)){ effectiveMaxLaps = laps; limitingFactor = label; }
-  });
+  if(useVe){
+    effectiveMaxLaps = maxLapsVe;
+    limitingFactor = 'Virtual Energy';
+    if(maxLapsStintTime != null && maxLapsStintTime < effectiveMaxLaps){
+      effectiveMaxLaps = maxLapsStintTime;
+      limitingFactor = 'Max. Stint-Zeit';
+    }
+  }else{
+    [[maxLapsFuel, 'Sprit'], [maxLapsStintTime, 'Max. Stint-Zeit']].forEach(([laps, label]) => {
+      if(laps != null && (effectiveMaxLaps == null || laps < effectiveMaxLaps)){ effectiveMaxLaps = laps; limitingFactor = label; }
+    });
+  }
 
   if(!(effectiveMaxLaps > 0)){
     result.innerHTML = '<p class="stint-calc-hint">Eingaben ergeben keine gültige Stintlänge (Tank/Verbrauch prüfen).</p>';
@@ -5492,19 +5495,37 @@ function updateFuelCalc(){
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
   html += '</div>';
 
-  if(maxLapsStintTime != null || (useFuel && useVe)){
+  if(useVe || maxLapsStintTime != null){
     html += `<div class="fc-limiting">Limitierender Faktor: ${escapeText(limitingFactor)} (${effectiveMaxLaps} Runden/Stint)</div>`;
   }
 
-  // Every stint's length already comes from the min of resource(s)/max-
-  // stint-time (effectiveMaxLaps), so none of them can individually exceed
-  // those limits - the one thing that CAN still overflow is the formation
-  // lap's extra consumption added on top of an already-full first stint.
+  // With VE present, stint length no longer comes from the fuel tank at
+  // all (see effectiveMaxLaps above) - so a stint's real fuel need CAN now
+  // exceed the tank, and that's exactly what needs flagging here, not just
+  // the formation lap's extra consumption on top of stint 1.
   const warnings = [];
-  if(formationOn && useFuel && rawStartFuel > tank + 0.05){
-    warnings.push(`Einführungsrunde passt nicht mehr in den Tank (${rawStartFuel.toFixed(1)}L nötig, ${tank.toFixed(1)}L Kapazität).`);
+  const overflowStints = new Set();
+  if(useFuel){
+    // Group identical-need stints (every full VE stint needs the same fuel)
+    // into one message instead of repeating it once per stint.
+    const overflowByNeed = new Map();
+    stintLaps.forEach((laps, i) => {
+      const need = i === 0 ? rawStartFuel : laps * consumption;
+      if(need > tank + 0.05){
+        overflowStints.add(i);
+        const key = need.toFixed(1);
+        if(!overflowByNeed.has(key)) overflowByNeed.set(key, []);
+        overflowByNeed.get(key).push(i + 1);
+      }
+    });
+    overflowByNeed.forEach((stintNumbers, need) => {
+      const label = stintNumbers.length > 1 ? `Stints ${stintNumbers[0]}–${stintNumbers[stintNumbers.length - 1]}` : `Stint ${stintNumbers[0]}`;
+      const verb = stintNumbers.length > 1 ? 'benötigen' : 'benötigt';
+      warnings.push(`${label} ${verb} mehr Sprit als der Tank fasst (${need}L nötig, ${tank.toFixed(1)}L Kapazität).`);
+    });
   }
   if(formationOn && useVe && rawStartVe > veTank + 0.05){
+    overflowStints.add(0);
     warnings.push(`Einführungsrunde passt nicht mehr ins VE-Budget (${rawStartVe.toFixed(0)}% nötig).`);
   }
   if(warnings.length) html += '<div class="fc-warning">' + warnings.map(w => '⚠ ' + escapeText(w)).join('<br>') + '</div>';
@@ -5528,7 +5549,7 @@ function updateFuelCalc(){
     const veForStint = useVe
       ? ((isFullStint && maxLapsVe === effectiveMaxLaps) ? veTank : laps * veConsumption)
       : null;
-    const over = i === 0 && warnings.length > 0;
+    const over = overflowStints.has(i);
     // Fuel: only load what that stint actually needs (i===0 uses the
     // capped/optimal startFuel, same reasoning as before). VE: always
     // recharges to a full 100% at every stop, not just the first - unlike
