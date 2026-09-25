@@ -5355,9 +5355,13 @@ function fcApplyClassPreset(){
     const fuelTank = preset.resource === 'Fuel' ? preset.tankLiters : preset.secondaryTankLiters;
     const fuelPerLap = preset.resource === 'Fuel' ? preset.consumptionPerLap : preset.secondaryConsumptionPerLap;
     const vePerLap = preset.resource === 'VE' ? preset.consumptionPercent : preset.secondaryConsumptionPercent;
-    if(fuelTank != null) document.getElementById('fc-tank').value = fuelTank;
-    if(fuelPerLap != null) document.getElementById('fc-consumption').value = fuelPerLap;
-    if(vePerLap != null) document.getElementById('fc-ve-consumption').value = vePerLap;
+    // Always set, clearing to '' when this class doesn't use that resource -
+    // otherwise a leftover value from a previously picked class stays in a
+    // hidden field and can silently resurface (e.g. after switching to
+    // "Eigene Werte", which reuses whatever's already in these inputs).
+    document.getElementById('fc-tank').value = fuelTank != null ? fuelTank : '';
+    document.getElementById('fc-consumption').value = fuelPerLap != null ? fuelPerLap : '';
+    document.getElementById('fc-ve-consumption').value = vePerLap != null ? vePerLap : '';
   }
   updateFuelCalc();
 }
@@ -5550,12 +5554,15 @@ function updateFuelCalc(){
       ? ((isFullStint && maxLapsVe === effectiveMaxLaps) ? veTank : laps * veConsumption)
       : null;
     const over = overflowStints.has(i);
-    // Fuel: only load what that stint actually needs (i===0 uses the
-    // capped/optimal startFuel, same reasoning as before). VE: always
+    // Fuel: only load what that stint actually needs, same reasoning as
+    // startFuel above - and since VE (not the tank) now sets stint length,
+    // that need can exceed what the tank holds, same as startFuel already
+    // capped for stint 1; every later stop needs the same cap, or it'd
+    // silently claim to load more fuel than physically fits. VE: always
     // recharges to a full 100% at every stop, not just the first - unlike
     // fuel there's no "top up less" choice, ever.
     const refill = [
-      useFuel ? `${(i === 0 ? startFuel : fuelForStint).toFixed(1)}L` : null,
+      useFuel ? `${Math.min(tank, i === 0 ? rawStartFuel : fuelForStint).toFixed(1)}L` : null,
       useVe ? `${veTank.toFixed(0)}%` : null,
     ].filter(Boolean).join(' / ');
     html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
