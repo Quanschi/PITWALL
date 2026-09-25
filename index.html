@@ -1485,8 +1485,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
     </div>
 
     <div class="field">
-      <label for="fc-laptime">Rundenzeit (m:ss.mmm)</label>
-      <input type="text" id="fc-laptime" placeholder="1:46.500">
+      <label for="fc-laptime">Rundenzeit (mm:ss:mmm)</label>
+      <input type="text" id="fc-laptime" placeholder="01:46:500">
     </div>
 
     <div class="field" id="fc-duration-field">
@@ -3794,17 +3794,17 @@ function formatSecondsToLapTime(totalSeconds){
   if(!(totalSeconds > 0)) return '';
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds - m * 60;
-  return `${m}:${s.toFixed(3).padStart(6, '0')}`;
+  return `${String(m).padStart(2, '0')}:${s.toFixed(3).padStart(6, '0').replace('.', ':')}`;
 }
-// Auto-inserts the m:ss.mmm punctuation as someone types digits into a lap
-// time field, so they never have to hit ":" or "." themselves - "146500"
-// becomes "1:46.500" live. Attach as an 'input' listener, registered before
+// Auto-inserts the mm:ss:mmm punctuation as someone types digits into a lap
+// time field, so they never have to hit ":" themselves - "0146500" becomes
+// "01:46:500" live. Attach as an 'input' listener, registered before
 // whatever handler reads the field's value.
 function maskLapTimeInput(el){
-  const digits = el.value.replace(/\D/g, '').slice(0, 6);
-  let out = digits.slice(0, 1);
-  if(digits.length > 1) out += ':' + digits.slice(1, 3);
-  if(digits.length > 3) out += '.' + digits.slice(3, 6);
+  const digits = el.value.replace(/\D/g, '').slice(0, 7);
+  let out = digits.slice(0, 2);
+  if(digits.length > 2) out += ':' + digits.slice(2, 4);
+  if(digits.length > 4) out += ':' + digits.slice(4, 7);
   el.value = out;
 }
 
@@ -3899,7 +3899,7 @@ function renderStintCalculator(team, ev, stints){
     }
     const lapTimeInput = document.createElement('input');
     lapTimeInput.type = 'text';
-    lapTimeInput.placeholder = '1:46.500';
+    lapTimeInput.placeholder = '01:46:500';
     lapTimeInput.value = formatSecondsToLapTime(team.est_lap_time_seconds);
     lapTimeInput.className = 'stint-calc-input';
     lapTimeInput.addEventListener('input', () => maskLapTimeInput(lapTimeInput));
@@ -3928,7 +3928,7 @@ function renderStintCalculator(team, ev, stints){
     const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
     const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
 
-    row.appendChild(field('Rundenzeit (m:ss.mmm)', lapTimeInput));
+    row.appendChild(field('Rundenzeit (mm:ss:mmm)', lapTimeInput));
     if(!isAcc) row.appendChild(field('Energieart', resourceSel));
     if(resourceType === 'Fuel') row.appendChild(field('Tank (Liter)', tankInput));
     row.appendChild(field(resourceType === 'Fuel' ? 'Verbrauch (Liter/Runde)' : 'VE-Verbrauch (%/Runde)', consumptionInput));
