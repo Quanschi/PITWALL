@@ -5292,19 +5292,29 @@ function updateFuelCalc(){
 
   const result = document.getElementById('fc-result');
   const lapTimeSeconds = parseLapTimeToSeconds(document.getElementById('fc-laptime').value);
-  const tank = hasFuel ? parseFloat(document.getElementById('fc-tank').value) : null;
-  const consumption = hasFuel ? parseFloat(document.getElementById('fc-consumption').value) : null;
-  const veTank = hasVe ? 100 : null;
-  const veConsumption = hasVe ? parseFloat(document.getElementById('fc-ve-consumption').value) : null;
+  const tankRaw = hasFuel ? parseFloat(document.getElementById('fc-tank').value) : null;
+  const consumptionRaw = hasFuel ? parseFloat(document.getElementById('fc-consumption').value) : null;
+  const veConsumptionRaw = hasVe ? parseFloat(document.getElementById('fc-ve-consumption').value) : null;
 
-  const missing = !(lapTimeSeconds > 0)
-    || (hasFuel && (!(tank > 0) || !(consumption > 0)))
-    || (hasVe && !(veConsumption > 0));
-  if(missing){
-    const need = ['Rundenzeit'];
-    if(hasFuel) need.push('Tank und Verbrauch');
-    if(hasVe) need.push('VE-Verbrauch');
-    result.innerHTML = `<p class="stint-calc-hint">${need.join(', ')} eintragen, um den Bedarf zu berechnen.</p>`;
+  // A dual-resource class (Hypercar/LMGT3) doesn't need both filled in to
+  // get a result - fill in just Sprit or just VE for a calculation based
+  // on that one, or both for the fuller picture (and the real limiting
+  // factor between them). Below this point "use*" means "actually has
+  // valid data and is part of this calculation", separate from "has*"
+  // (the class supports it, so its input field is shown at all).
+  const useFuel = hasFuel && tankRaw > 0 && consumptionRaw > 0;
+  const useVe = hasVe && veConsumptionRaw > 0;
+  const tank = useFuel ? tankRaw : null;
+  const consumption = useFuel ? consumptionRaw : null;
+  const veTank = useVe ? 100 : null;
+  const veConsumption = useVe ? veConsumptionRaw : null;
+
+  if(!(lapTimeSeconds > 0) || !(useFuel || useVe)){
+    let hint = 'Rundenzeit';
+    if(hasFuel && hasVe) hint += ' sowie Tank+Verbrauch oder VE-Verbrauch (mindestens eins von beiden)';
+    else if(hasFuel) hint += ', Tank und Verbrauch';
+    else if(hasVe) hint += ' und VE-Verbrauch';
+    result.innerHTML = `<p class="stint-calc-hint">${escapeText(hint)} eintragen, um den Bedarf zu berechnen.</p>`;
     return;
   }
 
@@ -5332,13 +5342,13 @@ function updateFuelCalc(){
   }
 
   const totalLaps = greenLaps + bufferLaps;
-  const totalFuelNeed = hasFuel ? totalLaps * consumption : null;
-  const totalVeNeed = hasVe ? totalLaps * veConsumption : null;
-  const formationFuel = (formationOn && hasFuel) ? (parseFloat(document.getElementById('fc-formation-fuel').value) || consumption) : 0;
-  const formationVe = (formationOn && hasVe) ? (parseFloat(document.getElementById('fc-formation-ve').value) || veConsumption) : 0;
+  const totalFuelNeed = useFuel ? totalLaps * consumption : null;
+  const totalVeNeed = useVe ? totalLaps * veConsumption : null;
+  const formationFuel = (formationOn && useFuel) ? (parseFloat(document.getElementById('fc-formation-fuel').value) || consumption) : 0;
+  const formationVe = (formationOn && useVe) ? (parseFloat(document.getElementById('fc-formation-ve').value) || veConsumption) : 0;
 
-  const maxLapsFuel = hasFuel ? Math.floor(tank / consumption) : null;
-  const maxLapsVe = hasVe ? Math.floor(veTank / veConsumption) : null;
+  const maxLapsFuel = useFuel ? Math.floor(tank / consumption) : null;
+  const maxLapsVe = useVe ? Math.floor(veTank / veConsumption) : null;
   const maxLapsStintTime = (maxStintMinutes > 0) ? Math.max(1, Math.floor((maxStintMinutes * 60) / lapTimeSeconds)) : null;
 
   // Whichever resource (or the stint-time cap) allows the fewest laps sets
@@ -5357,27 +5367,21 @@ function updateFuelCalc(){
 
   const stintLaps = fcSplitStints(totalLaps, effectiveMaxLaps);
   const pitStops = stintLaps.length - 1;
-  const rawStartFuel = hasFuel ? stintLaps[0] * consumption + formationFuel : null;
-  const rawStartVe = hasVe ? stintLaps[0] * veConsumption + formationVe : null;
-  const startFuel = hasFuel ? Math.min(tank, rawStartFuel) : null;
-  const startVe = hasVe ? Math.min(veTank, rawStartVe) : null;
-
-  // Fuel ratio: how much of a full tank one lap costs, as a percentage -
-  // an easy gut-check for "roughly how many laps per tank" independent of
-  // the actual liter numbers.
-  const fuelRatio = hasFuel ? (consumption / tank) * 100 : null;
+  const rawStartFuel = useFuel ? stintLaps[0] * consumption + formationFuel : null;
+  const rawStartVe = useVe ? stintLaps[0] * veConsumption + formationVe : null;
+  const startFuel = useFuel ? Math.min(tank, rawStartFuel) : null;
+  const startVe = useVe ? Math.min(veTank, rawStartVe) : null;
 
   let html = '<div class="fc-summary">';
   html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
-  if(hasFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
-  if(hasVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
-  if(hasFuel) html += `Fuel Ratio: <strong>${fuelRatio.toFixed(1)}% Tank/Runde</strong><br>`;
-  if(hasFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
-  if(hasVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
+  if(useFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
+  if(useVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
+  if(useFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
+  if(useVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
   html += '</div>';
 
-  if(maxLapsStintTime != null || (hasFuel && hasVe)){
+  if(maxLapsStintTime != null || (useFuel && useVe)){
     html += `<div class="fc-limiting">Limitierender Faktor: ${escapeText(limitingFactor)} (${effectiveMaxLaps} Runden/Stint)</div>`;
   }
 
@@ -5386,27 +5390,27 @@ function updateFuelCalc(){
   // those limits - the one thing that CAN still overflow is the formation
   // lap's extra consumption added on top of an already-full first stint.
   const warnings = [];
-  if(formationOn && hasFuel && rawStartFuel > tank + 0.05){
+  if(formationOn && useFuel && rawStartFuel > tank + 0.05){
     warnings.push(`Einführungsrunde passt nicht mehr in den Tank (${rawStartFuel.toFixed(1)}L nötig, ${tank.toFixed(1)}L Kapazität).`);
   }
-  if(formationOn && hasVe && rawStartVe > veTank + 0.05){
+  if(formationOn && useVe && rawStartVe > veTank + 0.05){
     warnings.push(`Einführungsrunde passt nicht mehr ins VE-Budget (${rawStartVe.toFixed(0)}% nötig).`);
   }
   if(warnings.length) html += '<div class="fc-warning">' + warnings.map(w => '⚠ ' + escapeText(w)).join('<br>') + '</div>';
 
   html += '<div class="fc-stint-table-wrap"><table class="fc-stint-table"><thead><tr><th>Stint</th><th>Runden</th><th>Dauer</th>';
-  if(hasFuel) html += '<th>Sprit</th>';
-  if(hasVe) html += '<th>VE</th>';
+  if(useFuel) html += '<th>Sprit</th>';
+  if(useVe) html += '<th>VE</th>';
   html += '<th>Nachfüllung</th></tr></thead><tbody>';
   stintLaps.forEach((laps, i) => {
     const minutes = (laps * lapTimeSeconds) / 60;
-    const fuelForStint = hasFuel ? laps * consumption : null;
-    const veForStint = hasVe ? laps * veConsumption : null;
+    const fuelForStint = useFuel ? laps * consumption : null;
+    const veForStint = useVe ? laps * veConsumption : null;
     const over = i === 0 && warnings.length > 0;
-    const refill = [hasFuel ? `${fuelForStint.toFixed(1)}L` : null, hasVe ? `${veForStint.toFixed(0)}%` : null].filter(Boolean).join(' / ');
+    const refill = [useFuel ? `${fuelForStint.toFixed(1)}L` : null, useVe ? `${veForStint.toFixed(0)}%` : null].filter(Boolean).join(' / ');
     html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
-    if(hasFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
-    if(hasVe) html += `<td>${veForStint.toFixed(0)}%</td>`;
+    if(useFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
+    if(useVe) html += `<td>${veForStint.toFixed(0)}%</td>`;
     html += `<td>${i === 0 ? '(Start) ' : ''}${refill}</td></tr>`;
   });
   html += '</tbody></table></div>';
