@@ -853,6 +853,20 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 }
 .fc-stint-table tr.over td{color:var(--red);}
 .fc-stint-table-wrap{overflow-x:auto;}
+.fc-preset-row{display:flex;gap:8px;align-items:center;}
+.fc-preset-row select{flex:1;min-width:0;}
+.fc-advanced{margin-top:8px;}
+.fc-advanced summary{
+  cursor:pointer;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:4px 0;
+}
+.fc-advanced summary:hover{color:var(--text);}
+.fc-advanced[open] summary{margin-bottom:10px;}
 .stint-calc-apply{
   font-family:'JetBrains Mono',monospace;
   font-size:11.5px;
@@ -1467,11 +1481,21 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   <div class="split-columns" style="max-width:1200px;">
   <div class="split-col-left">
   <div class="auth-card" id="fuel-calc-card">
+
+    <div class="field">
+      <label for="fc-preset-select">Preset</label>
+      <div class="fc-preset-row">
+        <select id="fc-preset-select"><option value="">– Preset laden –</option></select>
+        <button type="button" id="fc-preset-save-btn" class="adddrivers-add-btn" title="Aktuelle Werte als Preset speichern">💾</button>
+        <button type="button" id="fc-preset-delete-btn" class="adddrivers-add-btn" title="Preset löschen" hidden>✕</button>
+      </div>
+    </div>
+
+    <p class="stint-plan-title">Fahrzeug</p>
     <div class="field">
       <label for="fc-class-select">Klasse</label>
       <select id="fc-class-select"></select>
     </div>
-
     <div class="field" id="fc-resource-field" hidden>
       <label>Energieart</label>
       <div class="filter-row" id="fc-resource-select">
@@ -1479,7 +1503,24 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
         <button type="button" class="filter-pill" data-resource="VE">VE (%)</button>
       </div>
     </div>
+    <div class="field" id="fc-tank-field">
+      <label for="fc-tank">Tank (Liter)</label>
+      <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
+    </div>
+    <div class="field" id="fc-consumption-field">
+      <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
+      <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
+    </div>
+    <div class="field" id="fc-ve-field" hidden>
+      <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
+      <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
+    </div>
 
+    <p class="stint-plan-title">Strecke &amp; Renndistanz</p>
+    <div class="field">
+      <label for="fc-laptime">Rundenzeit (mm:ss:mmm)</label>
+      <input type="text" id="fc-laptime" placeholder="01:46:500">
+    </div>
     <div class="field">
       <label>Modus</label>
       <div class="filter-row" id="fc-mode-select">
@@ -1487,12 +1528,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
         <button type="button" class="filter-pill" data-mode="laps">Rundenbasiert</button>
       </div>
     </div>
-
-    <div class="field">
-      <label for="fc-laptime">Rundenzeit (mm:ss:mmm)</label>
-      <input type="text" id="fc-laptime" placeholder="01:46:500">
-    </div>
-
     <div class="field" id="fc-duration-field">
       <label>Renndauer</label>
       <div class="laptime-inputs">
@@ -1507,40 +1542,28 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <input type="number" id="fc-lapcount" min="1" step="1" placeholder="z.B. 340">
     </div>
 
-    <div class="field" id="fc-tank-field">
-      <label for="fc-tank">Tank (Liter)</label>
-      <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
-    </div>
-    <div class="field" id="fc-consumption-field">
-      <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
-      <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
-    </div>
-    <div class="field" id="fc-ve-field" hidden>
-      <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
-      <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
-    </div>
-
-    <label class="lb-filter-toggle" style="display:block;margin:6px 0 10px 0;">
-      <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
-    </label>
-    <div class="field" id="fc-formation-fields" hidden>
-      <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
-      <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
-    </div>
-    <div class="field" id="fc-formation-ve-field" hidden>
-      <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
-      <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
-    </div>
-
-    <div class="field">
-      <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
-      <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
-    </div>
-
-    <div class="field">
-      <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
-      <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
-    </div>
+    <details class="fc-advanced">
+      <summary>Erweiterte Optionen</summary>
+      <label class="lb-filter-toggle" style="display:block;margin:2px 0 10px 0;">
+        <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
+      </label>
+      <div class="field" id="fc-formation-fields" hidden>
+        <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
+        <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
+      </div>
+      <div class="field" id="fc-formation-ve-field" hidden>
+        <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
+        <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
+      </div>
+      <div class="field">
+        <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
+        <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
+      </div>
+      <div class="field">
+        <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
+        <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
+      </div>
+    </details>
   </div>
   </div>
 
@@ -2308,6 +2331,63 @@ function pitwallConfirm(message, { confirmText = 'Bestätigen', cancelText = 'Ab
     cancelBtn.addEventListener('click', onCancel);
     overlay.addEventListener('click', onOverlayClick);
     document.addEventListener('keydown', onKeydown);
+  });
+}
+
+// Same modal look as pitwallConfirm, but for a single line of text input
+// (e.g. naming a preset) - native prompt() doesn't match the rest of the
+// app's styled dialogs. Built dynamically like openAddDriversModal rather
+// than a static skeleton, since it needs its own input field.
+function pitwallPromptText(message, defaultValue){
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'pitwall-modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'pitwall-modal';
+    overlay.appendChild(modal);
+
+    const msgEl = document.createElement('p');
+    msgEl.className = 'pitwall-modal-message';
+    msgEl.textContent = message;
+    modal.appendChild(msgEl);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = defaultValue || '';
+    input.style.marginBottom = '16px';
+    modal.appendChild(input);
+
+    const actions = document.createElement('div');
+    actions.className = 'pitwall-modal-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'pitwall-modal-btn';
+    cancelBtn.textContent = 'Abbrechen';
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'pitwall-modal-btn primary';
+    confirmBtn.textContent = 'Speichern';
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    modal.appendChild(actions);
+
+    document.body.appendChild(overlay);
+    input.focus();
+    input.select();
+
+    function cleanup(result){
+      overlay.remove();
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onKeydown(e){
+      if(e.key === 'Escape') cleanup(null);
+      if(e.key === 'Enter'){ e.preventDefault(); cleanup(input.value.trim() || null); }
+    }
+    overlay.addEventListener('click', e => { if(e.target === overlay) cleanup(null); });
+    document.addEventListener('keydown', onKeydown);
+    cancelBtn.addEventListener('click', () => cleanup(null));
+    confirmBtn.addEventListener('click', () => cleanup(input.value.trim() || null));
   });
 }
 
@@ -5499,7 +5579,106 @@ document.getElementById('fc-laptime').addEventListener('input', () => maskLapTim
   'fc-duration-h', 'fc-duration-m', 'fc-lapcount',
   'fc-formation-fuel', 'fc-formation-ve', 'fc-buffer', 'fc-max-stint',
 ].forEach(id => document.getElementById(id).addEventListener('input', updateFuelCalc));
+
+// ---- Sprit tab presets: named snapshots of the whole form, saved to
+// localStorage (nothing server-side to protect, same as the rest of this
+// tab) so a regular team/car combo doesn't need re-entering every time. ----
+const FC_PRESETS_KEY = 'pitwall-fuel-presets';
+function fcLoadPresets(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(FC_PRESETS_KEY));
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(e){ return []; }
+}
+function fcSavePresetsList(list){
+  try{ localStorage.setItem(FC_PRESETS_KEY, JSON.stringify(list)); }catch(e){}
+}
+function fcCollectFormState(){
+  return {
+    game: fcGame,
+    mode: fcMode,
+    resource: fcResourceType,
+    klasse: document.getElementById('fc-class-select').value,
+    laptime: document.getElementById('fc-laptime').value,
+    durationH: document.getElementById('fc-duration-h').value,
+    durationM: document.getElementById('fc-duration-m').value,
+    lapcount: document.getElementById('fc-lapcount').value,
+    tank: document.getElementById('fc-tank').value,
+    consumption: document.getElementById('fc-consumption').value,
+    veConsumption: document.getElementById('fc-ve-consumption').value,
+    formationOn: document.getElementById('fc-formation-lap').checked,
+    formationFuel: document.getElementById('fc-formation-fuel').value,
+    formationVe: document.getElementById('fc-formation-ve').value,
+    buffer: document.getElementById('fc-buffer').value,
+    maxStint: document.getElementById('fc-max-stint').value,
+  };
+}
+function fcApplyFormState(state){
+  fcGame = state.game;
+  document.querySelectorAll('#fc-game-select .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.game === fcGame));
+  fcPopulateClasses(); // repopulates the class list for this game and auto-fills defaults, overwritten by the saved values right below
+  document.getElementById('fc-class-select').value = state.klasse;
+  fcMode = state.mode;
+  document.querySelectorAll('#fc-mode-select .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.mode === fcMode));
+  fcResourceType = state.resource;
+  document.querySelectorAll('#fc-resource-select .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.resource === fcResourceType));
+  document.getElementById('fc-laptime').value = state.laptime || '';
+  document.getElementById('fc-duration-h').value = state.durationH || '';
+  document.getElementById('fc-duration-m').value = state.durationM || '';
+  document.getElementById('fc-lapcount').value = state.lapcount || '';
+  document.getElementById('fc-tank').value = state.tank || '';
+  document.getElementById('fc-consumption').value = state.consumption || '';
+  document.getElementById('fc-ve-consumption').value = state.veConsumption || '';
+  document.getElementById('fc-formation-lap').checked = !!state.formationOn;
+  document.getElementById('fc-formation-fuel').value = state.formationFuel || '';
+  document.getElementById('fc-formation-ve').value = state.formationVe || '';
+  document.getElementById('fc-buffer').value = state.buffer || '';
+  document.getElementById('fc-max-stint').value = state.maxStint || '';
+  updateFuelCalc();
+}
+function fcPopulatePresetSelect(){
+  const select = document.getElementById('fc-preset-select');
+  const presets = fcLoadPresets();
+  select.innerHTML = '<option value="">– Preset laden –</option>'
+    + presets.map((p, i) => `<option value="${i}">${escapeText(p.name)}</option>`).join('');
+}
+
+document.getElementById('fc-preset-select').addEventListener('change', () => {
+  const select = document.getElementById('fc-preset-select');
+  document.getElementById('fc-preset-delete-btn').hidden = select.value === '';
+  if(select.value === '') return;
+  const preset = fcLoadPresets()[parseInt(select.value, 10)];
+  if(preset) fcApplyFormState(preset);
+});
+document.getElementById('fc-preset-save-btn').addEventListener('click', async () => {
+  const name = await pitwallPromptText('Name für dieses Preset:', '');
+  if(!name) return;
+  const presets = fcLoadPresets();
+  const state = fcCollectFormState();
+  state.name = name;
+  const existingIdx = presets.findIndex(p => p.name === name);
+  if(existingIdx !== -1) presets[existingIdx] = state;
+  else presets.push(state);
+  fcSavePresetsList(presets);
+  fcPopulatePresetSelect();
+  document.getElementById('fc-preset-select').value = presets.findIndex(p => p.name === name);
+  document.getElementById('fc-preset-delete-btn').hidden = false;
+});
+document.getElementById('fc-preset-delete-btn').addEventListener('click', async () => {
+  const select = document.getElementById('fc-preset-select');
+  const idx = parseInt(select.value, 10);
+  if(isNaN(idx)) return;
+  const presets = fcLoadPresets();
+  const name = presets[idx] ? presets[idx].name : '';
+  if(!(await pitwallConfirm(`Preset "${name}" wirklich löschen?`, { danger: true }))) return;
+  presets.splice(idx, 1);
+  fcSavePresetsList(presets);
+  fcPopulatePresetSelect();
+  document.getElementById('fc-preset-delete-btn').hidden = true;
+});
+
 fcPopulateClasses();
+fcPopulatePresetSelect();
 
 showPanel('schedule');
 
