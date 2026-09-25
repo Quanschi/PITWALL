@@ -1532,12 +1532,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
     </div>
 
-    <div class="field" id="fc-fcy-field" hidden>
-      <label for="fc-fcy">Geplante FCY/Safety-Car-Zeit (min, optional)</label>
-      <input type="number" id="fc-fcy" min="0" step="1" placeholder="optional">
-      <p class="stint-calc-hint" style="margin-top:6px;">Schätzung: während FCY ca. 60% Tempo (1.6x Rundenzeit) und die Hälfte des normalen Verbrauchs pro Runde - kein Wert aus dem Spiel, nur ein grober Anhaltspunkt.</p>
-    </div>
-
     <div id="fc-result"></div>
   </div>
 </div>
@@ -5211,13 +5205,6 @@ let fcGame = 'lmu';
 let fcMode = 'time';
 let fcResourceType = 'Fuel';
 
-// Rough, clearly-labelled estimates (not real game data) for what full-
-// course caution driving looks like - slower lap, lighter throttle. Used
-// only to shrink the green-flag lap count and its need a bit for any
-// FCY/Safety-Car minutes entered, not presented as exact.
-const FCY_PACE_FACTOR = 1.6;
-const FCY_CONSUMPTION_FACTOR = 0.5;
-
 function fcSplitStints(totalLaps, maxLapsPerStint){
   const numStints = Math.max(1, Math.ceil(totalLaps / maxLapsPerStint));
   let remaining = totalLaps;
@@ -5256,8 +5243,6 @@ function fcApplyClassPreset(){
 }
 
 function updateFuelCalc(){
-  const isLmu = fcGame === 'lmu';
-  document.getElementById('fc-fcy-field').hidden = !(isLmu && fcMode === 'time');
   document.getElementById('fc-duration-field').hidden = fcMode !== 'time';
   document.getElementById('fc-lapcount-field').hidden = fcMode !== 'laps';
   document.getElementById('fc-tank-field').hidden = fcResourceType !== 'Fuel';
@@ -5286,9 +5271,8 @@ function updateFuelCalc(){
   const bufferLapsRaw = document.getElementById('fc-buffer').value;
   const bufferLaps = bufferLapsRaw === '' ? 1 : Math.max(0, parseInt(bufferLapsRaw, 10) || 0);
   const maxStintMinutes = parseFloat(document.getElementById('fc-max-stint').value);
-  const fcyMinutes = (isLmu && fcMode === 'time') ? (parseFloat(document.getElementById('fc-fcy').value) || 0) : 0;
 
-  let greenLaps, fcyLaps = 0;
+  let greenLaps;
   if(fcMode === 'laps'){
     const lapcount = parseInt(document.getElementById('fc-lapcount').value, 10);
     if(!(lapcount > 0)){
@@ -5304,16 +5288,11 @@ function updateFuelCalc(){
       result.innerHTML = '<p class="stint-calc-hint">Renndauer eintragen, um den Bedarf zu berechnen.</p>';
       return;
     }
-    const greenMinutes = Math.max(0, durationMinutes - fcyMinutes);
-    greenLaps = Math.ceil((greenMinutes * 60) / lapTimeSeconds);
-    if(fcyMinutes > 0) fcyLaps = Math.ceil((fcyMinutes * 60) / (lapTimeSeconds * FCY_PACE_FACTOR));
+    greenLaps = Math.ceil((durationMinutes * 60) / lapTimeSeconds);
   }
 
-  const totalLaps = greenLaps + fcyLaps + bufferLaps;
-  // Buffer laps are driven at full pace/consumption (they're a safety
-  // margin, not an FCY estimate) - only the fcyLaps portion gets the
-  // reduced-consumption treatment.
-  const totalNeed = (greenLaps + bufferLaps) * consumption + fcyLaps * consumption * FCY_CONSUMPTION_FACTOR;
+  const totalLaps = greenLaps + bufferLaps;
+  const totalNeed = totalLaps * consumption;
   const formationConsumption = formationOn ? (parseFloat(document.getElementById('fc-formation-fuel').value) || consumption) : 0;
 
   const maxLapsResource = Math.floor(tank / consumption);
@@ -5334,7 +5313,7 @@ function updateFuelCalc(){
   const start = Math.min(tank, rawStart);
 
   let html = '<div class="fc-summary">';
-  html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer${fcyLaps ? `, ${fcyLaps} unter FCY` : ''})<br>`;
+  html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
   html += `Gesamtverbrauch: <strong>${totalNeed.toFixed(1)}${unit}</strong><br>`;
   html += `Start-${fcResourceType === 'Fuel' ? 'Tankfüllung' : 'VE'}: <strong>${start.toFixed(1)}${unit}</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
@@ -5395,7 +5374,7 @@ document.getElementById('fc-formation-lap').addEventListener('change', updateFue
 [
   'fc-laptime', 'fc-tank', 'fc-consumption', 'fc-ve-consumption',
   'fc-duration-h', 'fc-duration-m', 'fc-lapcount',
-  'fc-formation-fuel', 'fc-buffer', 'fc-max-stint', 'fc-fcy',
+  'fc-formation-fuel', 'fc-buffer', 'fc-max-stint',
 ].forEach(id => document.getElementById(id).addEventListener('input', updateFuelCalc));
 fcPopulateClasses();
 
