@@ -5385,12 +5385,14 @@ function updateFuelCalc(){
   const pitStops = stintLaps.length - 1;
   const rawStartFuel = useFuel ? stintLaps[0] * consumption + formationFuel : null;
   const rawStartVe = useVe ? stintLaps[0] * veConsumption + formationVe : null;
-  // You start a race with a completely full tank and a full VE charge,
-  // regardless of how many laps stint 1 actually needs - unlike a mid-race
-  // pit stop, there's no "start light" option for the grid start. Only the
-  // warning below (checked against the raw need, not this) cares whether
-  // that first stint would have overflowed capacity anyway.
-  const startFuel = useFuel ? tank : null;
+  // Virtual Energy always starts a race at a full 100% charge - fixed by
+  // the car/regulations, not a choice. Fuel is the opposite: the team
+  // chooses how much to load, and if something else (VE, or max stint
+  // time) already caps stint 1's length, carrying more fuel than those
+  // laps actually need is just dead weight for no benefit - so unlike VE,
+  // fuel starts at the minimum stint 1 needs, same as every later pit
+  // stop already does.
+  const startFuel = useFuel ? Math.min(tank, rawStartFuel) : null;
   const startVe = useVe ? veTank : null;
 
   // Fuel ratio: how much of a full tank one lap costs, as a percentage -
