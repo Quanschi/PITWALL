@@ -1521,6 +1521,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
       <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
     </div>
+    <div class="field" id="fc-formation-ve-field" hidden>
+      <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
+      <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
+    </div>
 
     <div class="field">
       <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
@@ -3592,17 +3596,28 @@ async function deleteTeam(teamId){
 
 // Rough ballpark presets to prefill the calculator with as few clicks as
 // possible - not official LMU data (we have no telemetry access), just
-// reasonable starting points the user is expected to check/adjust. Only
-// the Hypercar class runs on Virtual Energy (0-100% scale, hybrid energy
-// management) - LMP2/LMP3/GTE/LMGT3 are conventional combustion classes
-// and use plain fuel (tank size + liters/lap) instead. Pace factors are
-// relative to Hypercar; track paces are Hypercar reference laps.
+// reasonable starting points the user is expected to check/adjust. Hypercar
+// and LMGT3 both run on Virtual Energy (0-100% scale) *and* carry a
+// physical fuel tank, either of which can be the real limit on stint length
+// - `resource` is which one this preset's own tank/consumption/percent
+// fields describe (and what the Team Events stint calculator, which only
+// ever tracks one resource per team, defaults to); `secondary*` fields are
+// rough estimates for the other resource, used only by the standalone Sprit
+// tab's dual-tracking. LMP2/LMP3/GTE are conventional combustion classes
+// and use plain fuel only. Pace factors are relative to Hypercar; track
+// paces are Hypercar reference laps.
 const STINT_CLASS_PRESETS = {
-  Hypercar: { resource: 'VE', consumptionPercent: 4.0, paceFactor: 1.00 },
+  Hypercar: {
+    resource: 'VE', consumptionPercent: 4.0, paceFactor: 1.00,
+    secondaryResource: 'Fuel', secondaryTankLiters: 90, secondaryConsumptionPerLap: 2.6,
+  },
   LMP2: { resource: 'Fuel', tankLiters: 75, consumptionPerLap: 3.0, paceFactor: 1.07 },
   LMP3: { resource: 'Fuel', tankLiters: 75, consumptionPerLap: 2.6, paceFactor: 1.15 },
   GTE: { resource: 'Fuel', tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
-  LMGT3: { resource: 'Fuel', tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12 },
+  LMGT3: {
+    resource: 'Fuel', tankLiters: 90, consumptionPerLap: 2.5, paceFactor: 1.12,
+    secondaryResource: 'VE', secondaryConsumptionPercent: 4.0,
+  },
 };
 const STINT_TRACK_PRESETS = {
   'Le Mans': { refLapSeconds: 208.0 },
@@ -5225,19 +5240,33 @@ function fcPopulateClasses(){
   fcApplyClassPreset();
 }
 
+// Every real class carries a fuel tank; Hypercar and LMGT3 (in LMU) also
+// run on Virtual Energy at the same time, and either one can be the real
+// limit on stint length - see the STINT_CLASS_PRESETS comment. "Eigene
+// Werte" has no class to derive this from, so it falls back to whichever
+// single resource the manual toggle is set to.
+function fcCapabilities(){
+  const preset = classPresetsForGame(fcGame)[document.getElementById('fc-class-select').value];
+  if(preset){
+    return {
+      hasFuel: preset.resource === 'Fuel' || preset.secondaryResource === 'Fuel',
+      hasVe: preset.resource === 'VE' || preset.secondaryResource === 'VE',
+    };
+  }
+  return { hasFuel: fcResourceType === 'Fuel', hasVe: fcResourceType === 'VE' };
+}
+
 function fcApplyClassPreset(){
   const className = document.getElementById('fc-class-select').value;
   const preset = classPresetsForGame(fcGame)[className];
   document.getElementById('fc-resource-field').hidden = !!preset;
   if(preset){
-    fcResourceType = preset.resource;
-    document.querySelectorAll('#fc-resource-select .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.resource === fcResourceType));
-    if(preset.resource === 'Fuel'){
-      document.getElementById('fc-tank').value = preset.tankLiters;
-      document.getElementById('fc-consumption').value = preset.consumptionPerLap;
-    }else{
-      document.getElementById('fc-ve-consumption').value = preset.consumptionPercent;
-    }
+    const fuelTank = preset.resource === 'Fuel' ? preset.tankLiters : preset.secondaryTankLiters;
+    const fuelPerLap = preset.resource === 'Fuel' ? preset.consumptionPerLap : preset.secondaryConsumptionPerLap;
+    const vePerLap = preset.resource === 'VE' ? preset.consumptionPercent : preset.secondaryConsumptionPercent;
+    if(fuelTank != null) document.getElementById('fc-tank').value = fuelTank;
+    if(fuelPerLap != null) document.getElementById('fc-consumption').value = fuelPerLap;
+    if(vePerLap != null) document.getElementById('fc-ve-consumption').value = vePerLap;
   }
   updateFuelCalc();
 }
@@ -5245,26 +5274,31 @@ function fcApplyClassPreset(){
 function updateFuelCalc(){
   document.getElementById('fc-duration-field').hidden = fcMode !== 'time';
   document.getElementById('fc-lapcount-field').hidden = fcMode !== 'laps';
-  document.getElementById('fc-tank-field').hidden = fcResourceType !== 'Fuel';
-  document.getElementById('fc-consumption-field').hidden = fcResourceType !== 'Fuel';
-  document.getElementById('fc-ve-field').hidden = fcResourceType !== 'VE';
+
+  const { hasFuel, hasVe } = fcCapabilities();
+  document.getElementById('fc-tank-field').hidden = !hasFuel;
+  document.getElementById('fc-consumption-field').hidden = !hasFuel;
+  document.getElementById('fc-ve-field').hidden = !hasVe;
 
   const formationOn = document.getElementById('fc-formation-lap').checked;
-  document.getElementById('fc-formation-fields').hidden = !formationOn;
-  document.getElementById('fc-formation-fuel-label').textContent = fcResourceType === 'Fuel'
-    ? 'Verbrauch Einführungsrunde (Liter, optional)'
-    : 'Verbrauch Einführungsrunde (VE %, optional)';
+  document.getElementById('fc-formation-fields').hidden = !(formationOn && hasFuel);
+  document.getElementById('fc-formation-ve-field').hidden = !(formationOn && hasVe);
 
   const result = document.getElementById('fc-result');
   const lapTimeSeconds = parseLapTimeToSeconds(document.getElementById('fc-laptime').value);
-  const tank = fcResourceType === 'Fuel' ? parseFloat(document.getElementById('fc-tank').value) : 100;
-  const consumption = fcResourceType === 'Fuel'
-    ? parseFloat(document.getElementById('fc-consumption').value)
-    : parseFloat(document.getElementById('fc-ve-consumption').value);
-  const unit = fcResourceType === 'Fuel' ? 'L' : '%';
+  const tank = hasFuel ? parseFloat(document.getElementById('fc-tank').value) : null;
+  const consumption = hasFuel ? parseFloat(document.getElementById('fc-consumption').value) : null;
+  const veTank = hasVe ? 100 : null;
+  const veConsumption = hasVe ? parseFloat(document.getElementById('fc-ve-consumption').value) : null;
 
-  if(!(lapTimeSeconds > 0) || !(tank > 0) || !(consumption > 0)){
-    result.innerHTML = `<p class="stint-calc-hint">Rundenzeit${fcResourceType === 'Fuel' ? ', Tank und Verbrauch' : ' und VE-Verbrauch'} eintragen, um den Bedarf zu berechnen.</p>`;
+  const missing = !(lapTimeSeconds > 0)
+    || (hasFuel && (!(tank > 0) || !(consumption > 0)))
+    || (hasVe && !(veConsumption > 0));
+  if(missing){
+    const need = ['Rundenzeit'];
+    if(hasFuel) need.push('Tank und Verbrauch');
+    if(hasVe) need.push('VE-Verbrauch');
+    result.innerHTML = `<p class="stint-calc-hint">${need.join(', ')} eintragen, um den Bedarf zu berechnen.</p>`;
     return;
   }
 
@@ -5292,15 +5326,23 @@ function updateFuelCalc(){
   }
 
   const totalLaps = greenLaps + bufferLaps;
-  const totalNeed = totalLaps * consumption;
-  const formationConsumption = formationOn ? (parseFloat(document.getElementById('fc-formation-fuel').value) || consumption) : 0;
+  const totalFuelNeed = hasFuel ? totalLaps * consumption : null;
+  const totalVeNeed = hasVe ? totalLaps * veConsumption : null;
+  const formationFuel = (formationOn && hasFuel) ? (parseFloat(document.getElementById('fc-formation-fuel').value) || consumption) : 0;
+  const formationVe = (formationOn && hasVe) ? (parseFloat(document.getElementById('fc-formation-ve').value) || veConsumption) : 0;
 
-  const maxLapsResource = Math.floor(tank / consumption);
+  const maxLapsFuel = hasFuel ? Math.floor(tank / consumption) : null;
+  const maxLapsVe = hasVe ? Math.floor(veTank / veConsumption) : null;
   const maxLapsStintTime = (maxStintMinutes > 0) ? Math.max(1, Math.floor((maxStintMinutes * 60) / lapTimeSeconds)) : null;
 
-  let effectiveMaxLaps = maxLapsResource;
-  let limitingFactor = fcResourceType === 'Fuel' ? 'Sprit' : 'Virtual Energy';
-  if(maxLapsStintTime != null && maxLapsStintTime < effectiveMaxLaps){ effectiveMaxLaps = maxLapsStintTime; limitingFactor = 'Max. Stint-Zeit'; }
+  // Whichever resource (or the stint-time cap) allows the fewest laps sets
+  // the real stint length - a Hypercar/LMGT3 team can be limited by either
+  // its tank or its Virtual Energy budget depending on setup.
+  let effectiveMaxLaps = null;
+  let limitingFactor = null;
+  [[maxLapsFuel, 'Sprit'], [maxLapsVe, 'Virtual Energy'], [maxLapsStintTime, 'Max. Stint-Zeit']].forEach(([laps, label]) => {
+    if(laps != null && (effectiveMaxLaps == null || laps < effectiveMaxLaps)){ effectiveMaxLaps = laps; limitingFactor = label; }
+  });
 
   if(!(effectiveMaxLaps > 0)){
     result.innerHTML = '<p class="stint-calc-hint">Eingaben ergeben keine gültige Stintlänge (Tank/Verbrauch prüfen).</p>';
@@ -5309,36 +5351,51 @@ function updateFuelCalc(){
 
   const stintLaps = fcSplitStints(totalLaps, effectiveMaxLaps);
   const pitStops = stintLaps.length - 1;
-  const rawStart = stintLaps[0] * consumption + formationConsumption;
-  const start = Math.min(tank, rawStart);
+  const rawStartFuel = hasFuel ? stintLaps[0] * consumption + formationFuel : null;
+  const rawStartVe = hasVe ? stintLaps[0] * veConsumption + formationVe : null;
+  const startFuel = hasFuel ? Math.min(tank, rawStartFuel) : null;
+  const startVe = hasVe ? Math.min(veTank, rawStartVe) : null;
 
   let html = '<div class="fc-summary">';
   html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
-  html += `Gesamtverbrauch: <strong>${totalNeed.toFixed(1)}${unit}</strong><br>`;
-  html += `Start-${fcResourceType === 'Fuel' ? 'Tankfüllung' : 'VE'}: <strong>${start.toFixed(1)}${unit}</strong><br>`;
+  if(hasFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
+  if(hasVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
+  if(hasFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
+  if(hasVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
   html += '</div>';
 
-  if(maxLapsStintTime != null){
+  if(maxLapsStintTime != null || (hasFuel && hasVe)){
     html += `<div class="fc-limiting">Limitierender Faktor: ${escapeText(limitingFactor)} (${effectiveMaxLaps} Runden/Stint)</div>`;
   }
 
-  // Every stint's length already comes from the min of resource/max-stint-
-  // time (effectiveMaxLaps), so none of them can individually exceed those
-  // limits - the one thing that CAN still overflow is the formation lap's
-  // extra consumption added on top of an already-full first stint.
+  // Every stint's length already comes from the min of resource(s)/max-
+  // stint-time (effectiveMaxLaps), so none of them can individually exceed
+  // those limits - the one thing that CAN still overflow is the formation
+  // lap's extra consumption added on top of an already-full first stint.
   const warnings = [];
-  if(formationOn && rawStart > tank + 0.05){
-    warnings.push(`Einführungsrunde passt nicht mehr in ${fcResourceType === 'Fuel' ? 'den Tank' : 'das VE-Budget'} (${rawStart.toFixed(1)}${unit} nötig, ${tank.toFixed(1)}${unit} Kapazität).`);
+  if(formationOn && hasFuel && rawStartFuel > tank + 0.05){
+    warnings.push(`Einführungsrunde passt nicht mehr in den Tank (${rawStartFuel.toFixed(1)}L nötig, ${tank.toFixed(1)}L Kapazität).`);
+  }
+  if(formationOn && hasVe && rawStartVe > veTank + 0.05){
+    warnings.push(`Einführungsrunde passt nicht mehr ins VE-Budget (${rawStartVe.toFixed(0)}% nötig).`);
   }
   if(warnings.length) html += '<div class="fc-warning">' + warnings.map(w => '⚠ ' + escapeText(w)).join('<br>') + '</div>';
 
-  html += `<div class="fc-stint-table-wrap"><table class="fc-stint-table"><thead><tr><th>Stint</th><th>Runden</th><th>Dauer</th><th>${fcResourceType === 'Fuel' ? 'Sprit' : 'VE'}</th><th>Nachfüllung</th></tr></thead><tbody>`;
+  html += '<div class="fc-stint-table-wrap"><table class="fc-stint-table"><thead><tr><th>Stint</th><th>Runden</th><th>Dauer</th>';
+  if(hasFuel) html += '<th>Sprit</th>';
+  if(hasVe) html += '<th>VE</th>';
+  html += '<th>Nachfüllung</th></tr></thead><tbody>';
   stintLaps.forEach((laps, i) => {
     const minutes = (laps * lapTimeSeconds) / 60;
-    const need = laps * consumption;
+    const fuelForStint = hasFuel ? laps * consumption : null;
+    const veForStint = hasVe ? laps * veConsumption : null;
     const over = i === 0 && warnings.length > 0;
-    html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td><td>${need.toFixed(1)}${unit}</td><td>${i === 0 ? '(Start) ' : ''}${need.toFixed(1)}${unit}</td></tr>`;
+    const refill = [hasFuel ? `${fuelForStint.toFixed(1)}L` : null, hasVe ? `${veForStint.toFixed(0)}%` : null].filter(Boolean).join(' / ');
+    html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
+    if(hasFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
+    if(hasVe) html += `<td>${veForStint.toFixed(0)}%</td>`;
+    html += `<td>${i === 0 ? '(Start) ' : ''}${refill}</td></tr>`;
   });
   html += '</tbody></table></div>';
 
@@ -5374,7 +5431,7 @@ document.getElementById('fc-formation-lap').addEventListener('change', updateFue
 [
   'fc-laptime', 'fc-tank', 'fc-consumption', 'fc-ve-consumption',
   'fc-duration-h', 'fc-duration-m', 'fc-lapcount',
-  'fc-formation-fuel', 'fc-buffer', 'fc-max-stint',
+  'fc-formation-fuel', 'fc-formation-ve', 'fc-buffer', 'fc-max-stint',
 ].forEach(id => document.getElementById(id).addEventListener('input', updateFuelCalc));
 fcPopulateClasses();
 
