@@ -22,6 +22,7 @@
   --amber:#FFB020;
   --red:#E85C4A;
   --violet:#A78BFA;
+  --green:#22c55e;
   --shadow-md:0 8px 24px rgba(0,0,0,0.3);
   --ease:cubic-bezier(.4,0,.2,1);
 }
@@ -130,6 +131,11 @@ body{
   background:var(--violet);
   border-color:var(--violet);
   box-shadow:0 4px 16px rgba(167,139,250,0.28);
+}
+.tab.active.fuelcalc{
+  background:var(--green);
+  border-color:var(--green);
+  box-shadow:0 4px 16px rgba(34,197,94,0.28);
 }
 .tab:hover:not(.active){
   color:var(--text);
@@ -822,6 +828,31 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-calc-input{width:140px !important;}
 .stint-calc-result{font-size:12.5px;color:var(--text);margin-bottom:8px;}
 .stint-calc-hint{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.fc-summary{font-size:13.5px;color:var(--text);line-height:1.7;margin:14px 0;}
+.fc-summary strong{color:var(--green);}
+.fc-limiting{font-size:12.5px;color:var(--amber);margin-bottom:10px;}
+.fc-warning{font-size:12.5px;color:var(--red);margin:4px 0 10px 0;}
+.fc-stint-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px;}
+.fc-stint-table th{
+  text-align:left;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+.fc-stint-table td{
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;
+  color:var(--text);
+  white-space:nowrap;
+}
+.fc-stint-table tr.over td{color:var(--red);}
+.fc-stint-table-wrap{overflow-x:auto;}
 .stint-calc-apply{
   font-family:'JetBrains Mono',monospace;
   font-size:11.5px;
@@ -1245,6 +1276,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   <div class="tab active schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
   <div class="tab logbook" id="tab-logbook" onclick="showPanel('logbook')">Rundenzeiten</div>
   <div class="tab teamevents" id="tab-teamevents" onclick="showPanel('teamevents')">Team Events</div>
+  <div class="tab fuelcalc" id="tab-fuelcalc" onclick="showPanel('fuelcalc')">Sprit</div>
 </div>
 
 <!-- SCHEDULE -->
@@ -1418,6 +1450,96 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 
   </div>
 
+</div>
+
+<!-- FUEL CALC -->
+<div class="panel" id="panel-fuelcalc">
+  <p class="section-label" style="margin-top:0">Spiel</p>
+  <div class="filter-row" id="fc-game-select">
+    <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+    <button type="button" class="filter-pill" data-game="acc">ACC</button>
+  </div>
+
+  <div class="auth-card" id="fuel-calc-card" style="max-width:520px;">
+    <div class="field">
+      <label for="fc-class-select">Klasse</label>
+      <select id="fc-class-select"></select>
+    </div>
+
+    <div class="field" id="fc-resource-field" hidden>
+      <label>Energieart</label>
+      <div class="filter-row" id="fc-resource-select">
+        <button type="button" class="filter-pill active" data-resource="Fuel">Sprit (Liter)</button>
+        <button type="button" class="filter-pill" data-resource="VE">VE (%)</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Modus</label>
+      <div class="filter-row" id="fc-mode-select">
+        <button type="button" class="filter-pill active" data-mode="time">Zeitbasiert</button>
+        <button type="button" class="filter-pill" data-mode="laps">Rundenbasiert</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fc-laptime">Rundenzeit (m:ss.mmm)</label>
+      <input type="text" id="fc-laptime" placeholder="1:46.500">
+    </div>
+
+    <div class="field" id="fc-duration-field">
+      <label>Renndauer</label>
+      <div class="laptime-inputs">
+        <input type="number" id="fc-duration-h" min="0" max="48" placeholder="Std">
+        <span>h</span>
+        <input type="number" id="fc-duration-m" min="0" max="59" placeholder="Min">
+        <span>min</span>
+      </div>
+    </div>
+    <div class="field" id="fc-lapcount-field" hidden>
+      <label for="fc-lapcount">Anzahl Runden</label>
+      <input type="number" id="fc-lapcount" min="1" step="1" placeholder="z.B. 340">
+    </div>
+
+    <div class="field" id="fc-tank-field">
+      <label for="fc-tank">Tank (Liter)</label>
+      <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
+    </div>
+    <div class="field" id="fc-consumption-field">
+      <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
+      <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
+    </div>
+    <div class="field" id="fc-ve-field" hidden>
+      <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
+      <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
+    </div>
+
+    <label class="lb-filter-toggle" style="display:block;margin:6px 0 10px 0;">
+      <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
+    </label>
+    <div class="field" id="fc-formation-fields" hidden>
+      <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
+      <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
+    </div>
+
+    <div class="field">
+      <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
+      <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
+    </div>
+
+    <div class="field">
+      <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
+      <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
+    </div>
+
+    <div class="field" id="fc-fcy-field" hidden>
+      <label for="fc-fcy">Geplante FCY/Safety-Car-Zeit (min, optional)</label>
+      <input type="number" id="fc-fcy" min="0" step="1" placeholder="optional">
+      <p class="stint-calc-hint" style="margin-top:6px;">Schätzung: während FCY ca. 60% Tempo (1.6x Rundenzeit) und die Hälfte des normalen Verbrauchs pro Runde - kein Wert aus dem Spiel, nur ein grober Anhaltspunkt.</p>
+    </div>
+
+    <div id="fc-result"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -5062,6 +5184,8 @@ function showPanel(name){
   document.getElementById('tab-logbook').classList.toggle('active', name==='logbook');
   document.getElementById('panel-teamevents').classList.toggle('active', name==='teamevents');
   document.getElementById('tab-teamevents').classList.toggle('active', name==='teamevents');
+  document.getElementById('panel-fuelcalc').classList.toggle('active', name==='fuelcalc');
+  document.getElementById('tab-fuelcalc').classList.toggle('active', name==='fuelcalc');
   if(name === 'schedule' && !scheduleFirstLoadDone){
     scheduleFirstLoadDone = true;
     loadScheduleView();
@@ -5072,6 +5196,208 @@ function showPanel(name){
     loadReferenceLapTimes();
   }
 }
+
+// ---- Sprit tab: standalone fuel/VE calculator, not tied to any team or
+// event - just "how much fuel/VE do I need for this session, and what's
+// the stint plan". Not login-gated (pure client-side math, nothing to
+// protect). Picking a class drives the resource type off the same
+// STINT_CLASS_PRESETS/ACC_CLASS_PRESETS the Team Events stint calculator
+// already uses - in this app's existing model only Hypercar runs on
+// Virtual Energy, every other class (both games' GT classes included) is
+// plain fuel, and no class needs both tracked at once. "Eigene Werte"
+// falls back to a manual Sprit/VE toggle for anyone computing outside a
+// real class's defaults. ----
+let fcGame = 'lmu';
+let fcMode = 'time';
+let fcResourceType = 'Fuel';
+
+// Rough, clearly-labelled estimates (not real game data) for what full-
+// course caution driving looks like - slower lap, lighter throttle. Used
+// only to shrink the green-flag lap count and its need a bit for any
+// FCY/Safety-Car minutes entered, not presented as exact.
+const FCY_PACE_FACTOR = 1.6;
+const FCY_CONSUMPTION_FACTOR = 0.5;
+
+function fcSplitStints(totalLaps, maxLapsPerStint){
+  const numStints = Math.max(1, Math.ceil(totalLaps / maxLapsPerStint));
+  let remaining = totalLaps;
+  const stints = [];
+  for(let i = 0; i < numStints; i++){
+    const laps = i < numStints - 1 ? Math.min(maxLapsPerStint, remaining) : remaining;
+    stints.push(laps);
+    remaining -= laps;
+  }
+  return stints;
+}
+
+function fcPopulateClasses(){
+  const select = document.getElementById('fc-class-select');
+  const presets = classPresetsForGame(fcGame);
+  select.innerHTML = Object.keys(presets).map(k => `<option value="${k}">${k}</option>`).join('')
+    + '<option value="custom">Eigene Werte (manuell)</option>';
+  fcApplyClassPreset();
+}
+
+function fcApplyClassPreset(){
+  const className = document.getElementById('fc-class-select').value;
+  const preset = classPresetsForGame(fcGame)[className];
+  document.getElementById('fc-resource-field').hidden = !!preset;
+  if(preset){
+    fcResourceType = preset.resource;
+    document.querySelectorAll('#fc-resource-select .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.resource === fcResourceType));
+    if(preset.resource === 'Fuel'){
+      document.getElementById('fc-tank').value = preset.tankLiters;
+      document.getElementById('fc-consumption').value = preset.consumptionPerLap;
+    }else{
+      document.getElementById('fc-ve-consumption').value = preset.consumptionPercent;
+    }
+  }
+  updateFuelCalc();
+}
+
+function updateFuelCalc(){
+  const isLmu = fcGame === 'lmu';
+  document.getElementById('fc-fcy-field').hidden = !(isLmu && fcMode === 'time');
+  document.getElementById('fc-duration-field').hidden = fcMode !== 'time';
+  document.getElementById('fc-lapcount-field').hidden = fcMode !== 'laps';
+  document.getElementById('fc-tank-field').hidden = fcResourceType !== 'Fuel';
+  document.getElementById('fc-consumption-field').hidden = fcResourceType !== 'Fuel';
+  document.getElementById('fc-ve-field').hidden = fcResourceType !== 'VE';
+
+  const formationOn = document.getElementById('fc-formation-lap').checked;
+  document.getElementById('fc-formation-fields').hidden = !formationOn;
+  document.getElementById('fc-formation-fuel-label').textContent = fcResourceType === 'Fuel'
+    ? 'Verbrauch Einführungsrunde (Liter, optional)'
+    : 'Verbrauch Einführungsrunde (VE %, optional)';
+
+  const result = document.getElementById('fc-result');
+  const lapTimeSeconds = parseLapTimeToSeconds(document.getElementById('fc-laptime').value);
+  const tank = fcResourceType === 'Fuel' ? parseFloat(document.getElementById('fc-tank').value) : 100;
+  const consumption = fcResourceType === 'Fuel'
+    ? parseFloat(document.getElementById('fc-consumption').value)
+    : parseFloat(document.getElementById('fc-ve-consumption').value);
+  const unit = fcResourceType === 'Fuel' ? 'L' : '%';
+
+  if(!(lapTimeSeconds > 0) || !(tank > 0) || !(consumption > 0)){
+    result.innerHTML = `<p class="stint-calc-hint">Rundenzeit${fcResourceType === 'Fuel' ? ', Tank und Verbrauch' : ' und VE-Verbrauch'} eintragen, um den Bedarf zu berechnen.</p>`;
+    return;
+  }
+
+  const bufferLapsRaw = document.getElementById('fc-buffer').value;
+  const bufferLaps = bufferLapsRaw === '' ? 1 : Math.max(0, parseInt(bufferLapsRaw, 10) || 0);
+  const maxStintMinutes = parseFloat(document.getElementById('fc-max-stint').value);
+  const fcyMinutes = (isLmu && fcMode === 'time') ? (parseFloat(document.getElementById('fc-fcy').value) || 0) : 0;
+
+  let greenLaps, fcyLaps = 0;
+  if(fcMode === 'laps'){
+    const lapcount = parseInt(document.getElementById('fc-lapcount').value, 10);
+    if(!(lapcount > 0)){
+      result.innerHTML = '<p class="stint-calc-hint">Anzahl Runden eintragen, um den Bedarf zu berechnen.</p>';
+      return;
+    }
+    greenLaps = lapcount;
+  }else{
+    const hours = parseInt(document.getElementById('fc-duration-h').value, 10) || 0;
+    const minutes = parseInt(document.getElementById('fc-duration-m').value, 10) || 0;
+    const durationMinutes = hours * 60 + minutes;
+    if(!(durationMinutes > 0)){
+      result.innerHTML = '<p class="stint-calc-hint">Renndauer eintragen, um den Bedarf zu berechnen.</p>';
+      return;
+    }
+    const greenMinutes = Math.max(0, durationMinutes - fcyMinutes);
+    greenLaps = Math.ceil((greenMinutes * 60) / lapTimeSeconds);
+    if(fcyMinutes > 0) fcyLaps = Math.ceil((fcyMinutes * 60) / (lapTimeSeconds * FCY_PACE_FACTOR));
+  }
+
+  const totalLaps = greenLaps + fcyLaps + bufferLaps;
+  // Buffer laps are driven at full pace/consumption (they're a safety
+  // margin, not an FCY estimate) - only the fcyLaps portion gets the
+  // reduced-consumption treatment.
+  const totalNeed = (greenLaps + bufferLaps) * consumption + fcyLaps * consumption * FCY_CONSUMPTION_FACTOR;
+  const formationConsumption = formationOn ? (parseFloat(document.getElementById('fc-formation-fuel').value) || consumption) : 0;
+
+  const maxLapsResource = Math.floor(tank / consumption);
+  const maxLapsStintTime = (maxStintMinutes > 0) ? Math.max(1, Math.floor((maxStintMinutes * 60) / lapTimeSeconds)) : null;
+
+  let effectiveMaxLaps = maxLapsResource;
+  let limitingFactor = fcResourceType === 'Fuel' ? 'Sprit' : 'Virtual Energy';
+  if(maxLapsStintTime != null && maxLapsStintTime < effectiveMaxLaps){ effectiveMaxLaps = maxLapsStintTime; limitingFactor = 'Max. Stint-Zeit'; }
+
+  if(!(effectiveMaxLaps > 0)){
+    result.innerHTML = '<p class="stint-calc-hint">Eingaben ergeben keine gültige Stintlänge (Tank/Verbrauch prüfen).</p>';
+    return;
+  }
+
+  const stintLaps = fcSplitStints(totalLaps, effectiveMaxLaps);
+  const pitStops = stintLaps.length - 1;
+  const rawStart = stintLaps[0] * consumption + formationConsumption;
+  const start = Math.min(tank, rawStart);
+
+  let html = '<div class="fc-summary">';
+  html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer${fcyLaps ? `, ${fcyLaps} unter FCY` : ''})<br>`;
+  html += `Gesamtverbrauch: <strong>${totalNeed.toFixed(1)}${unit}</strong><br>`;
+  html += `Start-${fcResourceType === 'Fuel' ? 'Tankfüllung' : 'VE'}: <strong>${start.toFixed(1)}${unit}</strong><br>`;
+  html += `Boxenstopps: <strong>${pitStops}</strong>`;
+  html += '</div>';
+
+  if(maxLapsStintTime != null){
+    html += `<div class="fc-limiting">Limitierender Faktor: ${escapeText(limitingFactor)} (${effectiveMaxLaps} Runden/Stint)</div>`;
+  }
+
+  // Every stint's length already comes from the min of resource/max-stint-
+  // time (effectiveMaxLaps), so none of them can individually exceed those
+  // limits - the one thing that CAN still overflow is the formation lap's
+  // extra consumption added on top of an already-full first stint.
+  const warnings = [];
+  if(formationOn && rawStart > tank + 0.05){
+    warnings.push(`Einführungsrunde passt nicht mehr in ${fcResourceType === 'Fuel' ? 'den Tank' : 'das VE-Budget'} (${rawStart.toFixed(1)}${unit} nötig, ${tank.toFixed(1)}${unit} Kapazität).`);
+  }
+  if(warnings.length) html += '<div class="fc-warning">' + warnings.map(w => '⚠ ' + escapeText(w)).join('<br>') + '</div>';
+
+  html += `<div class="fc-stint-table-wrap"><table class="fc-stint-table"><thead><tr><th>Stint</th><th>Runden</th><th>Dauer</th><th>${fcResourceType === 'Fuel' ? 'Sprit' : 'VE'}</th><th>Nachfüllung</th></tr></thead><tbody>`;
+  stintLaps.forEach((laps, i) => {
+    const minutes = (laps * lapTimeSeconds) / 60;
+    const need = laps * consumption;
+    const over = i === 0 && warnings.length > 0;
+    html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td><td>${need.toFixed(1)}${unit}</td><td>${i === 0 ? '(Start) ' : ''}${need.toFixed(1)}${unit}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  result.innerHTML = html;
+}
+
+document.querySelectorAll('#fc-game-select .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('active')) return;
+    fcGame = btn.dataset.game;
+    document.querySelectorAll('#fc-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    fcPopulateClasses();
+  });
+});
+document.getElementById('fc-class-select').addEventListener('change', fcApplyClassPreset);
+document.querySelectorAll('#fc-mode-select .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('active')) return;
+    fcMode = btn.dataset.mode;
+    document.querySelectorAll('#fc-mode-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    updateFuelCalc();
+  });
+});
+document.querySelectorAll('#fc-resource-select .filter-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('active')) return;
+    fcResourceType = btn.dataset.resource;
+    document.querySelectorAll('#fc-resource-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
+    updateFuelCalc();
+  });
+});
+document.getElementById('fc-formation-lap').addEventListener('change', updateFuelCalc);
+[
+  'fc-laptime', 'fc-tank', 'fc-consumption', 'fc-ve-consumption',
+  'fc-duration-h', 'fc-duration-m', 'fc-lapcount',
+  'fc-formation-fuel', 'fc-buffer', 'fc-max-stint', 'fc-fcy',
+].forEach(id => document.getElementById(id).addEventListener('input', updateFuelCalc));
+fcPopulateClasses();
 
 showPanel('schedule');
 
