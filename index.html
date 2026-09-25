@@ -5472,15 +5472,17 @@ function updateFuelCalc(){
   const pitStops = stintLaps.length - 1;
   const rawStartFuel = useFuel ? stintLaps[0] * consumption + formationFuel : null;
   const rawStartVe = useVe ? stintLaps[0] * veConsumption + formationVe : null;
-  // Virtual Energy always starts a race at a full 100% charge - fixed by
-  // the car/regulations, not a choice. Fuel is the opposite: the team
-  // chooses how much to load, and if something else (VE, or max stint
-  // time) already caps stint 1's length, carrying more fuel than those
-  // laps actually need is just dead weight for no benefit - so unlike VE,
-  // fuel starts at the minimum stint 1 needs, same as every later pit
-  // stop already does.
+  // Virtual Energy starts a race at a full 100% charge whenever stint 1 is
+  // a full (not the only/last) stint - no benefit to asking for less when
+  // the whole charge gets used. Fuel is the opposite: the team chooses how
+  // much to load, and if something else (VE, or max stint time) already
+  // caps stint 1's length, carrying more fuel than those laps actually
+  // need is just dead weight for no benefit - so unlike VE, fuel starts at
+  // the minimum stint 1 needs, same as every later pit stop already does.
   const startFuel = useFuel ? Math.min(tank, rawStartFuel) : null;
-  const startVe = useVe ? veTank : null;
+  const startVe = useVe
+    ? ((stintLaps.length > 1 && maxLapsVe === effectiveMaxLaps) ? veTank : stintLaps[0] * veConsumption)
+    : null;
 
   // Fuel Ratio: liters of fuel carried per 1% (or MJ) of Virtual Energy -
   // only meaningful with both resources active. A ratio matching the
@@ -5498,16 +5500,6 @@ function updateFuelCalc(){
   if(useVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
   html += `Boxenstopps: <strong>${pitStops}</strong>`;
   html += '</div>';
-
-  // In LMU, fuel isn't dialed in per stop - the pit menu locks fuel to a
-  // ratio against the requested VE%, set once and left alone (recomputing
-  // it mid-race by hand is exactly the kind of mistake this calculator is
-  // meant to avoid). So this ratio is the one real input for the whole
-  // race: set it once before the green flag, then every stop only needs a
-  // VE% target and the matching fuel follows automatically.
-  if(useFuel && useVe){
-    html += `<p class="stint-calc-hint">Ratio ${fuelRatio.toFixed(2)} einmal vor dem Start im Boxenstopp-Menü einstellen - danach an jedem Stopp nur noch die gewünschte VE% wählen, der Sprit tankt automatisch passend mit.</p>`;
-  }
 
   if(useVe || maxLapsStintTime != null){
     html += `<div class="fc-limiting">Limitierender Faktor: ${escapeText(limitingFactor)} (${effectiveMaxLaps} Runden/Stint)</div>`;
@@ -5568,12 +5560,14 @@ function updateFuelCalc(){
     // startFuel above - and since VE (not the tank) now sets stint length,
     // that need can exceed what the tank holds, same as startFuel already
     // capped for stint 1; every later stop needs the same cap, or it'd
-    // silently claim to load more fuel than physically fits. VE: always
-    // recharges to a full 100% at every stop, not just the first - unlike
-    // fuel there's no "top up less" choice, ever.
+    // silently claim to load more fuel than physically fits. VE: a full
+    // stint always tops back up to 100% (there's no benefit to asking for
+    // less when you're going to use it all), but the shorter final stint
+    // only needs however much it actually burns - same veForStint value
+    // already shown in the VE column, not a flat 100% regardless of need.
     const refill = [
       useFuel ? `${Math.min(tank, i === 0 ? rawStartFuel : fuelForStint).toFixed(1)}L` : null,
-      useVe ? `${veTank.toFixed(0)}%` : null,
+      useVe ? `${veForStint.toFixed(0)}%` : null,
     ].filter(Boolean).join(' / ');
     html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
     if(useFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
