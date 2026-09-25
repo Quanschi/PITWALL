@@ -5311,10 +5311,20 @@ let fcGame = 'lmu';
 let fcMode = 'time';
 let fcResourceType = 'Fuel';
 
-function fcSplitStints(totalLaps, maxLapsPerStint){
-  const numStints = Math.max(1, Math.ceil(totalLaps / maxLapsPerStint));
-  let remaining = totalLaps;
+// firstStintMaxLaps: an optional smaller cap for stint 1 only (a formation
+// lap eats into the resource driving stint length before the race even
+// starts, so stint 1 has less of it left for racing laps than every later
+// stint does). The laps that don't fit in a shorter stint 1 aren't lost -
+// they land on whichever later stint ends up absorbing the difference,
+// same as any other remainder.
+function fcSplitStints(totalLaps, maxLapsPerStint, firstStintMaxLaps){
   const stints = [];
+  let remaining = totalLaps;
+  if(firstStintMaxLaps != null && firstStintMaxLaps < maxLapsPerStint && remaining > firstStintMaxLaps){
+    stints.push(firstStintMaxLaps);
+    remaining -= firstStintMaxLaps;
+  }
+  const numStints = Math.max(1, Math.ceil(remaining / maxLapsPerStint));
   for(let i = 0; i < numStints; i++){
     const laps = i < numStints - 1 ? Math.min(maxLapsPerStint, remaining) : remaining;
     stints.push(laps);
@@ -5468,10 +5478,25 @@ function updateFuelCalc(){
     return;
   }
 
-  const stintLaps = fcSplitStints(totalLaps, effectiveMaxLaps);
+  // A formation lap eats into the resource actually driving stint length
+  // before the race even starts, so stint 1 has less of it left for racing
+  // laps than every later stint does - shrink stint 1's own cap instead of
+  // just warning it doesn't fit. The laps that don't fit in a shorter
+  // stint 1 aren't lost, they land on whichever later stint (usually the
+  // last one) ends up absorbing the remainder.
+  let firstStintMaxLaps = null;
+  if(formationOn){
+    if(useVe) firstStintMaxLaps = Math.floor((veTank - formationVe) / veConsumption);
+    else if(useFuel) firstStintMaxLaps = Math.floor((tank - formationFuel) / consumption);
+  }
+  if(firstStintMaxLaps != null && firstStintMaxLaps <= 0){
+    result.innerHTML = '<p class="stint-calc-hint">Die Einführungsrunde verbraucht allein schon mehr als das verfügbare Budget für Stint 1 - Verbrauch prüfen.</p>';
+    return;
+  }
+
+  const stintLaps = fcSplitStints(totalLaps, effectiveMaxLaps, firstStintMaxLaps);
   const pitStops = stintLaps.length - 1;
   const rawStartFuel = useFuel ? stintLaps[0] * consumption + formationFuel : null;
-  const rawStartVe = useVe ? stintLaps[0] * veConsumption + formationVe : null;
   // Virtual Energy starts a race at a full 100% charge whenever stint 1 is
   // a full (not the only/last) stint - no benefit to asking for less when
   // the whole charge gets used. Fuel is the opposite: the team chooses how
@@ -5529,10 +5554,6 @@ function updateFuelCalc(){
       const verb = stintNumbers.length > 1 ? 'benötigen' : 'benötigt';
       warnings.push(`${label} ${verb} mehr Sprit als der Tank fasst (${need}L nötig, ${tank.toFixed(1)}L Kapazität).`);
     });
-  }
-  if(formationOn && useVe && rawStartVe > veTank + 0.05){
-    overflowStints.add(0);
-    warnings.push(`Einführungsrunde passt nicht mehr ins VE-Budget (${rawStartVe.toFixed(0)}% nötig).`);
   }
   if(warnings.length) html += '<div class="fc-warning">' + warnings.map(w => '⚠ ' + escapeText(w)).join('<br>') + '</div>';
 
