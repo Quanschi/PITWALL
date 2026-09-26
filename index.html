@@ -1624,6 +1624,9 @@ function occurrencesForWeek(weekKeyStr, raceDays, timesUtc, weekOffset){
 
 const WEEKDAY_NAMES_DE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const TIER_ORDER = { beginner: 0, intermediate: 1, advanced: 2 };
+// Series explicitly not wanted on the schedule, regardless of how complete
+// their data is - matched case-insensitively against series_name.
+const BLOCKED_SERIES_NAMES = ['papaya rules'];
 
 let tracksBySlugPromise = null;
 function loadTracksBySlug(){
@@ -1825,7 +1828,9 @@ async function fetchScheduleCards(type, difficulty){
   // Beach" card with nothing but a bare name. Both conditions together is
   // the signal (a real race can lack one or the other on its own); only
   // hide it once the "real" version's own data catches up.
-  const usable = cards.filter(c => c.track_slug || (c.car_classes && c.car_classes.length));
+  const usable = cards
+    .filter(c => c.track_slug || (c.car_classes && c.car_classes.length))
+    .filter(c => !BLOCKED_SERIES_NAMES.includes((c.series_name || '').toLowerCase()));
 
   scheduleCache[cacheKey] = usable;
   return usable;
