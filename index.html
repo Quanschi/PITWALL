@@ -1358,9 +1358,29 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .live-strip-label{display:none;}
 }
 
+.auth-gate-overlay{
+  position:fixed; inset:0; z-index:9999;
+  background:var(--carbon);
+  display:flex; align-items:center; justify-content:center;
+}
+.auth-gate-spinner{
+  width:32px; height:32px; border-radius:50%;
+  border:3px solid var(--line); border-top-color:var(--amber);
+  animation:auth-gate-spin .8s linear infinite;
+}
+@keyframes auth-gate-spin{to{transform:rotate(360deg);}}
+
 </style>
 </head>
 <body>
+
+<!-- App-wide login gate: covers everything by default (no `hidden`) so
+     there's nothing to see until the session check resolves - removed once
+     a session is confirmed, or the page redirects to login.html before it
+     ever comes off. -->
+<div id="auth-gate-overlay" class="auth-gate-overlay">
+  <div class="auth-gate-spinner"></div>
+</div>
 
 <div id="pitwall-modal-overlay" class="pitwall-modal-overlay" hidden>
   <div class="pitwall-modal">
@@ -1410,7 +1430,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 <div class="header">
   <div class="header-top">
     <div class="header-titles">
-      <p class="subtitle">LMU · Dashboard · Schedule · Rundenzeiten · Team Events</p>
+      <p class="subtitle">LMU · Dashboard · Schedule · Rundenzeiten · Team Events · Sprit-Rechner</p>
     </div>
     <div class="stamp">
       <div id="account-area">
@@ -2485,6 +2505,27 @@ const PITWALL_SUPABASE_URL = 'https://ieufpcrfvwacayrlieos.supabase.co';
 const PITWALL_SUPABASE_KEY = 'sb_publishable_nJjfh-bU2mQoJfn4AIYMHw_QRjRU9rq';
 const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABASE_KEY);
 
+// ---- App-wide login gate: Pitwall is for the group only, not something to
+// browse anonymously - no session means straight to login.html, and the
+// overlay never comes off in that case (the redirect happens first). A
+// signed-in visit lands on the Dashboard either way, via login.html's own
+// post-auth redirect to index.html + the showPanel('dashboard') call at the
+// bottom of this script. Failing the session check (offline, Supabase
+// unreachable) also sends you to login rather than leaving a blank app up -
+// same fail-closed default as having no session at all.
+(async () => {
+  try{
+    const { data: { session } } = await pitwallClient.auth.getSession();
+    if(!session){
+      window.location.href = 'login.html';
+      return;
+    }
+    document.getElementById('auth-gate-overlay').remove();
+  }catch(err){
+    window.location.href = 'login.html';
+  }
+})();
+
 let currentProfile = null; // { id, username, avatar_url }
 
 function escapeText(str){
@@ -2621,7 +2662,9 @@ document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape') document.querySelectorAll('.stint-tire-menu').forEach(m => { m.hidden = true; });
 });
 
-document.getElementById('account-logout-btn').addEventListener('click', () => pitwallClient.auth.signOut());
+document.getElementById('account-logout-btn').addEventListener('click', () => {
+  pitwallClient.auth.signOut().finally(() => { window.location.href = 'login.html'; });
+});
 
 document.getElementById('account-delete-btn').addEventListener('click', async () => {
   hideFormMessage('account-delete-message');
@@ -2836,6 +2879,14 @@ function updateAuthUI(session){
 }
 
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
+  // Session lost while the app is already open (token revoked, signed out
+  // in another tab, expired refresh) - same fail-closed rule as never
+  // having had one: back to login.html instead of sitting in a logged-out
+  // app shell nothing here is built to show.
+  if(event === 'SIGNED_OUT' && !session){
+    window.location.href = 'login.html';
+    return;
+  }
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
   updateAuthUI(session);
 });
