@@ -23,6 +23,8 @@
   --red:#E85C4A;
   --violet:#A78BFA;
   --green:#22c55e;
+  --fuel:#F26683;
+  --ve:#427BBF;
   --shadow-md:0 8px 24px rgba(0,0,0,0.3);
   --ease:cubic-bezier(.4,0,.2,1);
 }
@@ -5876,14 +5878,14 @@ function fcGaugeHtml(pct, color, name, mainLabel, subLabel){
   const clamped = Math.max(0, Math.min(100, pct));
   const overflow = pct > 100.4;
   const offset = (FC_GAUGE_C - (clamped / 100) * FC_GAUGE_C).toFixed(1);
-  const strokeColor = overflow ? 'var(--red)' : color;
+  const strokeColor = overflow ? 'var(--amber)' : color;
   return `<div class="fc-gauge">
     <div class="fc-gauge-ring">
       <svg viewBox="0 0 100 100">
         <circle class="fc-gauge-track" cx="50" cy="50" r="42"/>
         <circle class="fc-gauge-fill" cx="50" cy="50" r="42" stroke="${strokeColor}" stroke-dasharray="${FC_GAUGE_C.toFixed(1)}" stroke-dashoffset="${offset}"/>
       </svg>
-      <div class="fc-gauge-center"><div class="fc-gauge-num" style="${overflow ? 'color:var(--red);' : ''}">${mainLabel}</div>${subLabel ? `<div class="fc-gauge-unit">${subLabel}</div>` : ''}</div>
+      <div class="fc-gauge-center"><div class="fc-gauge-num" style="${overflow ? 'color:var(--amber);' : ''}">${mainLabel}</div>${subLabel ? `<div class="fc-gauge-unit">${subLabel}</div>` : ''}</div>
     </div>
     <div class="fc-gauge-name">${name}</div>
   </div>`;
@@ -6036,8 +6038,8 @@ function updateFuelCalc(){
   // unit and stays.
   let html = '<p class="section-label" style="margin-top:0">Startfüllung</p>';
   html += '<div class="fc-gauges">';
-  if(useFuel) html += fcGaugeHtml((startFuel / tank) * 100, 'var(--amber)', 'Sprit', startFuel.toFixed(1) + 'L', `von ${tank.toFixed(0)}L`);
-  if(useVe) html += fcGaugeHtml(startVe, 'var(--violet)', 'Virtual Energy', startVe.toFixed(0) + '%');
+  if(useFuel) html += fcGaugeHtml((startFuel / tank) * 100, 'var(--fuel)', 'Sprit', startFuel.toFixed(1) + 'L', `von ${tank.toFixed(0)}L`);
+  if(useVe) html += fcGaugeHtml(startVe, 'var(--ve)', 'Virtual Energy', startVe.toFixed(0) + '%');
   html += '</div>';
 
   // Compact stat tiles instead of a wall of <br>-joined text lines - same
