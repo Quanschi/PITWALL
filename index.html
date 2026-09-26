@@ -1099,21 +1099,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 }
 
 /* ---- Account area (header, top-right) ---- */
-.account-login-btn{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;
-  letter-spacing:0.5px;
-  text-transform:uppercase;
-  color:var(--carbon);
-  background:var(--amber);
-  border:1px solid var(--amber);
-  padding:6px 14px;
-  border-radius:20px;
-  text-decoration:none;
-  display:inline-block;
-  transition:all .2s var(--ease);
-}
-.account-login-btn:hover{filter:brightness(1.08);}
 #account-profile{position:relative;display:inline-block;}
 .account-profile-btn{
   display:flex;
@@ -1434,7 +1419,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
     </div>
     <div class="stamp">
       <div id="account-area">
-        <a href="login.html" id="account-login-link" class="account-login-btn" hidden>Login</a>
         <div id="account-profile" hidden>
           <button type="button" id="account-profile-btn" class="account-profile-btn">
             <img id="account-avatar-img" class="account-avatar" hidden alt="">
@@ -2764,14 +2748,11 @@ function extractAvatarPath(value){
 }
 
 async function updateAccountArea(){
-  const loginLink = document.getElementById('account-login-link');
   const profileArea = document.getElementById('account-profile');
   if(!currentProfile){
-    loginLink.hidden = false;
     profileArea.hidden = true;
     return;
   }
-  loginLink.hidden = true;
   profileArea.hidden = false;
   document.getElementById('account-username-label').textContent = currentProfile.username;
   refreshLeaveRequests();
