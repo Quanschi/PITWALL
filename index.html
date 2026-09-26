@@ -115,6 +115,10 @@ body{
   border-radius:10px 10px 0 0;
   transition:all .2s var(--ease);
 }
+/* One consistent brand accent for every active nav item instead of a
+   different color per section - four unrelated hues didn't mean anything
+   (color is now spent on the things that actually need it: difficulty
+   tiers, the live countdown). */
 .tab.active{
   color:var(--carbon);
   background:var(--amber);
@@ -122,25 +126,116 @@ body{
   box-shadow:0 4px 16px rgba(255,176,32,0.28);
   transform:translateY(-2px);
 }
-.tab.active.schedule{
-  background:var(--red);
-  border-color:var(--red);
-  box-shadow:0 4px 16px rgba(232,92,74,0.28);
-}
-.tab.active.logbook{
-  background:var(--violet);
-  border-color:var(--violet);
-  box-shadow:0 4px 16px rgba(167,139,250,0.28);
-}
-.tab.active.fuelcalc{
-  background:var(--green);
-  border-color:var(--green);
-  box-shadow:0 4px 16px rgba(34,197,94,0.28);
-}
 .tab:hover:not(.active){
   color:var(--text);
   background:var(--panel-2);
 }
+
+/* ---- Sidebar layout (tabs moved off the top row into a left rail) ---- */
+.app-shell{display:flex; min-height:100vh;}
+.sidebar{
+  width:220px; flex-shrink:0;
+  background:var(--panel);
+  border-right:1px solid var(--line);
+  padding:24px 14px;
+  display:flex; flex-direction:column; gap:24px;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.sidebar-brand{padding:0 8px; display:flex; align-items:center; gap:10px;}
+.sidebar-brand .title{font-size:26px; margin:0;}
+.sidebar-toggle{
+  margin-left:auto; flex-shrink:0; width:26px; height:26px; border-radius:7px;
+  border:1px solid var(--line); background:var(--panel-2); color:var(--muted);
+  cursor:pointer; font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center;
+  transition:all .2s var(--ease);
+}
+.sidebar-toggle:hover{color:var(--text); border-color:var(--muted);}
+.sidebar-nav{display:flex; flex-direction:column; gap:6px;}
+.sidebar-nav .tab{
+  border-radius:10px !important;
+  text-align:left;
+  padding:12px 16px;
+  letter-spacing:1px;
+  font-size:14px;
+  transform:none !important;
+  display:flex; align-items:center; gap:12px;
+}
+.tab-icon{width:18px; height:18px; flex-shrink:0;}
+.main-content{flex:1; min-width:0;}
+.sidebar-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--line);}
+.sidebar-status{
+  width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px;
+  color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10.5px;
+  letter-spacing:0.5px; text-transform:uppercase;
+}
+.sidebar-status-dot{width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; box-shadow:0 0 8px var(--green); animation:pulse-dot 2s infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+
+/* ---- Collapsed sidebar ---- */
+.sidebar{transition:width .2s var(--ease);}
+.sidebar.collapsed{width:66px; padding-left:10px; padding-right:10px;}
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .tab-label{display:none;}
+.sidebar.collapsed .sidebar-brand{justify-content:center;}
+.sidebar.collapsed .sidebar-toggle{margin-left:0; transform:rotate(180deg);}
+.sidebar.collapsed .sidebar-nav .tab{justify-content:center; padding:12px 0;}
+.sidebar.collapsed .sidebar-status{justify-content:center;}
+
+.bottom-nav-mobile{display:none;}
+@media(max-width:900px){
+  .sidebar{display:none;}
+  body{padding-bottom:76px;}
+  .bottom-nav-mobile{
+    display:flex; position:fixed; bottom:0; left:0; right:0; height:64px;
+    background:var(--panel); border-top:1px solid var(--line);
+    justify-content:space-around; align-items:center; z-index:50;
+  }
+  .bottom-nav-mobile .tab{
+    background:none !important; border:none !important; box-shadow:none !important; transform:none !important;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:8px 10px; font-size:10px; letter-spacing:0.3px; color:var(--muted);
+    border-radius:8px;
+  }
+  .bottom-nav-mobile .tab-icon{width:19px; height:19px;}
+  .bottom-nav-mobile .tab.active{color:var(--amber);}
+  .bottom-nav-mobile .sidebar-foot,
+  .bottom-nav-mobile .sidebar-toggle{display:none;}
+}
+
+/* ---- Dashboard ---- */
+.dash-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:14px;}
+.dash-tile{
+  padding:18px 20px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--panel);
+  box-shadow:var(--shadow-md);
+  cursor:pointer;
+  transition:all .2s var(--ease);
+}
+.dash-tile:hover{border-color:var(--amber); transform:translateY(-2px);}
+.dash-tile-title{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:17px; color:var(--text); margin-bottom:6px;}
+.dash-tile-sub{font-size:13px; color:var(--muted); line-height:1.4;}
+
+/* Compact stat-grid: denser, smaller tiles carrying real numbers/status
+   instead of a few large, mostly-empty cards. */
+.dash-stat-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin:14px 0;}
+.dash-mini-tile{
+  padding:14px 16px; border:1px solid var(--line); border-radius:10px;
+  background:var(--panel); min-height:104px;
+}
+.dash-mini-title{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); margin-bottom:8px;}
+.dash-mini-title span{color:var(--text); text-transform:none; font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:0; font-size:13px;}
+.dash-mini-hint{font-size:12.5px; color:var(--muted); line-height:1.4;}
+.dash-mini-row{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; padding:3px 0; border-bottom:1px solid var(--line);}
+.dash-mini-row:last-child{border-bottom:none;}
+.dash-mini-row .k{color:var(--muted);}
+.dash-mini-row .v{color:var(--text); font-family:'JetBrains Mono',monospace; font-weight:600;}
+.dash-team-stint{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0;}
+.dash-team-stint .pos{color:var(--amber); font-family:'JetBrains Mono',monospace; margin-right:6px;}
+.dash-team-event-name{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14.5px; color:var(--text); margin-bottom:4px;}
+.dash-team-event-meta{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:8px;}
+
 
 .panel{
   padding:26px 32px 10px 32px;
@@ -245,14 +340,20 @@ body{
   padding:3px 10px;
   border-radius:20px;
   text-transform:uppercase;
-  background:rgba(232,92,74,0.15);
-  color:var(--red);
+  background:rgba(139,144,153,0.15);
+  color:var(--muted);
   white-space:nowrap;
 }
-.schedule-tier-badge.championship{
-  background:rgba(167,139,250,0.18);
-  color:var(--violet);
-}
+/* Difficulty now actually reads as a difficulty scale (green→amber→red)
+   instead of every non-championship race sharing one red badge regardless
+   of tier - a championship keeps its own trophy marker on top of whatever
+   tier it's rated at, instead of hiding the tier behind a violet override. */
+.schedule-tier-badge.tier-beginner{background:rgba(34,197,94,0.15); color:var(--green);}
+.schedule-tier-badge.tier-intermediate{background:rgba(255,176,32,0.15); color:var(--amber);}
+.schedule-tier-badge.tier-advanced{background:rgba(232,92,74,0.15); color:var(--red);}
+.schedule-tier-header.tier-beginner{color:var(--green);}
+.schedule-tier-header.tier-intermediate{color:var(--amber);}
+.schedule-tier-header.tier-advanced{color:var(--red);}
 .schedule-location{
   font-size:14.5px;
   color:var(--muted);
@@ -558,7 +659,11 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   text-transform:uppercase;
   color:var(--muted);
   margin:14px 0 7px 0;
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
+.te-day-header::after{content:'';flex:1;height:1px;background:var(--line);}
 .te-day-header:first-of-type{margin-top:0;}
 .te-slots{display:flex;flex-wrap:wrap;gap:9px;}
 .te-slot{
@@ -577,6 +682,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   max-width:180px;
   transition:all .2s var(--ease);
 }
+.te-slot.has-team{border-color:var(--amber);}
+.te-slot.has-team .te-slot-count{color:var(--amber);}
 .te-slot.has-me{border-color:var(--violet);color:var(--violet);}
 .te-slot:hover{border-color:var(--muted);}
 .te-slot-count{font-size:11px;color:var(--muted);white-space:normal;text-align:center;font-family:'Inter',sans-serif;}
@@ -828,9 +935,20 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-calc-input{width:140px !important;}
 .stint-calc-result{font-size:12.5px;color:var(--text);margin-bottom:8px;}
 .stint-calc-hint{font-size:12px;color:var(--muted);margin-bottom:6px;}
-.fc-summary{font-size:13.5px;color:var(--text);line-height:1.7;margin:14px 0;}
-.fc-summary strong{color:var(--green);}
-.fc-limiting{font-size:12.5px;color:var(--amber);margin-bottom:10px;}
+.fc-group{border:1px solid var(--line); border-radius:10px; padding:14px 14px 0; margin-bottom:14px;}
+.fc-group-title{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); margin-bottom:10px;}
+.fc-group .field:last-child{margin-bottom:14px;}
+.fc-gauges{display:flex; gap:20px; flex-wrap:wrap; margin-bottom:4px; justify-content:center;}
+.fc-gauge{display:flex; flex-direction:column; align-items:center; gap:8px;}
+.fc-gauge-ring{position:relative; width:104px; height:104px;}
+.fc-gauge-ring svg{width:100%; height:100%; transform:rotate(-90deg);}
+.fc-gauge-track{fill:none; stroke:var(--line); stroke-width:8;}
+.fc-gauge-fill{fill:none; stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset .8s var(--ease), stroke .3s ease;}
+.fc-gauge-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;}
+.fc-gauge-num{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:21px; color:var(--text);}
+.fc-gauge-unit{font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;}
+.fc-gauge-name{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px;}
+.fc-limiting{font-size:12.5px;color:var(--amber);margin:14px 0 10px;}
 .fc-warning{font-size:12.5px;color:var(--red);margin:4px 0 10px 0;}
 .fc-stint-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px;}
 .fc-stint-table th{
@@ -851,6 +969,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   color:var(--text);
   white-space:nowrap;
 }
+.fc-stint-table tbody tr:nth-child(even) td{background:var(--panel-2);}
 .fc-stint-table tr.over td{color:var(--red);}
 .fc-stint-table-wrap{overflow-x:auto;}
 .fc-preset-row{display:flex;gap:8px;align-items:center;}
@@ -1223,6 +1342,22 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .adddrivers-chip button:hover{color:var(--red);}
 .adddrivers-empty-hint{font-size:12px;color:var(--muted);}
 
+.live-strip{
+  display:flex; align-items:center; gap:10px;
+  margin:14px 32px 0 32px; padding:10px 18px;
+  background:rgba(255,176,32,0.1); border:1px solid rgba(255,176,32,0.3); border-radius:10px;
+  cursor:pointer; transition:all .2s var(--ease);
+}
+.live-strip:hover{background:rgba(255,176,32,0.16); border-color:var(--amber);}
+.live-strip-dot{width:7px; height:7px; border-radius:50%; background:var(--amber); flex-shrink:0; box-shadow:0 0 8px var(--amber); animation:pulse-dot 1.6s infinite;}
+.live-strip-label{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted);}
+.live-strip-track{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px; color:var(--text);}
+.live-strip-countdown{margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--amber); white-space:nowrap;}
+@media(max-width:640px){
+  .live-strip{margin:12px 16px 0 16px; padding:9px 14px; flex-wrap:wrap;}
+  .live-strip-label{display:none;}
+}
+
 </style>
 </head>
 <body>
@@ -1237,11 +1372,45 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   </div>
 </div>
 
+<div class="app-shell">
+<aside class="sidebar" id="app-sidebar">
+  <div class="sidebar-brand">
+    <p class="title brand-text">Pit<span>wall</span></p>
+    <button type="button" class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Leiste ein-/ausklappen">‹</button>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav">
+    <div class="tab dashboard active" id="tab-dashboard" data-panel="dashboard" onclick="showPanel('dashboard')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+      <span class="tab-label">Dashboard</span>
+    </div>
+    <div class="tab schedule" id="tab-schedule" data-panel="schedule" onclick="showPanel('schedule')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+      <span class="tab-label">Schedule</span>
+    </div>
+    <div class="tab logbook" id="tab-logbook" data-panel="logbook" onclick="showPanel('logbook')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 3h6M12 3v2"/></svg>
+      <span class="tab-label">Rundenzeiten</span>
+    </div>
+    <div class="tab teamevents" id="tab-teamevents" data-panel="teamevents" onclick="showPanel('teamevents')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="9" r="3"/><circle cx="17" cy="9" r="3"/><path d="M2 20c0-3 2.5-5 6-5s6 2 6 5M13 20c0-2.7 2-4.6 5-4.6s6 1.9 6 4.6"/></svg>
+      <span class="tab-label">Team Events</span>
+    </div>
+    <div class="tab fuelcalc" id="tab-fuelcalc" data-panel="fuelcalc" onclick="showPanel('fuelcalc')">
+      <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3c3 3.5 6 7 6 10.5a6 6 0 1 1-12 0C6 10 9 6.5 12 3Z"/></svg>
+      <span class="tab-label">Sprit</span>
+    </div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="sidebar-status">
+      <span class="sidebar-status-dot"></span><span class="tab-label">Live-Daten aktiv</span>
+    </div>
+  </div>
+</aside>
+<div class="main-content">
 <div class="header">
   <div class="header-top">
     <div class="header-titles">
-      <p class="title">Pit<span>wall</span></p>
-      <p class="subtitle">LMU · Schedule · Rundenzeiten · Team Events</p>
+      <p class="subtitle">LMU · Dashboard · Schedule · Rundenzeiten · Team Events</p>
     </div>
     <div class="stamp">
       <div id="account-area">
@@ -1278,15 +1447,35 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   </svg>
 </div>
 
-<div class="tabs" id="tabs-nav">
-  <div class="tab active schedule" id="tab-schedule" onclick="showPanel('schedule')">Schedule</div>
-  <div class="tab logbook" id="tab-logbook" onclick="showPanel('logbook')">Rundenzeiten</div>
-  <div class="tab teamevents" id="tab-teamevents" onclick="showPanel('teamevents')">Team Events</div>
-  <div class="tab fuelcalc" id="tab-fuelcalc" onclick="showPanel('fuelcalc')">Sprit</div>
+<!-- Persistent countdown - visible no matter which tab is open, so the one
+     thing that actually matters in the moment (when does the next session
+     go green) never requires a detour through Dashboard just to check. -->
+<div class="live-strip" id="live-strip" onclick="showPanel('dashboard')" hidden>
+  <span class="live-strip-dot"></span>
+  <span class="live-strip-label">Nächstes Rennen</span>
+  <span class="live-strip-track" id="live-strip-track"></span>
+  <span class="live-strip-countdown" id="live-strip-countdown"></span>
+</div>
+
+<!-- DASHBOARD -->
+<div class="panel active" id="panel-dashboard">
+  <p class="section-label" style="margin-top:0">Nächstes Rennen</p>
+  <div id="dash-next-race"><div class="schedule-empty">Lade nächstes Rennen…</div></div>
+
+  <div class="dash-stat-grid">
+    <div class="dash-mini-tile" id="dash-reftimes-tile">
+      <div class="dash-mini-title">⏱ Referenzzeiten <span id="dash-reftimes-track"></span></div>
+      <div class="dash-mini-body" id="dash-reftimes-body"><span class="dash-mini-hint">Lade…</span></div>
+    </div>
+    <div class="dash-mini-tile" id="dash-team-tile">
+      <div class="dash-mini-title">🏁 Dein Team</div>
+      <div class="dash-mini-body" id="dash-team-body"><span class="dash-mini-hint">Melde dich an, um dein Team-Event zu sehen.</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- SCHEDULE -->
-<div class="panel active" id="panel-schedule">
+<div class="panel" id="panel-schedule">
 
   <p class="section-label">Rennart</p>
   <div class="filter-row" id="race-type-filter">
@@ -1519,39 +1708,45 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <input type="number" id="fc-lapcount" min="1" step="1" placeholder="z.B. 340">
     </div>
 
-    <div class="field" id="fc-tank-field">
-      <label for="fc-tank">Tank (Liter)</label>
-      <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
-    </div>
-    <div class="field" id="fc-consumption-field">
-      <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
-      <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
-    </div>
-    <div class="field" id="fc-ve-field" hidden>
-      <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
-      <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
+    <div class="fc-group">
+      <div class="fc-group-title">Tank &amp; Verbrauch</div>
+      <div class="field" id="fc-tank-field">
+        <label for="fc-tank">Tank (Liter)</label>
+        <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
+      </div>
+      <div class="field" id="fc-consumption-field">
+        <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
+        <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
+      </div>
+      <div class="field" id="fc-ve-field" hidden>
+        <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
+        <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
+      </div>
+
+      <label class="lb-filter-toggle" style="display:block;margin:6px 0 10px 0;">
+        <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
+      </label>
+      <div class="field" id="fc-formation-fields" hidden>
+        <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
+        <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
+      </div>
+      <div class="field" id="fc-formation-ve-field" hidden>
+        <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
+        <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
+      </div>
     </div>
 
-    <label class="lb-filter-toggle" style="display:block;margin:6px 0 10px 0;">
-      <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
-    </label>
-    <div class="field" id="fc-formation-fields" hidden>
-      <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
-      <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
-    </div>
-    <div class="field" id="fc-formation-ve-field" hidden>
-      <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
-      <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
-    </div>
+    <div class="fc-group">
+      <div class="fc-group-title">Sicherheitsmargen</div>
+      <div class="field">
+        <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
+        <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
+      </div>
 
-    <div class="field">
-      <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
-      <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
-    </div>
-
-    <div class="field">
-      <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
-      <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
+      <div class="field">
+        <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
+        <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
+      </div>
     </div>
   </div>
   </div>
@@ -1561,6 +1756,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   </div>
   </div>
 </div>
+
+</div>
+</div>
+<nav class="bottom-nav-mobile" id="bottom-nav-mobile"></nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
@@ -2098,7 +2297,7 @@ function renderScheduleCards(cards, colorByClassName){
         const section = document.createElement('div');
         section.className = 'schedule-tier-section';
         const header = document.createElement('div');
-        header.className = 'schedule-tier-header';
+        header.className = 'schedule-tier-header tier-' + key;
         header.textContent = DIFFICULTY_LABELS[key] || key;
         section.appendChild(header);
         const grid = document.createElement('div');
@@ -2115,7 +2314,8 @@ function renderScheduleCards(cards, colorByClassName){
 
 const DIFFICULTY_LABELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
 
-function buildScheduleCard(card, now, colorByClassName){
+function buildScheduleCard(card, now, colorByClassName, opts){
+    opts = opts || {};
     const el = document.createElement('div');
     el.className = 'schedule-card';
 
@@ -2125,8 +2325,8 @@ function buildScheduleCard(card, now, colorByClassName){
     circuit.className = 'schedule-circuit';
     circuit.textContent = circuitTitle(card);
     const badge = document.createElement('span');
-    badge.className = 'schedule-tier-badge' + (card.type === 'championship' ? ' championship' : '');
-    badge.textContent = card.tier_name || '';
+    badge.className = 'schedule-tier-badge tier-' + (card.tier_name || 'other');
+    badge.textContent = (card.type === 'championship' ? '\u{1F3C6} ' : '') + (card.tier_name || '');
     head.appendChild(circuit);
     head.appendChild(badge);
 
@@ -2184,7 +2384,7 @@ function buildScheduleCard(card, now, colorByClassName){
 
     const toggle = document.createElement('div');
     toggle.className = 'schedule-details-toggle';
-    toggle.textContent = 'Termine & Bedingungen anzeigen ▾';
+    toggle.textContent = opts.expandDetails ? 'Weniger anzeigen ▴' : 'Termine & Bedingungen anzeigen ▾';
 
     const detailsBlock = document.createElement('div');
     detailsBlock.className = 'schedule-details';
@@ -2212,7 +2412,7 @@ function buildScheduleCard(card, now, colorByClassName){
 
     const expandBlock = document.createElement('div');
     expandBlock.className = 'schedule-expand';
-    expandBlock.hidden = true;
+    expandBlock.hidden = !opts.expandDetails;
     expandBlock.appendChild(times);
     expandBlock.appendChild(detailsBlock);
 
@@ -2632,6 +2832,7 @@ function updateAuthUI(session){
   document.getElementById('te-login-gate').hidden = !!session;
   document.getElementById('te-content').hidden = !session;
   if(session) loadTeamEvents();
+  loadDashboardTeamStatus();
 }
 
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
@@ -5203,7 +5404,7 @@ function renderEventCard(ev, teams, carData, opts){
 
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'te-slot' + (iAmIn ? ' has-me' : '');
+      btn.className = 'te-slot' + (teamsHere.length ? ' has-team' : '') + (iAmIn ? ' has-me' : '');
       const label = document.createElement('span');
       label.textContent = formatSlotTime(slotIso);
       const count = document.createElement('span');
@@ -5291,7 +5492,10 @@ async function loadTeamEvents(){
 }
 
 let scheduleFirstLoadDone = false;
+let dashNextRaceLoaded = false;
 function showPanel(name){
+  document.getElementById('panel-dashboard').classList.toggle('active', name==='dashboard');
+  document.getElementById('tab-dashboard').classList.toggle('active', name==='dashboard');
   document.getElementById('panel-schedule').classList.toggle('active', name==='schedule');
   document.getElementById('tab-schedule').classList.toggle('active', name==='schedule');
   document.getElementById('panel-logbook').classList.toggle('active', name==='logbook');
@@ -5300,6 +5504,14 @@ function showPanel(name){
   document.getElementById('tab-teamevents').classList.toggle('active', name==='teamevents');
   document.getElementById('panel-fuelcalc').classList.toggle('active', name==='fuelcalc');
   document.getElementById('tab-fuelcalc').classList.toggle('active', name==='fuelcalc');
+  document.querySelectorAll('#bottom-nav-mobile .tab').forEach(el => el.classList.toggle('active', el.dataset.panel === name));
+  if(name === 'dashboard' && !dashNextRaceLoaded){
+    dashNextRaceLoaded = true;
+    loadDashboardNextRace();
+  }
+  if(name === 'dashboard'){
+    loadDashboardTeamStatus();
+  }
   if(name === 'schedule' && !scheduleFirstLoadDone){
     scheduleFirstLoadDone = true;
     loadScheduleView();
@@ -5310,6 +5522,239 @@ function showPanel(name){
     loadReferenceLapTimes();
   }
 }
+
+// Mobile bottom nav mirrors the sidebar 1:1 (same tab elements, same
+// onclick/showPanel wiring) - cloned once at load instead of hand-written
+// twice, so the two can never drift out of sync with each other.
+document.querySelectorAll('#sidebar-nav .tab').forEach(item => {
+  const clone = item.cloneNode(true);
+  document.getElementById('bottom-nav-mobile').appendChild(clone);
+});
+
+// ---- Collapsible sidebar (icon-only rail, state remembered per browser) ----
+function applySidebarCollapsed(collapsed){
+  document.getElementById('app-sidebar').classList.toggle('collapsed', collapsed);
+  document.getElementById('sidebar-toggle-btn').textContent = collapsed ? '›' : '‹';
+}
+function toggleSidebar(){
+  const collapsed = !document.getElementById('app-sidebar').classList.contains('collapsed');
+  applySidebarCollapsed(collapsed);
+  try{ localStorage.setItem('pitwall-sidebar-collapsed', collapsed ? '1' : '0'); }catch(e){}
+}
+try{ applySidebarCollapsed(localStorage.getItem('pitwall-sidebar-collapsed') === '1'); }catch(e){}
+
+// Dashboard's "next race" reuses the exact same fetchScheduleCards/
+// buildScheduleCard pipeline the Schedule tab itself uses (same cache too),
+// just picking the single soonest time across all three race types instead
+// of rendering the full filtered list.
+// Shared by the Dashboard's full card AND the persistent header strip, so
+// the "which race is next" answer is computed once and reused - re-fetched
+// only once the cached soonest race's own start time has passed.
+let nextRaceCache = null;
+async function resolveNextRace(){
+  if(nextRaceCache && nextRaceCache.time > Date.now()) return nextRaceCache;
+  const [dailyCards, weeklyCards, specialCards, { colorByClassName }] = await Promise.all([
+    fetchScheduleCards('daily', 'all'),
+    fetchScheduleCards('weekly', 'all'),
+    fetchScheduleCards('special', 'all'),
+    loadCarsByClass(),
+  ]);
+  const now = Date.now();
+  let soonestCard = null, soonestTime = Infinity;
+  [...dailyCards, ...weeklyCards, ...specialCards].forEach(card => {
+    card.times.forEach(t => {
+      const ts = t.getTime();
+      if(ts >= now && ts < soonestTime){ soonestTime = ts; soonestCard = card; }
+    });
+  });
+  nextRaceCache = { card: soonestCard, colorByClassName, time: soonestTime };
+  return nextRaceCache;
+}
+
+async function loadDashboardNextRace(){
+  const el = document.getElementById('dash-next-race');
+  try{
+    const { card, colorByClassName } = await resolveNextRace();
+    el.innerHTML = '';
+    if(card){
+      // expandDetails: true - "Termine & Bedingungen" (which already
+      // includes weather) opens by default here, instead of adding a
+      // second, redundant weather tile next to a card that already has
+      // this same data one click away.
+      el.appendChild(buildScheduleCard(card, Date.now(), colorByClassName, { expandDetails: true }));
+    }else{
+      el.innerHTML = '<div class="schedule-empty">Kein anstehendes Rennen gefunden.</div>';
+    }
+    renderDashboardRefTimes(card);
+  }catch(err){
+    el.innerHTML = '<div class="schedule-empty">Rennplan konnte nicht geladen werden (offline?).</div>';
+    renderDashboardRefTimes(null);
+  }
+}
+
+// ---- Dashboard: reference lap times for the next race's track - reuses
+// the same reference-sheet cache the Rundenzeiten tab loads (fetching it
+// here too if it isn't loaded yet), matched against the schedule's own
+// track name with a loose fold-accent/substring compare since the two
+// sources spell some tracks differently ("Le Mans" vs. "Le Mans - Circuit
+// de la Sarthe"). ----
+// Curated because the schedule (lmuportal) and the reference sheet (Ohne
+// Speed's LMU laptimes) are maintained completely independently and don't
+// use matching names or layout labels - fuzzy string matching alone picks
+// the wrong layout often enough (e.g. Fuji "chicane" vs. the scheduled
+// "classic") to trust by itself. Keyed by the schedule's own track_slug
+// (stable across renames), each entry maps a layout keyword - lowercased
+// track_config, or card.defaultLayout when the schedule leaves it blank,
+// same fallback circuitTitle() itself already uses - to the matching
+// reference-sheet track name.
+const SCHEDULE_SLUG_TO_REF_TRACK = {
+  'circuit-de-la-sarthe': { '': 'Circuit de la Sarthe' },
+  'algarve-international-circuit': { '': 'Portimao' },
+  'fuji-speedway': { classic: 'Fuji (classic)', chicane: 'Fuji (chicane)' },
+  'circuit-de-spa-francorchamps': { '': 'Spa' },
+  'long-beach-street-circuit': { '': 'Long Beach' },
+  'road-atlanta': { '': 'Road Atlanta' },
+  'daytona-international-speedway': { '': 'Daytona', national: 'Daytona' },
+  'silverstone-circuit': { gp: 'Silverstone (GP)', national: 'Silverstone (National)', international: 'Silverstone (International)' },
+};
+function findReferenceTrackMatch(rows, card){
+  const tracks = [...new Set(rows.map(r => r.track))];
+  const bySlug = SCHEDULE_SLUG_TO_REF_TRACK[card.track_slug];
+  if(bySlug){
+    const layoutKey = (card.track_config || card.defaultLayout || '').toLowerCase();
+    const mapped = bySlug[layoutKey] || bySlug[''] || Object.values(bySlug)[0];
+    if(mapped && tracks.includes(mapped)) return mapped;
+  }
+  // Fallback for any track not in the curated table yet - exact
+  // fold-accent match first, then substring, preferring the shortest
+  // candidate (closer to a bare track name than to a specific alternate
+  // layout). Skipped for very short names ("TBA") where a substring match
+  // would be meaningless.
+  const target = foldAccents(card.track_name || '');
+  if(!target || target.length < 4) return null;
+  let match = tracks.find(t => foldAccents(t) === target);
+  if(!match){
+    const candidates = tracks.filter(t => target.includes(foldAccents(t)) || foldAccents(t).includes(target));
+    candidates.sort((a, b) => a.length - b.length);
+    match = candidates[0];
+  }
+  return match || null;
+}
+async function renderDashboardRefTimes(card){
+  const body = document.getElementById('dash-reftimes-body');
+  const trackLabel = document.getElementById('dash-reftimes-track');
+  if(!card){ trackLabel.textContent = ''; body.innerHTML = '<span class="dash-mini-hint">Kein anstehendes Rennen.</span>'; return; }
+  try{
+    // Schedule (and therefore "next race") only ever covers LMU - it has no
+    // game toggle of its own, unlike Rundenzeiten/Team Events/Sprit.
+    const game = 'lmu';
+    let cached = referenceCacheByGame[game] || loadReferenceCacheFromStorage(game);
+    if(!cached){
+      const rows = await REFERENCE_GAMES[game].fetchRows();
+      cached = { rows, fetchedAt: Date.now() };
+      referenceCacheByGame[game] = cached;
+      saveReferenceCacheToStorage(game, cached);
+    }
+    const match = findReferenceTrackMatch(cached.rows, card);
+    trackLabel.textContent = match ? `· ${match}` : '';
+    if(!match){ body.innerHTML = '<span class="dash-mini-hint">Keine Referenzzeiten für diese Strecke gefunden.</span>'; return; }
+    const classRows = cached.rows.filter(r => r.track === match).sort((a, b) => a.class.localeCompare(b.class));
+    body.innerHTML = classRows.slice(0, 4).map(r =>
+      `<div class="dash-mini-row"><span class="k">${escapeText(r.class)}</span><span class="v">${escapeText(r.alien || r.competitive || '–')}</span></div>`
+    ).join('') || '<span class="dash-mini-hint">Keine Klassen-Daten für diese Strecke.</span>';
+  }catch(err){
+    trackLabel.textContent = '';
+    body.innerHTML = '<span class="dash-mini-hint">Referenzzeiten konnten nicht geladen werden.</span>';
+  }
+}
+
+// ---- Dashboard: "your" team, if you're a member of one for an upcoming
+// (not closed, not past) event - across both games, whichever is soonest.
+// A compact, standalone summary (event, slot, stint list) rather than
+// reusing the full Team Events card renderer, which is built for a very
+// different, fully interactive context (merge controls, drafts, multi-day
+// slot grids) this dashboard tile has no reason to carry. ----
+async function loadDashboardTeamStatus(){
+  const body = document.getElementById('dash-team-body');
+  if(!currentProfile){
+    body.innerHTML = '<span class="dash-mini-hint">Melde dich an, um dein Team-Event zu sehen.</span>';
+    return;
+  }
+  body.innerHTML = '<span class="dash-mini-hint">Lade…</span>';
+  try{
+    const { data: events, error: eventsError } = await pitwallClient
+      .from('team_events')
+      .select('id,name,event_date,slot_times,game,closed')
+      .order('event_date', { ascending: true });
+    if(eventsError) throw eventsError;
+    const upcoming = (events || []).filter(e => !e.closed && !isEventPast(e));
+    if(!upcoming.length){
+      body.innerHTML = '<span class="dash-mini-hint">Keine bevorstehenden Team Events.</span>';
+      return;
+    }
+    const { data: teams, error: teamsError } = await pitwallClient
+      .from('team_event_teams')
+      .select('id,event_id,slot_time,car,team_event_members(user_id),team_stints(position,driver_name,duration_minutes,driver:profiles!user_id(username))')
+      .in('event_id', upcoming.map(e => e.id))
+      .order('position', { foreignTable: 'team_stints', ascending: true });
+    if(teamsError) throw teamsError;
+    const myTeams = (teams || [])
+      .filter(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id))
+      .sort((a, b) => new Date(a.slot_time) - new Date(b.slot_time));
+    const myTeam = myTeams[0];
+    if(!myTeam){
+      body.innerHTML = '<span class="dash-mini-hint">Für kein bevorstehendes Event angemeldet.</span>';
+      return;
+    }
+    const event = upcoming.find(e => e.id === myTeam.event_id);
+    const stints = myTeam.team_stints || [];
+    let html = `<div class="dash-team-event-name">${escapeText(event ? event.name : 'Team Event')}</div>`;
+    html += `<div class="dash-team-event-meta">${myTeam.car ? escapeText(myTeam.car) + ' · ' : ''}${new Date(myTeam.slot_time).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>`;
+    if(stints.length){
+      html += stints.slice(0, 5).map(s => {
+        const driverName = s.driver_name || (s.driver ? s.driver.username : '') || '–';
+        const dur = s.duration_minutes ? s.duration_minutes + ' min' : '';
+        const posLabel = s.position != null ? '#' + (s.position + 1) : '';
+        return `<div class="dash-team-stint"><span><span class="pos">${escapeText(posLabel)}</span>${escapeText(driverName)}</span><span>${escapeText(dur)}</span></div>`;
+      }).join('');
+    }else{
+      html += '<span class="dash-mini-hint">Noch kein Stint-Plan.</span>';
+    }
+    body.innerHTML = html;
+  }catch(err){
+    body.innerHTML = '<span class="dash-mini-hint">Team-Status konnte nicht geladen werden.</span>';
+  }
+}
+
+async function loadLiveStrip(){
+  const strip = document.getElementById('live-strip');
+  try{
+    const { card, time } = await resolveNextRace();
+    if(!card){ strip.hidden = true; return; }
+    strip.hidden = false;
+    strip.dataset.target = time;
+    document.getElementById('live-strip-track').textContent = circuitTitle(card);
+    tickLiveStrip();
+  }catch(err){
+    strip.hidden = true;
+  }
+}
+function tickLiveStrip(){
+  const strip = document.getElementById('live-strip');
+  if(strip.hidden || !strip.dataset.target) return;
+  const remaining = Number(strip.dataset.target) - Date.now();
+  document.getElementById('live-strip-countdown').textContent = formatCountdown(remaining);
+  if(remaining <= 0){
+    // This one started - move on to whichever race is next, everywhere
+    // that showed it (the strip AND the Dashboard's own "Nächstes Rennen"
+    // card, which otherwise would just keep showing an already-started
+    // race forever since it only ever loaded once, on first visit).
+    loadLiveStrip();
+    loadDashboardNextRace();
+  }
+}
+setInterval(tickLiveStrip, 1000);
+loadLiveStrip();
 
 // ---- Sprit tab: standalone fuel/VE calculator, not tied to any team or
 // event - just "how much fuel/VE do I need for this session, and what's
@@ -5388,6 +5833,28 @@ function fcApplyClassPreset(){
     document.getElementById('fc-ve-consumption').value = vePerLap != null ? vePerLap : '';
   }
   updateFuelCalc();
+}
+
+const FC_GAUGE_C = 2 * Math.PI * 42;
+// pct always drives the ring fill (and overflow color) - mainLabel is the
+// big central text and can show whatever unit actually makes sense for
+// that resource (Liters for Sprit, % for VE, which has no volume of its
+// own), independent of what the ring itself represents.
+function fcGaugeHtml(pct, color, name, mainLabel, subLabel){
+  const clamped = Math.max(0, Math.min(100, pct));
+  const overflow = pct > 100.4;
+  const offset = (FC_GAUGE_C - (clamped / 100) * FC_GAUGE_C).toFixed(1);
+  const strokeColor = overflow ? 'var(--red)' : color;
+  return `<div class="fc-gauge">
+    <div class="fc-gauge-ring">
+      <svg viewBox="0 0 100 100">
+        <circle class="fc-gauge-track" cx="50" cy="50" r="42"/>
+        <circle class="fc-gauge-fill" cx="50" cy="50" r="42" stroke="${strokeColor}" stroke-dasharray="${FC_GAUGE_C.toFixed(1)}" stroke-dashoffset="${offset}"/>
+      </svg>
+      <div class="fc-gauge-center"><div class="fc-gauge-num" style="${overflow ? 'color:var(--red);' : ''}">${mainLabel}</div>${subLabel ? `<div class="fc-gauge-unit">${subLabel}</div>` : ''}</div>
+    </div>
+    <div class="fc-gauge-name">${name}</div>
+  </div>`;
 }
 
 function updateFuelCalc(){
@@ -5530,14 +5997,30 @@ function updateFuelCalc(){
   // penalty risk from running dry on VE first.
   const fuelRatio = (useFuel && useVe) ? consumption / veConsumption : null;
 
-  let html = '<div class="fc-summary">';
-  html += `Gesamtrunden: <strong>${totalLaps}</strong> (inkl. ${bufferLaps} Puffer)<br>`;
-  if(useFuel) html += `Gesamtverbrauch Sprit: <strong>${totalFuelNeed.toFixed(1)}L</strong><br>`;
-  if(useVe) html += `Gesamtverbrauch VE: <strong>${totalVeNeed.toFixed(0)}%</strong><br>`;
-  if(useFuel && useVe) html += `Fuel Ratio: <strong>${fuelRatio.toFixed(2)}</strong> (L Sprit je 1% VE)<br>`;
-  if(useFuel) html += `Start-Tankfüllung: <strong>${startFuel.toFixed(1)}L</strong><br>`;
-  if(useVe) html += `Start-VE: <strong>${startVe.toFixed(0)}%</strong><br>`;
-  html += `Boxenstopps: <strong>${pitStops}</strong>`;
+  // Circular gauges are now the ONLY place the start fill shows - no
+  // separate tile duplicating the same two numbers. Sprit shows its actual
+  // Liters (the number that matters when you're loading the car), not a
+  // percentage - VE has no volume of its own, so % is genuinely its native
+  // unit and stays.
+  let html = '<p class="section-label" style="margin-top:0">Startfüllung</p>';
+  html += '<div class="fc-gauges">';
+  if(useFuel) html += fcGaugeHtml((startFuel / tank) * 100, 'var(--amber)', 'Sprit', startFuel.toFixed(1) + 'L', `von ${tank.toFixed(0)}L`);
+  if(useVe) html += fcGaugeHtml(startVe, 'var(--violet)', 'Virtual Energy', startVe.toFixed(0) + '%');
+  html += '</div>';
+
+  // Compact stat tiles instead of a wall of <br>-joined text lines - same
+  // numbers, actually scannable at a glance (matches the Dashboard's own
+  // stat-grid tiles, reused here rather than reinvented).
+  html += '<div class="dash-stat-grid">';
+  html += `<div class="dash-mini-tile"><div class="dash-mini-title">Gesamt</div><div class="dash-mini-body">
+    <div class="dash-mini-row"><span class="k">Runden</span><span class="v">${totalLaps} (+${bufferLaps} Puffer)</span></div>
+    <div class="dash-mini-row"><span class="k">Boxenstopps</span><span class="v">${pitStops}</span></div>
+  </div></div>`;
+  html += `<div class="dash-mini-tile"><div class="dash-mini-title">Verbrauch</div><div class="dash-mini-body">`;
+  if(useFuel) html += `<div class="dash-mini-row"><span class="k">Sprit gesamt</span><span class="v">${totalFuelNeed.toFixed(1)}L</span></div>`;
+  if(useVe) html += `<div class="dash-mini-row"><span class="k">VE gesamt</span><span class="v">${totalVeNeed.toFixed(0)}%</span></div>`;
+  if(useFuel && useVe) html += `<div class="dash-mini-row"><span class="k">Fuel Ratio</span><span class="v">${fuelRatio.toFixed(2)}</span></div>`;
+  html += `</div></div>`;
   html += '</div>';
 
   if(useVe || maxLapsStintTime != null){
@@ -5747,7 +6230,7 @@ document.getElementById('fc-preset-delete-btn').addEventListener('click', async 
 fcPopulateClasses();
 fcPopulatePresetSelect();
 
-showPanel('schedule');
+showPanel('dashboard');
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
