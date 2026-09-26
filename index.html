@@ -1818,8 +1818,17 @@ async function fetchScheduleCards(type, difficulty){
 
   if(type === 'special') ensureTeamEventsForSpecialCards(cards).catch(() => {});
 
-  scheduleCache[cacheKey] = cards;
-  return cards;
+  // lmuportal occasionally publishes a fresh series row for a track before
+  // finishing enrichment - unmapped track_slug (so no location) AND no
+  // car_classes at once, seen live as e.g. "RoadAtlanta_2026"/
+  // "LongBeach_2026" duplicating an already-complete "Road Atlanta"/"Long
+  // Beach" card with nothing but a bare name. Both conditions together is
+  // the signal (a real race can lack one or the other on its own); only
+  // hide it once the "real" version's own data catches up.
+  const usable = cards.filter(c => c.track_slug || (c.car_classes && c.car_classes.length));
+
+  scheduleCache[cacheKey] = usable;
+  return usable;
 }
 
 // Sky codes aren't officially documented anywhere we could find - this is a
