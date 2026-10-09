@@ -25,6 +25,8 @@
   --green:#22c55e;
   --fuel:#F26683;
   --ve:#427BBF;
+  --mine:#FFB020;
+  --start:#E85C4A;
   --shadow-md:0 8px 24px rgba(0,0,0,0.3);
   --ease:cubic-bezier(.4,0,.2,1);
 }
@@ -233,10 +235,68 @@ body{
 .dash-mini-row:last-child{border-bottom:none;}
 .dash-mini-row .k{color:var(--muted);}
 .dash-mini-row .v{color:var(--text); font-family:'JetBrains Mono',monospace; font-weight:600;}
-.dash-team-stint{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0;}
-.dash-team-stint .pos{color:var(--amber); font-family:'JetBrains Mono',monospace; margin-right:6px;}
-.dash-team-event-name{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14.5px; color:var(--text); margin-bottom:4px;}
-.dash-team-event-meta{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:8px;}
+/* ---- "Dein nächstes Event" - shared by Dashboard and Team Events ---- */
+.ns-wrap{display:flex; flex-direction:column; gap:10px; margin-bottom:22px;}
+.ns-label{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted);}
+/* Fixed meaning per color, the same on every page: --mine (orange) is
+   always "you / your stints / your team", --start (red) is always a start
+   time or countdown. Nothing else reuses them for a different meaning. */
+.ns-hero{display:flex; flex-direction:column; gap:22px; padding:24px 26px; border-radius:16px; background:var(--panel); border:1px solid var(--mine);}
+.ns-top{display:flex; flex-wrap:wrap; gap:26px;}
+.ns-main{flex:1 1 280px; display:flex; flex-direction:column; gap:14px; min-width:0;}
+.ns-when{color:var(--start); font-size:13px; font-weight:600;}
+.ns-title{margin:2px 0 0 0; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:32px; line-height:1.05; color:var(--text); overflow-wrap:anywhere;}
+.ns-sub{color:var(--muted); font-size:13.5px;}
+.ns-facts{display:flex; flex-wrap:wrap; gap:22px;}
+.ns-fact{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.ns-fact-k{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted);}
+.ns-fact-v{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--text);}
+.ns-fact-v.start{color:var(--start);}
+.ns-fact-v.mine{color:var(--mine);}
+.ns-fact-v.car{font-family:'Rajdhani',sans-serif; font-size:20px;}
+.ns-plan{flex:1 1 240px; display:flex; flex-direction:column; align-items:flex-end; gap:10px; min-width:0;}
+.ns-noplan{color:var(--muted); font-size:13px; padding:12px 14px; border:1px dashed var(--line); border-radius:10px;}
+.ns-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;}
+.ns-btn{min-height:44px; padding:0 18px; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s var(--ease);}
+.ns-btn.primary{border:1px solid var(--mine); background:var(--mine); color:var(--carbon);}
+.ns-btn.primary:hover{filter:brightness(1.08);}
+.ns-btn.ghost{border:1px solid var(--line); background:transparent; color:var(--text);}
+.ns-btn.ghost:hover{border-color:var(--muted);}
+.ns-empty{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:18px 22px; border-radius:14px; background:var(--panel); border:1px dashed var(--line); color:var(--muted); font-size:13.5px;}
+
+/* Stint list: one row per stint with time, driver and spotter. Every
+   driver of a team has their own color (you: always --mine), and a stint
+   row takes its driver's color - same colors in every place a team shows. */
+.sl{display:flex; flex-direction:column; border-top:1px solid var(--line);}
+.sl-tools{display:flex; justify-content:flex-end; padding-bottom:8px;}
+.sl-row[hidden]{display:none;}
+.sl-row{display:grid; grid-template-columns:38px 108px 54px minmax(130px,0.9fr) minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+.sl-laps{font-family:'JetBrains Mono',monospace; color:var(--text);}
+.sl-tires{display:flex; align-items:center; gap:7px; min-width:0; color:var(--text); font-size:12.5px;}
+.sl-tire-dots{display:inline-grid; grid-template-columns:repeat(2,7px); gap:2px; flex-shrink:0;}
+.sl-tire-dots i{width:7px; height:7px; border-radius:50%; display:block;}
+.sl-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); padding:8px 0 6px;}
+.sl-num{font-family:'JetBrains Mono',monospace; color:var(--muted);}
+.sl-time{font-family:'JetBrains Mono',monospace; color:var(--muted); white-space:nowrap;}
+.sl-name{min-width:0; overflow-wrap:anywhere; color:var(--text);}
+.sl-name.open{color:var(--muted);}
+.sl-name.colored{font-weight:600;}
+.sl-row.colored .sl-num, .sl-row.colored .sl-time{font-weight:700;}
+.sl-k{display:none; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.5px; text-transform:uppercase; color:var(--muted); margin-right:6px;}
+@media(max-width:640px){
+  .ns-hero{padding:18px; gap:18px;}
+  .ns-plan{align-items:flex-start;}
+  .ns-title{font-size:26px;}
+  .ns-fact-v{font-size:19px;}
+  /* Phone: number + time on one line, driver and spotter each on their own
+     labelled line below - never squeezed side by side. */
+  .sl-row{grid-template-columns:auto minmax(0,1fr); row-gap:3px;}
+  .sl-head{display:none;}
+  .sl-laps{grid-column:1 / 2;}
+  .sl-tires{grid-column:2 / 3;}
+  .sl-name{grid-column:1 / -1;}
+  .sl-k{display:inline;}
+}
 
 
 .panel{
@@ -407,7 +467,7 @@ body{
   font-size:12.5px;
   letter-spacing:0.3px;
   text-transform:none;
-  color:var(--red);
+  color:var(--start);
   white-space:nowrap;
 }
 .schedule-times{
@@ -538,22 +598,19 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
 .te-open-editor-btn{
-  display:block;
-  width:100%;
-  font-family:'JetBrains Mono',monospace;
-  font-size:12.5px;
-  letter-spacing:0.4px;
-  text-transform:uppercase;
-  padding:13px 14px;
-  border-radius:8px;
-  border:1px dashed var(--line);
-  background:var(--panel-2);
-  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-weight:600;
+  font-size:14px;
+  min-height:44px;
+  padding:0 18px;
+  border-radius:10px;
+  border:1px solid var(--amber);
+  background:var(--amber);
+  color:var(--carbon);
   cursor:pointer;
-  margin-bottom:16px;
   transition:all .2s var(--ease);
 }
-.te-open-editor-btn:hover{border-color:var(--muted);}
+.te-open-editor-btn:hover{filter:brightness(1.08);}
 .te-editor-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
 .te-editor-title{
   font-family:'Rajdhani',sans-serif;
@@ -617,22 +674,91 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .link-btn-inline:hover{color:var(--text);}
 
 /* ---- Team Events tab ---- */
-.te-toolbar{margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.te-page-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:20px;}
+.te-page-title{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:32px;letter-spacing:0.5px;color:var(--text);}
+.te-page-sub{margin:2px 0 0 0;color:var(--muted);font-size:13.5px;}
+.te-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.te-seg{margin:0;}
 .te-login-hint{color:var(--muted);font-size:13px;}
-#te-list{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:16px;
-  align-items:start;
+
+/* Event list as a plain list (name, date, duration) above the selected
+   event's card, which always gets the full width. */
+.te-master-detail{display:flex;flex-direction:column;gap:18px;}
+.te-master{display:flex;flex-direction:column;gap:8px;}
+.te-detail{min-width:0;}
+.te-master-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 0 0 4px;}
+.te-master-label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.te-master-list{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+.te-master-toggle{
+  display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;
+  border-radius:9px;border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;
+  letter-spacing:0.5px;text-transform:uppercase;transition:all .2s var(--ease);
 }
+.te-master-toggle:hover{color:var(--text);border-color:var(--muted);}
+/* Collapsed: the list shrinks to one bar naming the shown event. */
+.te-master-collapsed-bar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;width:100%;
+  padding:12px 16px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+  color:var(--text);cursor:pointer;font:inherit;text-align:left;transition:all .2s var(--ease);
+}
+.te-master-collapsed-bar:hover{border-color:var(--muted);}
+.te-master-collapsed-bar .te-master-name{font-size:16px;}
+.te-master-collapsed-bar .te-master-toggle{margin-left:auto;pointer-events:none;}
+.te-master-item{
+  display:grid;grid-template-columns:minmax(0,1fr) auto 90px;gap:16px;align-items:center;
+  text-align:left;padding:12px 16px;min-height:48px;
+  background:transparent;border:none;border-bottom:1px solid var(--line);
+  color:var(--text);cursor:pointer;font:inherit;
+  transition:background .2s var(--ease);
+}
+.te-master-item:last-child{border-bottom:none;}
+.te-master-item:hover{background:var(--panel-2);}
+.te-master-item.active{background:var(--panel-2);box-shadow:inset 3px 0 0 var(--text);}
+.te-master-namecell{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0;}
+.te-master-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;line-height:1.15;min-width:0;overflow-wrap:anywhere;}
+.te-master-date{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);white-space:nowrap;}
+.te-master-dur{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);text-align:right;white-space:nowrap;}
+.te-pill-mine{flex-shrink:0;padding:3px 8px;border-radius:20px;background:rgba(255,176,32,0.16);color:var(--mine);font-size:11px;font-weight:600;white-space:nowrap;}
+.te-pill-muted{flex-shrink:0;padding:3px 8px;border-radius:20px;background:var(--panel-2);color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap;}
+
 .te-event{
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:12px;
-  padding:20px 22px;
+  border-radius:14px;
+  padding:24px 26px;
 }
-.te-event-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
-.te-event-name{display:flex;align-items:center;flex-wrap:wrap;gap:9px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:21px;color:var(--text);}
+.te-event-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:20px;}
+.te-event-name{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;line-height:1.1;color:var(--text);overflow-wrap:anywhere;}
+.te-event-name > span{min-width:0;}
+.te-header-btn{
+  display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px;
+  border-radius:10px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;
+  transition:all .2s var(--ease);
+}
+.te-header-btn:hover{border-color:var(--muted);}
+.te-header-btn.icon{width:40px;padding:0;justify-content:center;color:var(--muted);}
+.te-header-btn.icon:hover{color:var(--red);border-color:var(--red);}
+.te-day-bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.te-day-tabs{display:flex;flex-wrap:wrap;gap:6px;}
+.te-day-tab{
+  text-align:left;padding:8px 14px;border-radius:10px;cursor:pointer;
+  background:transparent;border:1px solid var(--line);color:var(--text);font:inherit;
+  transition:all .2s var(--ease);
+}
+.te-day-tab:hover{border-color:var(--muted);}
+.te-day-tab.active{background:var(--amber);border-color:var(--amber);color:var(--carbon);}
+.te-day-tab-label{display:block;font-weight:600;font-size:13.5px;}
+.te-day-tab-sub{display:block;font-size:11.5px;color:var(--muted);}
+.te-day-tab.active .te-day-tab-sub{color:#4A3A12;}
+.te-legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:12px;}
+.te-legend span{display:inline-flex;align-items:center;gap:6px;}
+.te-legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+.te-slot-hint{color:var(--muted);font-size:13px;margin-top:14px;}
+.te-slot-detail-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;}
+.te-slot-detail-title{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:21px;color:var(--text);}
+.te-slot-detail-count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
 .te-event-name .sr-badge{font-family:'JetBrains Mono',monospace;}
 .te-event-date{font-size:13.5px;color:var(--muted);margin-top:3px;}
 .te-badges-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px;}
@@ -652,67 +778,61 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-merge-row select{width:auto;flex:1;min-width:160px;font-size:12px;padding:6px 8px;}
 .te-event-header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
-.te-delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;}
-.te-delete-btn:hover{color:var(--red);}
-.te-day-header{
-  font-family:'JetBrains Mono',monospace;
-  font-size:12.5px;
-  letter-spacing:0.3px;
-  text-transform:uppercase;
-  color:var(--muted);
-  margin:14px 0 7px 0;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.te-day-header::after{content:'';flex:1;height:1px;background:var(--line);}
-.te-day-header:first-of-type{margin-top:0;}
-.te-slots{display:flex;flex-wrap:wrap;gap:9px;}
+.te-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px;}
+/* "niemand" vs. "1 Team"/"N Teams" - deliberately no free/full wording,
+   since a slot can hold any number of teams. */
 .te-slot{
   font-family:'JetBrains Mono',monospace;
-  font-size:13.5px;
-  padding:10px 14px;
-  border-radius:8px;
-  border:1px solid var(--line);
-  background:var(--panel-2);
+  font-size:16px;
+  font-weight:700;
+  min-height:64px;
+  padding:10px 8px;
+  border-radius:11px;
+  border:1px dashed #4A505C;
+  background:transparent;
   color:var(--text);
   cursor:pointer;
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:3px;
-  max-width:180px;
+  justify-content:center;
+  gap:4px;
   transition:all .2s var(--ease);
 }
-.te-slot.has-team{border-color:var(--amber);}
-.te-slot.has-team .te-slot-count{color:var(--amber);}
-.te-slot.has-me{border-color:var(--violet);color:var(--violet);}
 .te-slot:hover{border-color:var(--muted);}
-.te-slot-count{font-size:11px;color:var(--muted);white-space:normal;text-align:center;font-family:'Inter',sans-serif;}
-.te-slot.has-me .te-slot-count{color:var(--violet);}
+.te-slot.has-team{border:1px solid #8B9099;background:var(--panel-2);}
+.te-slot.has-me{border:1px solid var(--mine);background:rgba(255,176,32,0.12);}
+.te-slot.open{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--text);}
+.te-slot.past{opacity:0.5;}
+.te-slot-count{font-size:11.5px;font-weight:500;color:var(--muted);white-space:normal;text-align:center;font-family:'Inter',sans-serif;}
+.te-slot.has-team .te-slot-count{color:var(--text);}
+.te-slot.has-me .te-slot-count{color:var(--mine);}
 .te-slot-detail{
-  margin-top:14px;
-  padding-top:14px;
+  margin-top:22px;
+  padding-top:20px;
   border-top:1px solid var(--line);
   display:flex;
   flex-direction:column;
-  gap:11px;
+  gap:14px;
 }
 .te-team{
   background:var(--panel-2);
-  border-radius:8px;
-  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 18px;
   display:flex;
-  flex-wrap:wrap;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
+  flex-direction:column;
+  align-items:stretch;
+  gap:12px;
 }
-.te-team-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:3px;}
-.te-team-car{font-size:12.5px;color:var(--violet);margin-bottom:3px;}
-.te-team-members{font-size:14px;color:var(--text);}
+.te-team.mine{border-color:var(--mine);}
+.te-team-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.te-team-label{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:19px;color:var(--text);min-width:0;overflow-wrap:anywhere;}
+.te-team-car{font-size:13px;color:var(--muted);margin-left:auto;}
+.te-team-members{font-size:13.5px;color:var(--text);display:flex;flex-wrap:wrap;gap:6px;}
 .te-team-members.empty{color:var(--muted);}
-.te-member-chip{display:inline-flex;align-items:center;gap:4px;margin:0 10px 4px 0;}
+.te-member-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;background:var(--panel);border-radius:20px;}
+.te-member-dot{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text);background:#4A505C;flex-shrink:0;}
 .te-member-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;line-height:1;}
 .te-member-remove:hover{color:var(--red);}
 .te-team-btn{
@@ -803,7 +923,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   font-size:11px;
   font-weight:700;
   letter-spacing:0.3px;
-  color:var(--amber);
+  color:var(--muted);
   width:64px;
   margin-right:4px;
   flex-shrink:0;
@@ -1009,33 +1129,30 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 }
 .te-new-team-btn:hover{color:var(--text);border-color:var(--muted);}
 .te-new-team-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
+.te-new-team-name{width:auto;min-width:200px;}
+.te-new-team-name.invalid{border-color:var(--red);}
+.te-new-team-msg{flex-basis:100%;margin:2px 0 0 0;}
 .te-new-team-form select{width:auto;min-width:150px;}
 
-/* Desktop default: invisible to layout, so .te-team is still one flat
-   flex-wrap row of individual buttons exactly as if this group didn't
-   exist - see the mobile override below. */
-.te-team-actions{display:contents;}
+.te-team-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 
-/* ---- Mobile: Team Events tab. .te-team crammed team info and up to 4
-   action buttons into one wrapping row - clear things into two blocks
-   (info, then a button cluster) that each take the full card width
-   instead of scattering individually, and stack the new-team form's
-   several fields instead of squeezing them onto one line. ---- */
+/* ---- Mobile: Team Events tab - the event list stacks above the detail
+   card, slots go two-across, and the team action buttons / new-team form
+   fields take the full card width instead of squeezing onto one line. ---- */
 @media (max-width:640px){
+  .te-master-item{grid-template-columns:minmax(0,1fr) auto;row-gap:4px;}
+  .te-master-namecell{grid-column:1 / -1;}
+  .te-master-dur{text-align:right;}
   .te-event{padding:16px;}
+  .te-event-name{font-size:23px;}
   .te-event-header{flex-direction:column;align-items:stretch;}
   .te-event-header-right{margin-top:2px;}
-  .te-team{flex-direction:column;align-items:stretch;justify-content:flex-start;padding:12px;}
-  .te-team-actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:10px;
-  }
+  .te-team{padding:12px;}
+  .te-team-car{margin-left:0;flex-basis:100%;}
   .te-team-actions input{width:100%;min-width:0;}
   .te-new-team-form{flex-direction:column;align-items:stretch;}
   .te-new-team-form select, .te-new-team-form input{width:100%;min-width:0;}
-  .te-slot{max-width:none;flex:1 1 calc(50% - 9px);}
+  .te-slots{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
 /* Desktop default: each group is invisible to layout, so .stint-row is
@@ -1339,7 +1456,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .live-strip-dot{width:7px; height:7px; border-radius:50%; background:var(--amber); flex-shrink:0; box-shadow:0 0 8px var(--amber); animation:pulse-dot 1.6s infinite;}
 .live-strip-label{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted);}
 .live-strip-track{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px; color:var(--text);}
-.live-strip-countdown{margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--amber); white-space:nowrap;}
+.live-strip-countdown{margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--start); white-space:nowrap;}
 @media(max-width:640px){
   .live-strip{margin:12px 16px 0 16px; padding:9px 14px; flex-wrap:wrap;}
   .live-strip-label{display:none;}
@@ -1456,7 +1573,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 <!-- Persistent countdown - visible no matter which tab is open, so the one
      thing that actually matters in the moment (when does the next session
      go green) never requires a detour through Dashboard just to check. -->
-<div class="live-strip" id="live-strip" onclick="showPanel('dashboard')" hidden>
+<div class="live-strip" id="live-strip" onclick="goToNextRace()" hidden>
   <span class="live-strip-dot"></span>
   <span class="live-strip-label">Nächstes Rennen</span>
   <span class="live-strip-track" id="live-strip-track"></span>
@@ -1465,17 +1582,15 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 
 <!-- DASHBOARD -->
 <div class="panel active" id="panel-dashboard">
-  <p class="section-label" style="margin-top:0">Nächstes Rennen</p>
+  <div id="dash-next-start"><div class="schedule-empty">Lade dein nächstes Event…</div></div>
+
+  <p class="section-label" id="dash-next-race-label">Nächstes Rennen</p>
   <div id="dash-next-race"><div class="schedule-empty">Lade nächstes Rennen…</div></div>
 
   <div class="dash-stat-grid">
     <div class="dash-mini-tile" id="dash-reftimes-tile">
       <div class="dash-mini-title">⏱ Referenzzeiten <span id="dash-reftimes-track"></span></div>
       <div class="dash-mini-body" id="dash-reftimes-body"><span class="dash-mini-hint">Lade…</span></div>
-    </div>
-    <div class="dash-mini-tile" id="dash-team-tile">
-      <div class="dash-mini-title">🏁 Dein Team</div>
-      <div class="dash-mini-body" id="dash-team-body"><span class="dash-mini-hint">Melde dich an, um dein Team-Event zu sehen.</span></div>
     </div>
   </div>
 </div>
@@ -1553,15 +1668,25 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   <div id="te-content" hidden>
 
   <div id="te-list-view">
-    <div class="te-toolbar">
-      <div class="filter-row" id="te-game-filter">
-        <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
-        <button type="button" class="filter-pill" data-game="acc">ACC</button>
+    <div class="te-page-head">
+      <div>
+        <h2 class="te-page-title">Team Events</h2>
+        <p class="te-page-sub">Slot wählen, Team gründen oder beitreten, Stints planen.</p>
       </div>
-      <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
+      <div class="te-toolbar">
+        <div class="filter-row te-seg" id="te-game-filter">
+          <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+          <button type="button" class="filter-pill" data-game="acc">ACC</button>
+        </div>
+        <label class="lb-filter-toggle"><input type="checkbox" id="te-show-closed"> Abgeschlossene anzeigen</label>
+        <button type="button" class="te-open-editor-btn" id="te-open-editor-btn">+ Event erstellen</button>
+      </div>
     </div>
-    <button type="button" class="te-open-editor-btn" id="te-open-editor-btn">+ Event erstellen</button>
-    <div id="te-list"></div>
+    <div id="te-next-start" hidden></div>
+    <div class="te-master-detail">
+      <nav class="te-master" id="te-master" aria-label="Events" hidden></nav>
+      <div class="te-detail" id="te-list"></div>
+    </div>
   </div>
 
   <div id="te-editor-view" hidden>
@@ -2321,7 +2446,7 @@ function renderScheduleCards(cards, colorByClassName){
 const DIFFICULTY_LABELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
 
 function buildScheduleCard(card, now, colorByClassName, opts){
-    opts = opts || {};
+  opts = opts || {};
     const el = document.createElement('div');
     el.className = 'schedule-card';
 
@@ -3299,6 +3424,15 @@ document.querySelectorAll('#ref-game-filter .filter-pill').forEach(btn => {
 // slot - tapping a slot lets you join one of the existing teams there or
 // start a new one. ----
 let teOpenSlot = {}; // eventId -> slotIso currently expanded, per event card
+let teSelectedDay = {}; // eventId -> localDayKey of the day tab currently shown
+let teSelectedEventId = null; // event shown in the detail pane of the master-detail list
+let teMasterCollapsed = false;
+try{ teMasterCollapsed = localStorage.getItem('pitwall-te-list-collapsed') === '1'; }catch(e){}
+function setTeMasterCollapsed(collapsed){
+  teMasterCollapsed = collapsed;
+  try{ localStorage.setItem('pitwall-te-list-collapsed', collapsed ? '1' : '0'); }catch(e){}
+  rerenderTeamEvents();
+}
 let teOpenStintPlan = {}; // teamId -> whether its stint plan is expanded
 let teMyStintsOnly = {}; // teamId -> whether its stint plan is filtered to only the current user's stints
 let teSelectedTimes = new Set();
@@ -3342,7 +3476,7 @@ function formatSlotMembersSummary(teamsHere){
   if(!teamsHere.length) return 'noch niemand';
   return teamsHere.map((t, i) => {
     const names = (t.team_event_members || []).map(m => (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt');
-    const label = teamsHere.length > 1 ? `T${i + 1}: ` : '';
+    const label = teamsHere.length > 1 ? `${teamDisplayName(t, i + 1)}: ` : '';
     return label + (names.length ? names.join(', ') : '–');
   }).join(' · ');
 }
@@ -3518,12 +3652,7 @@ async function refreshEventEditorPreview(){
     return;
   }
 
-  const { data: teams, error: teamsError } = await pitwallClient
-    .from('team_event_teams')
-    .select(TEAM_EVENT_TEAMS_COLUMNS)
-    .eq('event_id', teEditorEventId)
-    .order('created_at', { ascending: true })
-    .order('position', { foreignTable: 'team_stints', ascending: true });
+  const { data: teams, error: teamsError } = await selectTeams(q => q.eq('event_id', teEditorEventId));
   if(teamsError) console.error('Load draft teams failed:', teamsError.message);
 
   const carData = await loadCarsByClass();
@@ -4998,15 +5127,15 @@ async function cancelLeaveRequest(teamId){
   loadTeamEvents();
 }
 
-async function createTeamAtSlot(eventId, slotIso, car, note){
+async function createTeamAtSlot(eventId, slotIso, car, note, name){
   const { data: { session } } = await pitwallClient.auth.getSession();
-  if(!session) return;
+  if(!session) return 'Nicht angemeldet.';
   const { data: team, error } = await pitwallClient
     .from('team_event_teams')
-    .insert({ event_id: eventId, slot_time: slotIso, created_by: session.user.id, car: car || null })
+    .insert({ event_id: eventId, slot_time: slotIso, created_by: session.user.id, car: car || null, name })
     .select()
     .single();
-  if(error || !team) return;
+  if(error || !team) return 'Team konnte nicht erstellt werden' + (error ? `: ${error.message}` : '.');
   await pitwallClient.from('team_event_members').insert({ team_id: team.id, user_id: session.user.id, note: note || null });
   teNewTeamOpen = null;
   loadTeamEvents();
@@ -5022,6 +5151,15 @@ function renderNewTeamForm(eventId, slotIso, carData, game){
   // hardcoded roster (ACC_CLASSES/ACC_CARS_BY_CLASS) instead, same shape.
   const classes = game === 'acc' ? ACC_CLASSES : carData.classes;
   const carsByClass = game === 'acc' ? ACC_CARS_BY_CLASS : carData.carsByClass;
+
+  // Required: every new team gets a name so it can be told apart from the
+  // other teams in the slot (older teams without one show as "Team N").
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.placeholder = 'Teamname (Pflicht)';
+  nameInput.maxLength = TEAM_NAME_MAX;
+  nameInput.setAttribute('aria-label', 'Teamname');
+  nameInput.className = 'te-new-team-name';
 
   const classSel = document.createElement('select');
   const classPlaceholder = document.createElement('option');
@@ -5068,10 +5206,29 @@ function renderNewTeamForm(eventId, slotIso, carData, game){
   confirmBtn.type = 'button';
   confirmBtn.className = 'te-team-btn';
   confirmBtn.textContent = 'Team erstellen';
-  confirmBtn.addEventListener('click', () => {
-    if(!classSel.value || !carSel.value) return;
+  const msg = document.createElement('div');
+  msg.className = 'form-message te-new-team-msg';
+  msg.hidden = true;
+  const showMsg = text => { msg.textContent = text; msg.hidden = false; };
+  nameInput.addEventListener('input', () => { nameInput.classList.remove('invalid'); msg.hidden = true; });
+
+  confirmBtn.addEventListener('click', async () => {
+    const teamName = nameInput.value.trim();
+    if(!teamName){
+      nameInput.classList.add('invalid');
+      showMsg('Bitte zuerst einen Teamnamen eingeben.');
+      nameInput.focus();
+      return;
+    }
+    if(!classSel.value || !carSel.value){
+      showMsg('Bitte Klasse und Fahrzeug wählen.');
+      return;
+    }
     const carLabel = `${carSel.value} (${classSel.options[classSel.selectedIndex].textContent})`;
-    createTeamAtSlot(eventId, slotIso, carLabel, noteInput.value.trim());
+    confirmBtn.disabled = true;
+    const err = await createTeamAtSlot(eventId, slotIso, carLabel, noteInput.value.trim(), teamName);
+    confirmBtn.disabled = false;
+    if(err) showMsg(err);
   });
 
   const cancelBtn = document.createElement('button');
@@ -5080,11 +5237,194 @@ function renderNewTeamForm(eventId, slotIso, carData, game){
   cancelBtn.textContent = 'Abbrechen';
   cancelBtn.addEventListener('click', () => { teNewTeamOpen = null; loadTeamEvents(); });
 
+  wrap.appendChild(nameInput);
   wrap.appendChild(classSel);
   wrap.appendChild(carSel);
   wrap.appendChild(noteInput);
   wrap.appendChild(confirmBtn);
   wrap.appendChild(cancelBtn);
+  wrap.appendChild(msg);
+  return wrap;
+}
+
+const TEAM_NAME_MAX = 40;
+// Teams created before names existed have none - they keep the old
+// "Team N" (N = creation order within the slot).
+function teamDisplayName(team, number){
+  return (team.name && team.name.trim()) || `Team ${number}`;
+}
+
+// Colors for other drivers - never yellow/orange (= you) or red (= start
+// time), so those keep their fixed meaning.
+// Kept to hues that are clearly apart from each other at a glance.
+const TE_PERSON_COLORS = ['#60A5FA', '#4ADE80', '#C084FC', '#F472B6', '#2DD4BF', '#E5E7EB'];
+function teHash(str){
+  let h = 2166136261;
+  for(let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+// A person's key within a team: account id, or the typed name for drivers
+// without an account.
+function tePersonKey(userId, name){
+  return userId ? 'u:' + userId : 'n:' + (name || '').trim().toLowerCase();
+}
+// Gives every person in a team a randomly drawn but fixed color (seeded by
+// team + person, so it's the same on Dashboard, Team Events and in the
+// stint editor, and doesn't change on reload) - no two people in one team
+// share a color while there are colors left. You are always --mine.
+function teamColorMap(team){
+  const keys = new Set();
+  (team.team_event_members || []).forEach(m => keys.add(tePersonKey(m.user_id, (m.profiles && m.profiles.username) || m.manual_name)));
+  (team.team_stints || []).forEach(s => {
+    if(s.user_id || s.driver_name) keys.add(tePersonKey(s.user_id, s.driver_name));
+    if(s.spotter_id || s.spotter_name) keys.add(tePersonKey(s.spotter_id, s.spotter_name));
+  });
+  const meKey = currentProfile ? tePersonKey(currentProfile.id) : null;
+  const others = [...keys].filter(k => k !== meKey).sort((a, b) => teHash(team.id + a) - teHash(team.id + b));
+  const map = {};
+  const used = new Set();
+  others.forEach(k => {
+    let idx = teHash(team.id + '|' + k) % TE_PERSON_COLORS.length;
+    for(let tries = 0; used.has(idx) && tries < TE_PERSON_COLORS.length; tries++) idx = (idx + 1) % TE_PERSON_COLORS.length;
+    used.add(idx);
+    map[k] = TE_PERSON_COLORS[idx];
+  });
+  return (userId, name) => {
+    const key = tePersonKey(userId, name);
+    if(key === meKey) return 'var(--mine)';
+    return map[key] || null;
+  };
+}
+
+function stintDriverName(s){
+  return (s.driver && s.driver.username) || s.driver_name || null;
+}
+function stintSpotterName(s){
+  return (s.spotter && s.spotter.username) || s.spotter_name || null;
+}
+// Each stint's minutes and laps, computed exactly the way the stint editor
+// (renderStintPlan) does, so the read-only overview never disagrees with
+// it: times from the running sum of duration_minutes, laps as stored or
+// estimated from the team's lap time.
+function stintWeights(team){
+  const stints = (team.team_stints || []).slice().sort((a, b) => a.position - b.position);
+  const lapTime = team.est_lap_time_seconds;
+  const weights = stints.map(s => s.duration_minutes || 0);
+  const laps = stints.map(s => s.laps ?? (lapTime > 0 && s.duration_minutes ? Math.ceil((s.duration_minutes * 60) / lapTime) : null));
+  return { stints, weights, laps, inMinutes: true };
+}
+// "kein Wechsel" / one compound for all four / per corner when mixed.
+function tireChangeSummary(s){
+  const vals = TIRE_CORNERS.map(([key]) => s[key] || null);
+  if(vals.every(v => !v)) return 'kein Wechsel';
+  if(vals.every(v => v === vals[0])) return vals[0];
+  return TIRE_CORNERS.map(([, label], i) => `${label} ${vals[i] || '–'}`).join(' · ');
+}
+
+// Read-only stint list, shared by the "Dein nächstes Event" tile and the
+// team cards: one row per stint with its time, driver and spotter, each
+// in that person's team color (you: always --mine).
+function renderStintOverview(team, startMs){
+  const { stints, weights, laps, inMinutes } = stintWeights(team);
+  if(!stints.length) return null;
+  const clock = inMinutes && startMs != null;
+  const colorOf = teamColorMap(team);
+  const meId = currentProfile && currentProfile.id;
+  const isMine = s => !!meId && (s.user_id === meId || s.spotter_id === meId);
+  const myDriverCount = stints.filter(s => meId && s.user_id === meId).length;
+  const mySpotterCount = stints.filter(s => meId && s.spotter_id === meId).length;
+  const mineOnly = !!teMyStintsOnly[team.id] && (myDriverCount + mySpotterCount) > 0;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'sl-wrap';
+  // Same filter (and same remembered state) as the editor's own "Nur meine
+  // Stints" - offered to anyone who drives or spots in this plan.
+  if(myDriverCount + mySpotterCount > 0){
+    const tools = document.createElement('div');
+    tools.className = 'sl-tools';
+    const label = document.createElement('label');
+    label.className = 'lb-filter-toggle stint-mine-toggle';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = mineOnly;
+    cb.addEventListener('change', () => {
+      teMyStintsOnly[team.id] = cb.checked;
+      // Every overview of this team on the page (tile + team card) follows.
+      document.querySelectorAll(`.sl[data-team-id="${team.id}"]`).forEach(other => {
+        other.querySelectorAll('.sl-row[data-mine="0"]').forEach(r => { r.hidden = cb.checked; });
+      });
+      document.querySelectorAll(`.sl-wrap[data-team-id="${team.id}"] .sl-tools input`).forEach(o => { o.checked = cb.checked; });
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(` Nur meine Stints (${myDriverCount} Fahrerstints / ${mySpotterCount} Spotterstints)`));
+    tools.appendChild(label);
+    wrap.appendChild(tools);
+  }
+  wrap.dataset.teamId = team.id;
+
+  const list = document.createElement('div');
+  list.className = 'sl';
+  list.dataset.teamId = team.id;
+  list.innerHTML = '<div class="sl-row sl-head"><span>Stint</span><span>Zeit</span><span>Runden</span><span>Reifen</span><span>Fahrer</span><span>Spotter</span></div>';
+  let t = 0;
+  stints.forEach((s, i) => {
+    const from = t;
+    t += weights[i];
+    const driver = stintDriverName(s);
+    const spotter = stintSpotterName(s);
+    const driverColor = driver ? colorOf(s.user_id, driver) : null;
+    const spotterColor = spotter ? colorOf(s.spotter_id, spotter) : null;
+    const time = clock
+      ? `${formatClock(startMs + from * 60000)}–${formatClock(startMs + t * 60000)}`
+      : (s.duration_minutes ? `${s.duration_minutes} min` : s.laps ? `${s.laps} Runden` : '–');
+
+    const row = document.createElement('div');
+    row.className = 'sl-row' + (driverColor ? ' colored' : '');
+    row.dataset.mine = isMine(s) ? '1' : '0';
+    if(mineOnly && !isMine(s)) row.hidden = true;
+    const num = document.createElement('span');
+    num.className = 'sl-num';
+    num.textContent = `#${i + 1}`;
+    const timeEl = document.createElement('span');
+    timeEl.className = 'sl-time';
+    timeEl.textContent = time;
+    if(driverColor){ num.style.color = driverColor; timeEl.style.color = driverColor; }
+    const nameEl = (label, name, color) => {
+      const el = document.createElement('span');
+      el.className = 'sl-name' + (!name ? ' open' : color ? ' colored' : '');
+      el.innerHTML = `<span class="sl-k">${label}</span>`;
+      el.appendChild(document.createTextNode(name || 'offen'));
+      if(color) el.style.color = color;
+      return el;
+    };
+    const lapsEl = document.createElement('span');
+    lapsEl.className = 'sl-laps';
+    lapsEl.innerHTML = '<span class="sl-k">Runden</span>';
+    lapsEl.appendChild(document.createTextNode(laps[i] != null ? String(laps[i]) : '–'));
+    // Same compound dots as the editor's tire control, VL VR HL HR.
+    const tireEl = document.createElement('span');
+    tireEl.className = 'sl-tires';
+    tireEl.innerHTML = '<span class="sl-k">Reifen</span>';
+    const dots = document.createElement('span');
+    dots.className = 'sl-tire-dots';
+    dots.setAttribute('aria-hidden', 'true');
+    TIRE_CORNERS.forEach(([key]) => {
+      const d = document.createElement('i');
+      d.style.background = TIRE_COMPOUND_COLORS[s[key]] || 'transparent';
+      if(!s[key]) d.style.boxShadow = 'inset 0 0 0 1px var(--muted)';
+      dots.appendChild(d);
+    });
+    tireEl.appendChild(dots);
+    tireEl.appendChild(document.createTextNode(tireChangeSummary(s)));
+    row.appendChild(num);
+    row.appendChild(timeEl);
+    row.appendChild(lapsEl);
+    row.appendChild(tireEl);
+    row.appendChild(nameEl('Fahrer', driver, driverColor));
+    row.appendChild(nameEl('Spotter', spotter, spotterColor));
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
   return wrap;
 }
 
@@ -5092,23 +5432,56 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   const detail = document.createElement('div');
   detail.className = 'te-slot-detail';
 
-  teamsHere.forEach((t, i) => {
+  const head = document.createElement('div');
+  head.className = 'te-slot-detail-head';
+  const title = document.createElement('h3');
+  title.className = 'te-slot-detail-title';
+  title.textContent = `${formatDayHeader(new Date(slotIso))} · ${formatSlotTime(slotIso)} Uhr`;
+  const countEl = document.createElement('span');
+  countEl.className = 'te-slot-detail-count';
+  countEl.textContent = teamCountLabel(teamsHere.length, 'Noch niemand in diesem Slot');
+  head.appendChild(title);
+  head.appendChild(countEl);
+  detail.appendChild(head);
+
+  // Your own team first; the rest keep their creation order. Numbers for
+  // unnamed teams come from creation order, before this re-sort, so a
+  // team's "Team N" never changes depending on who is looking.
+  const ordered = teamsHere
+    .map((t, i) => ({ t, number: i + 1, mine: isMemberOfAny([t]) }))
+    .sort((a, b) => (b.mine - a.mine) || (a.number - b.number));
+
+  ordered.forEach(({ t, number }) => {
     const members = t.team_event_members || [];
     const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
+    const colorOf = teamColorMap(t);
 
     const row = document.createElement('div');
-    row.className = 'te-team';
+    row.className = 'te-team' + (iAmIn ? ' mine' : '');
+    row.dataset.teamId = t.id;
     const info = document.createElement('div');
-    const labelEl = document.createElement('div');
+    info.style.display = 'flex';
+    info.style.flexDirection = 'column';
+    info.style.gap = '10px';
+    const headRow = document.createElement('div');
+    headRow.className = 'te-team-head';
+    const labelEl = document.createElement('span');
     labelEl.className = 'te-team-label';
-    labelEl.textContent = `Team ${i + 1}`;
-    info.appendChild(labelEl);
+    labelEl.textContent = teamDisplayName(t, number);
+    headRow.appendChild(labelEl);
+    if(iAmIn){
+      const mineBadge = document.createElement('span');
+      mineBadge.className = 'te-pill-mine';
+      mineBadge.textContent = 'Dein Team';
+      headRow.appendChild(mineBadge);
+    }
     if(t.car){
-      const carEl = document.createElement('div');
+      const carEl = document.createElement('span');
       carEl.className = 'te-team-car';
       carEl.textContent = t.car;
-      info.appendChild(carEl);
+      headRow.appendChild(carEl);
     }
+    info.appendChild(headRow);
     const membersEl = document.createElement('div');
     membersEl.className = 'te-team-members';
     if(!members.length){
@@ -5120,6 +5493,12 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         const name = (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt';
         const chip = document.createElement('span');
         chip.className = 'te-member-chip';
+        const dot = document.createElement('span');
+        dot.className = 'te-member-dot';
+        const memberColor = colorOf(m.user_id, name);
+        if(memberColor){ dot.style.background = memberColor; dot.style.color = 'var(--carbon)'; }
+        dot.textContent = name.charAt(0).toUpperCase();
+        chip.appendChild(dot);
         if(m.user_id && m.user_id === t.created_by){
           const crown = document.createElement('span');
           crown.textContent = '👑';
@@ -5143,14 +5522,11 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
       });
     }
     info.appendChild(membersEl);
+    // The read-only list steps aside while the full editor is open below.
+    const stintOverview = (iAmIn && teOpenStintPlan[t.id]) ? null : renderStintOverview(t, new Date(slotIso).getTime());
+    if(stintOverview) info.appendChild(stintOverview);
     row.appendChild(info);
 
-    // Groups every action button into one unit, separate from `info`
-    // above - on desktop it's `display:contents` (invisible to layout, so
-    // this is pixel-identical to before: every button is still its own
-    // flex item of `.te-team`), on mobile it becomes a real box so the
-    // buttons cluster and wrap together underneath the team info instead
-    // of scattering individually across the row.
     const actionsGroup = document.createElement('div');
     actionsGroup.className = 'te-team-actions';
     row.appendChild(actionsGroup);
@@ -5217,17 +5593,21 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         actionsGroup.appendChild(delTeamBtn);
       }
     }
-    const stintToggle = document.createElement('button');
-    stintToggle.type = 'button';
-    stintToggle.className = 'te-stint-toggle';
-    const isStintOpen = !!teOpenStintPlan[t.id];
-    stintToggle.textContent = isStintOpen ? 'Stintplan ausblenden ▴' : 'Stintplan anzeigen ▾';
-    stintToggle.addEventListener('click', () => {
-      teOpenStintPlan[t.id] = !teOpenStintPlan[t.id];
-      loadTeamEvents();
-    });
-    row.appendChild(stintToggle);
-    if(isStintOpen) row.appendChild(renderStintPlan(t, ev));
+    // The overview above already shows the whole plan to everyone - the
+    // planner itself is only for editing, so only your own team gets it.
+    if(iAmIn){
+      const stintToggle = document.createElement('button');
+      stintToggle.type = 'button';
+      stintToggle.className = 'te-stint-toggle';
+      const isStintOpen = !!teOpenStintPlan[t.id];
+      stintToggle.textContent = isStintOpen ? 'Bearbeiten schließen ▴' : 'Stintplan bearbeiten ▾';
+      stintToggle.addEventListener('click', () => {
+        teOpenStintPlan[t.id] = !teOpenStintPlan[t.id];
+        loadTeamEvents();
+      });
+      row.appendChild(stintToggle);
+      if(isStintOpen) row.appendChild(renderStintPlan(t, ev));
+    }
     detail.appendChild(row);
   });
 
@@ -5365,17 +5745,18 @@ function renderEventCard(ev, teams, carData, opts){
 
       const closeBtn = document.createElement('button');
       closeBtn.type = 'button';
-      closeBtn.className = 'te-delete-btn';
-      closeBtn.textContent = ev.closed ? '↺' : '✓';
+      closeBtn.className = 'te-header-btn';
+      closeBtn.textContent = ev.closed ? '↺ Wieder öffnen' : '✓ Abschließen';
       closeBtn.title = ev.closed ? 'Event wieder öffnen' : 'Event abschließen';
       closeBtn.addEventListener('click', () => setTeamEventClosed(ev.id, !ev.closed));
       actions.appendChild(closeBtn);
 
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
-      delBtn.className = 'te-delete-btn';
-      delBtn.textContent = '✕';
+      delBtn.className = 'te-header-btn icon';
+      delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
       delBtn.title = 'Event entfernen';
+      delBtn.setAttribute('aria-label', 'Event entfernen');
       delBtn.addEventListener('click', () => deleteTeamEvent(ev.id));
       actions.appendChild(delBtn);
 
@@ -5404,72 +5785,163 @@ function renderEventCard(ev, teams, carData, opts){
     return card;
   }
 
-  // Keyed by epoch ms, not the raw string - team_event_teams.slot_time comes
-  // back from Postgres as "...+00:00" while team_events.slot_times is our own
-  // "...Z"-suffixed ISO strings; same instant, different string, so string
-  // equality would never match.
-  const slotTeams = {};
-  teams.forEach(t => {
-    const key = new Date(t.slot_time).getTime();
-    (slotTeams[key] = slotTeams[key] || []).push(t);
-  });
+  const slotTeams = groupTeamsBySlot(teams);
+  const slotTimes = ev.slot_times || [];
+
+  // Your next slot in this event decides which day tab opens by default.
+  const mySlots = slotTimes.filter(iso => isMemberOfAny(slotTeams[new Date(iso).getTime()] || [])).sort();
+  const nextMySlot = mySlots.find(iso => new Date(iso).getTime() > Date.now()) || mySlots[mySlots.length - 1];
 
   const dayGroups = {}; // localDayKey -> { date, slots: [isoString, ...] }
-  (ev.slot_times || []).forEach(slotIso => {
+  slotTimes.forEach(slotIso => {
     const d = new Date(slotIso);
     const key = localDayKey(d);
     if(!dayGroups[key]) dayGroups[key] = { date: d, slots: [] };
     dayGroups[key].slots.push(slotIso);
   });
+  const dayKeys = Object.keys(dayGroups).sort();
+  if(!dayKeys.length) return card;
 
   const openSlot = teOpenSlot[ev.id];
-  Object.keys(dayGroups).sort().forEach(key => {
+  const todayKey = localDayKey(new Date());
+  let selectedDay = teSelectedDay[ev.id];
+  if(!dayGroups[selectedDay]){
+    selectedDay = (openSlot && localDayKey(new Date(openSlot)))
+      || (nextMySlot && localDayKey(new Date(nextMySlot)))
+      || dayKeys.find(k => k >= todayKey)
+      || dayKeys[0];
+    if(!dayGroups[selectedDay]) selectedDay = dayKeys[0];
+  }
+
+  const dayBar = document.createElement('div');
+  dayBar.className = 'te-day-bar';
+  const tabs = document.createElement('div');
+  tabs.className = 'te-day-tabs';
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', 'Tage');
+  dayKeys.forEach(key => {
     const group = dayGroups[key];
-    const dayHeader = document.createElement('div');
-    dayHeader.className = 'te-day-header';
-    dayHeader.textContent = formatDayHeader(group.date);
-    card.appendChild(dayHeader);
-
-    const slotsRow = document.createElement('div');
-    slotsRow.className = 'te-slots';
-    group.slots.forEach(slotIso => {
-      const teamsHere = slotTeams[new Date(slotIso).getTime()] || [];
-      const iAmIn = currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
-
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'te-slot' + (teamsHere.length ? ' has-team' : '') + (iAmIn ? ' has-me' : '');
-      const label = document.createElement('span');
-      label.textContent = formatSlotTime(slotIso);
-      const count = document.createElement('span');
-      count.className = 'te-slot-count';
-      count.textContent = formatSlotMembersSummary(teamsHere);
-      btn.appendChild(label);
-      btn.appendChild(count);
-      btn.addEventListener('click', () => {
-        teOpenSlot[ev.id] = teOpenSlot[ev.id] === slotIso ? null : slotIso;
-        teNewTeamOpen = null;
-        loadTeamEvents();
-      });
-      slotsRow.appendChild(btn);
+    const teamsThatDay = group.slots.reduce((n, iso) => n + (slotTeams[new Date(iso).getTime()] || []).length, 0);
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'te-day-tab' + (key === selectedDay ? ' active' : '');
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', key === selectedDay ? 'true' : 'false');
+    tab.title = formatDayHeader(group.date);
+    const label = document.createElement('span');
+    label.className = 'te-day-tab-label';
+    label.textContent = formatDayTab(group.date);
+    const sub = document.createElement('span');
+    sub.className = 'te-day-tab-sub';
+    sub.textContent = `${group.slots.length} ${group.slots.length === 1 ? 'Slot' : 'Slots'} · ${teamCountLabel(teamsThatDay, 'keine Teams')}`;
+    tab.appendChild(label);
+    tab.appendChild(sub);
+    tab.addEventListener('click', () => {
+      teSelectedDay[ev.id] = key;
+      if(teOpenSlot[ev.id] && localDayKey(new Date(teOpenSlot[ev.id])) !== key) teOpenSlot[ev.id] = null;
+      teNewTeamOpen = null;
+      if(opts.isEditorPreview) refreshEventEditorPreview();
+      else rerenderTeamEvents();
     });
-    card.appendChild(slotsRow);
-
-    if(openSlot && group.slots.includes(openSlot)){
-      card.appendChild(renderSlotDetail(ev, openSlot, slotTeams[new Date(openSlot).getTime()] || [], carData));
-    }
+    tabs.appendChild(tab);
   });
+  dayBar.appendChild(tabs);
+  const legend = document.createElement('div');
+  legend.className = 'te-legend';
+  legend.innerHTML = '<span><i style="border:1px dashed #5A6170"></i>niemand</span><span><i style="border:1px solid #8B9099;background:var(--panel-2)"></i>mit Teams</span><span><i style="background:var(--mine)"></i>du bist dabei</span>';
+  dayBar.appendChild(legend);
+  card.appendChild(dayBar);
+
+  const group = dayGroups[selectedDay];
+  const slotsRow = document.createElement('div');
+  slotsRow.className = 'te-slots';
+  group.slots.forEach(slotIso => {
+    const teamsHere = slotTeams[new Date(slotIso).getTime()] || [];
+    const iAmIn = isMemberOfAny(teamsHere);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'te-slot'
+      + (teamsHere.length ? ' has-team' : '')
+      + (iAmIn ? ' has-me' : '')
+      + (openSlot === slotIso ? ' open' : '')
+      + (new Date(slotIso).getTime() < Date.now() ? ' past' : '');
+    btn.setAttribute('aria-pressed', openSlot === slotIso ? 'true' : 'false');
+    // Names stay one hover away - the label itself is just the team count.
+    if(teamsHere.length) btn.title = formatSlotMembersSummary(teamsHere);
+    const label = document.createElement('span');
+    label.textContent = formatSlotTime(slotIso);
+    const count = document.createElement('span');
+    count.className = 'te-slot-count';
+    count.textContent = teamCountLabel(teamsHere.length, 'niemand');
+    btn.appendChild(label);
+    btn.appendChild(count);
+    btn.addEventListener('click', () => {
+      teOpenSlot[ev.id] = teOpenSlot[ev.id] === slotIso ? null : slotIso;
+      teSelectedDay[ev.id] = selectedDay;
+      teNewTeamOpen = null;
+      loadTeamEvents();
+    });
+    slotsRow.appendChild(btn);
+  });
+  card.appendChild(slotsRow);
+
+  if(openSlot && group.slots.includes(openSlot)){
+    card.appendChild(renderSlotDetail(ev, openSlot, slotTeams[new Date(openSlot).getTime()] || [], carData));
+  }else{
+    const hint = document.createElement('div');
+    hint.className = 'te-slot-hint';
+    hint.textContent = 'Wähle einen Slot, um die Teams zu sehen, beizutreten oder ein neues Team zu gründen.';
+    card.appendChild(hint);
+  }
 
   return card;
+}
+
+// Keyed by epoch ms, not the raw string - team_event_teams.slot_time comes
+// back from Postgres as "...+00:00" while team_events.slot_times is our own
+// "...Z"-suffixed ISO strings; same instant, different string.
+function groupTeamsBySlot(teams){
+  const slotTeams = {};
+  teams.forEach(t => {
+    const key = new Date(t.slot_time).getTime();
+    (slotTeams[key] = slotTeams[key] || []).push(t);
+  });
+  return slotTeams;
+}
+function isMemberOfAny(teamsHere){
+  return !!currentProfile && teamsHere.some(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id));
+}
+// A slot can hold any number of teams, so it's never "free"/"full" - just
+// how many teams are in it.
+function teamCountLabel(n, zeroLabel){
+  if(!n) return zeroLabel;
+  return n === 1 ? '1 Team' : `${n} Teams`;
+}
+function formatDayTab(d){
+  const wd = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+  return `${wd} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
 }
 
 // Shared between the main list and the single-event draft editor so the
 // two select() calls can't silently drift apart the way they already have
 // once this session.
-const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
+const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
+
+// Every team query wants the same columns and the same order (teams by
+// creation, stints by position) - `filter` adds the event condition.
+function selectTeams(filter){
+  return filter(pitwallClient.from('team_event_teams').select(TEAM_EVENT_TEAMS_COLUMNS))
+    .order('created_at', { ascending: true })
+    .order('position', { foreignTable: 'team_stints', ascending: true });
+}
+
+// Last fetched list state, so picking another event or day in the
+// master-detail view re-renders instantly instead of refetching.
+let teLastView = null;
 
 async function loadTeamEvents(){
-  const container = document.getElementById('te-list');
+  refreshNextStartHero('te-next-start', 'hide');
   // Pulls every special-event schedule race up front (not just whichever
   // ones the Schedule tab's own filter happens to have fetched already) so
   // any that need a team are auto-created here too, not only when someone
@@ -5481,12 +5953,12 @@ async function loadTeamEvents(){
     .select('id,name,event_date,slot_times,source,game,created_by,closed,published,duration_minutes,car_classes,sr_requirement')
     .order('event_date', { ascending: true });
 
+  const showClosed = document.getElementById('te-show-closed').checked;
   if(error){
-    container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden: ${escapeText(error.message)}</div>`;
+    teLastView = { message: `Fehler beim Laden: ${error.message}` };
   }else if(!allEvents || allEvents.length === 0){
-    container.innerHTML = '<div class="leaderboard-empty">Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.</div>';
+    teLastView = { message: 'Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.' };
   }else{
-    const showClosed = document.getElementById('te-show-closed').checked;
     const events = allEvents.filter(ev => {
       if((ev.game || 'lmu') !== teGameFilter) return false;
       const isDone = ev.closed || isEventPast(ev);
@@ -5494,35 +5966,133 @@ async function loadTeamEvents(){
     });
     if(events.length === 0){
       const gameLabel = teGameFilter === 'acc' ? 'ACC' : 'LMU';
-      container.innerHTML = `<div class="leaderboard-empty">Keine ${showClosed ? 'abgeschlossenen' : 'offenen'} ${gameLabel}-Team-Events.</div>`;
+      teLastView = { message: `Keine ${showClosed ? 'abgeschlossenen' : 'offenen'} ${gameLabel}-Team-Events.` };
     }else{
-      const { data: teams, error: teamsError } = await pitwallClient
-        .from('team_event_teams')
-        .select(TEAM_EVENT_TEAMS_COLUMNS)
-        .in('event_id', events.map(e => e.id))
-        .order('created_at', { ascending: true })
-        .order('position', { foreignTable: 'team_stints', ascending: true });
+      const { data: teams, error: teamsError } = await selectTeams(q => q.in('event_id', events.map(e => e.id)));
 
       if(teamsError){
-        container.innerHTML = `<div class="leaderboard-empty">Fehler beim Laden der Teams: ${escapeText(teamsError.message)}</div>`;
+        teLastView = { message: `Fehler beim Laden der Teams: ${teamsError.message}` };
       }else{
         const carData = await loadCarsByClass();
         carData.allProfiles = await loadAllProfiles();
         const teamsByEvent = {};
         (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
         const autoEventCandidates = allEvents.filter(e => e.source === 'auto');
-
-        container.innerHTML = '';
-        events.forEach(ev => container.appendChild(renderEventCard(ev, teamsByEvent[ev.id] || [], carData, { autoEventCandidates })));
+        teLastView = { events, teamsByEvent, carData, autoEventCandidates, showClosed };
       }
     }
   }
+  rerenderTeamEvents();
 
   // Keeps the draft editor's live preview in sync with anything that just
   // changed, regardless of whether the change came from the (hidden)
   // editor preview itself or from elsewhere - every mutation in this file
   // already funnels back through loadTeamEvents().
   if(teEditorEventId) refreshEventEditorPreview();
+}
+
+function rerenderTeamEvents(){
+  const master = document.getElementById('te-master');
+  const container = document.getElementById('te-list');
+  const view = teLastView;
+  if(!view) return;
+  if(view.message){
+    master.hidden = true;
+    master.innerHTML = '';
+    container.innerHTML = `<div class="leaderboard-empty">${escapeText(view.message)}</div>`;
+    return;
+  }
+
+  const { events, teamsByEvent, carData, autoEventCandidates, showClosed } = view;
+  if(!events.some(e => e.id === teSelectedEventId)){
+    const mine = events.find(e => isMemberOfAny(teamsByEvent[e.id] || []));
+    teSelectedEventId = (mine || events[0]).id;
+  }
+
+  const selected = events.find(e => e.id === teSelectedEventId);
+  const listLabel = `${showClosed ? 'Abgeschlossen' : 'Anstehend'} · ${events.length}`;
+  master.hidden = false;
+  master.innerHTML = '';
+  if(teMasterCollapsed){
+    const bar = document.createElement('button');
+    bar.type = 'button';
+    bar.className = 'te-master-collapsed-bar';
+    bar.setAttribute('aria-expanded', 'false');
+    bar.innerHTML = `<span class="te-master-label">${escapeText(listLabel)}</span>`
+      + `<span class="te-master-name">${escapeText(selected.name || 'Unbenannter Entwurf')}</span>`
+      + '<span class="te-master-toggle">Liste anzeigen ▾</span>';
+    bar.addEventListener('click', () => setTeMasterCollapsed(false));
+    master.appendChild(bar);
+  }else{
+    const head = document.createElement('div');
+    head.className = 'te-master-head';
+    const label = document.createElement('span');
+    label.className = 'te-master-label';
+    label.textContent = listLabel;
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'te-master-toggle';
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.textContent = 'Einklappen ▴';
+    toggle.addEventListener('click', () => setTeMasterCollapsed(true));
+    head.appendChild(label);
+    head.appendChild(toggle);
+    master.appendChild(head);
+    const list = document.createElement('div');
+    list.className = 'te-master-list';
+    events.forEach(ev => list.appendChild(renderMasterItem(ev, teamsByEvent[ev.id] || [])));
+    master.appendChild(list);
+  }
+
+  container.innerHTML = '';
+  container.appendChild(renderEventCard(selected, teamsByEvent[selected.id] || [], carData, { autoEventCandidates }));
+}
+
+// One list row: name (plus "Entwurf"/"Du fährst" when relevant), date
+// range, duration.
+function renderMasterItem(ev, teams){
+  const isSelected = ev.id === teSelectedEventId;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'te-master-item' + (isSelected ? ' active' : '');
+  btn.setAttribute('aria-current', isSelected ? 'true' : 'false');
+
+  const nameCell = document.createElement('span');
+  nameCell.className = 'te-master-namecell';
+  const name = document.createElement('span');
+  name.className = 'te-master-name';
+  name.textContent = ev.name || 'Unbenannter Entwurf';
+  nameCell.appendChild(name);
+  if(ev.published === false){
+    const draft = document.createElement('span');
+    draft.className = 'te-pill-muted';
+    draft.textContent = 'Entwurf';
+    nameCell.appendChild(draft);
+  }
+  if(isMemberOfAny(teams)){
+    const mine = document.createElement('span');
+    mine.className = 'te-pill-mine';
+    mine.textContent = 'Du fährst';
+    nameCell.appendChild(mine);
+  }
+  const date = document.createElement('span');
+  date.className = 'te-master-date';
+  date.textContent = formatEventDateRange(ev.slot_times) || 'Kein Datum';
+  const dur = document.createElement('span');
+  dur.className = 'te-master-dur';
+  dur.textContent = formatDuration(ev.duration_minutes) || '–';
+  btn.appendChild(nameCell);
+  btn.appendChild(date);
+  btn.appendChild(dur);
+
+  btn.addEventListener('click', () => {
+    if(teSelectedEventId === ev.id) return;
+    teSelectedEventId = ev.id;
+    teNewTeamOpen = null;
+    rerenderTeamEvents();
+  });
+  return btn;
 }
 
 let scheduleFirstLoadDone = false;
@@ -5702,62 +6272,238 @@ async function renderDashboardRefTimes(card){
   }
 }
 
-// ---- Dashboard: "your" team, if you're a member of one for an upcoming
-// (not closed, not past) event - across both games, whichever is soonest.
-// A compact, standalone summary (event, slot, stint list) rather than
-// reusing the full Team Events card renderer, which is built for a very
-// different, fully interactive context (merge controls, drafts, multi-day
-// slot grids) this dashboard tile has no reason to carry. ----
-async function loadDashboardTeamStatus(){
-  const body = document.getElementById('dash-team-body');
-  if(!currentProfile){
-    body.innerHTML = '<span class="dash-mini-hint">Melde dich an, um dein Team-Event zu sehen.</span>';
-    return;
+// ---- "Dein nächstes Event": the soonest team slot you're a member of
+// that hasn't finished yet (a race in progress still counts), across both
+// games and every open, published event. Shared by the Dashboard and the
+// top of the Team Events tab. ----
+async function loadMyNextStart(){
+  if(!currentProfile) return null;
+  const { data: events, error } = await pitwallClient
+    .from('team_events')
+    .select('id,name,slot_times,game,closed,published,duration_minutes,source')
+    .order('event_date', { ascending: true });
+  if(error) throw error;
+  const candidates = (events || []).filter(e => !e.closed && e.published !== false && !isEventPast(e));
+  if(!candidates.length) return null;
+
+  const { data: teams, error: teamsError } = await selectTeams(q => q.in('event_id', candidates.map(e => e.id)));
+  if(teamsError) throw teamsError;
+
+  const now = Date.now();
+  let best = null;
+  (teams || []).forEach(t => {
+    if(!(t.team_event_members || []).some(m => m.user_id === currentProfile.id)) return;
+    const ev = candidates.find(e => e.id === t.event_id);
+    if(!ev) return;
+    const start = new Date(t.slot_time).getTime();
+    const end = start + (ev.duration_minutes || 0) * 60000;
+    if(end <= now) return;
+    if(!best || start < best.start) best = { ev, team: t, start, end };
+  });
+  if(!best) return null;
+  // Same numbering as the Team Events slot view: teams of a slot in
+  // creation order.
+  const sameSlot = teams.filter(t => t.event_id === best.ev.id && new Date(t.slot_time).getTime() === best.start);
+  best.teamNumber = sameSlot.findIndex(t => t.id === best.team.id) + 1;
+  return best;
+}
+
+function formatHeroCountdown(ms){
+  const totalMin = Math.max(0, Math.floor(ms / 60000));
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  const mins = totalMin % 60;
+  if(days > 0) return `${days}T ${hours}Std`;
+  if(hours > 0) return `${hours}Std ${mins}Min`;
+  return `${mins}Min`;
+}
+function heroCountdownState(start, end){
+  const now = Date.now();
+  if(now < start) return { k: 'Start in', v: formatHeroCountdown(start - now) };
+  if(now < end) return { k: 'Läuft noch', v: formatHeroCountdown(end - now) };
+  return { k: 'Rennen', v: 'Beendet' };
+}
+// Keeps every visible hero countdown live without re-rendering the tile.
+setInterval(() => {
+  document.querySelectorAll('.ns-countdown').forEach(el => {
+    const state = heroCountdownState(Number(el.dataset.start), Number(el.dataset.end));
+    el.querySelector('.ns-fact-k').textContent = state.k;
+    el.querySelector('.ns-fact-v').textContent = state.v;
+  });
+}, 1000);
+
+function formatClock(ms){
+  return new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+function renderNextStartHero(info){
+  const { ev, team, start, end, teamNumber } = info;
+  const wrap = document.createElement('section');
+  wrap.className = 'ns-wrap';
+  wrap.setAttribute('aria-label', 'Dein nächstes Event');
+
+  const label = document.createElement('div');
+  label.className = 'ns-label';
+  label.textContent = 'Dein nächstes Event';
+  wrap.appendChild(label);
+
+  const hero = document.createElement('div');
+  hero.className = 'ns-hero';
+  const top = document.createElement('div');
+  top.className = 'ns-top';
+
+  const { stints, weights, inMinutes } = stintWeights(team);
+  const myIdx = stints.findIndex(s => s.user_id === currentProfile.id);
+  let myStint = '–';
+  if(myIdx >= 0){
+    const offset = weights.slice(0, myIdx).reduce((a, b) => a + b, 0);
+    myStint = inMinutes ? `#${myIdx + 1} · ${formatClock(start + offset * 60000)}` : `#${myIdx + 1}`;
+  }else if(stints.length){
+    myStint = 'Kein Stint';
   }
-  body.innerHTML = '<span class="dash-mini-hint">Lade…</span>';
+
+  const main = document.createElement('div');
+  main.className = 'ns-main';
+  const dateStr = `${formatDayHeader(new Date(start))} · ${formatClock(start)} Uhr`;
+  const subParts = [(ev.game || 'lmu').toUpperCase(), formatDuration(ev.duration_minutes), teamDisplayName(team, teamNumber)].filter(Boolean);
+  const countdown = heroCountdownState(start, end);
+  main.innerHTML = `
+    <div>
+      <div class="ns-when">${escapeText(dateStr)}</div>
+      <h2 class="ns-title">${escapeText(ev.name || 'Team Event')}</h2>
+      <div class="ns-sub">${escapeText(subParts.join(' · '))}</div>
+    </div>
+    <div class="ns-facts">
+      <div class="ns-fact ns-countdown" data-start="${start}" data-end="${end}">
+        <span class="ns-fact-k">${escapeText(countdown.k)}</span>
+        <span class="ns-fact-v start">${escapeText(countdown.v)}</span>
+      </div>
+      <div class="ns-fact">
+        <span class="ns-fact-k">Dein Stint</span>
+        <span class="ns-fact-v${myIdx >= 0 ? ' mine' : ''}">${escapeText(myStint)}</span>
+      </div>
+      ${team.car ? `<div class="ns-fact"><span class="ns-fact-k">Auto</span><span class="ns-fact-v car">${escapeText(team.car)}</span></div>` : ''}
+    </div>`;
+  top.appendChild(main);
+
+  const plan = document.createElement('div');
+  plan.className = 'ns-plan';
+  hero.appendChild(top);
+
+  // Full width below: every stint's time, laps, tires, driver and spotter.
+  const overview = renderStintOverview(team, start);
+  if(overview){
+    hero.appendChild(overview);
+  }else{
+    const none = document.createElement('div');
+    none.className = 'ns-noplan';
+    none.textContent = 'Für dieses Team gibt es noch keinen Stintplan.';
+    hero.appendChild(none);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'ns-actions';
+  const planBtn = document.createElement('button');
+  planBtn.type = 'button';
+  planBtn.className = 'ns-btn primary';
+  planBtn.textContent = stints.length ? 'Stintplan bearbeiten' : 'Stintplan anlegen';
+  planBtn.addEventListener('click', () => openTeamEventSlot(ev, team.slot_time, team.id, true));
+  const eventBtn = document.createElement('button');
+  eventBtn.type = 'button';
+  eventBtn.className = 'ns-btn ghost';
+  eventBtn.textContent = 'Zum Event';
+  eventBtn.addEventListener('click', () => openTeamEventSlot(ev, team.slot_time, team.id, false));
+  actions.appendChild(planBtn);
+  actions.appendChild(eventBtn);
+  plan.appendChild(actions);
+  top.appendChild(plan);
+
+  wrap.appendChild(hero);
+  return wrap;
+}
+
+// Jumps from the hero tile (Dashboard or Team Events) straight to that
+// slot in the Team Events tab - right game, event, day and open slot, and
+// optionally with the team's stint plan expanded.
+async function openTeamEventSlot(ev, slotIso, teamId, openPlan){
+  const game = ev.game || 'lmu';
+  if(teGameFilter !== game){
+    teGameFilter = game;
+    try{ localStorage.setItem('pitwall-te-game', teGameFilter); }catch(e){}
+    document.querySelectorAll('#te-game-filter .filter-pill').forEach(b => b.classList.toggle('active', b.dataset.game === game));
+  }
+  document.getElementById('te-show-closed').checked = false;
+  if(teEditorEventId){
+    teEditorEventId = null;
+    document.getElementById('te-editor-view').hidden = true;
+    document.getElementById('te-list-view').hidden = false;
+  }
+  // Slot times can differ in format ("+00:00" vs "Z"), so match the
+  // event's own string for the same instant.
+  const ms = new Date(slotIso).getTime();
+  const evSlot = (ev.slot_times || []).find(iso => new Date(iso).getTime() === ms) || slotIso;
+  teSelectedEventId = ev.id;
+  teSelectedDay[ev.id] = localDayKey(new Date(ms));
+  teOpenSlot[ev.id] = evSlot;
+  teNewTeamOpen = null;
+  if(openPlan) teOpenStintPlan[teamId] = true;
+  showPanel('teamevents');
+  await loadTeamEvents();
+  const el = document.querySelector(`#te-list [data-team-id="${teamId}"]`);
+  if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Renders the hero into `containerId`; `emptyMode` 'hide' hides the
+// container when there's no upcoming start (Team Events, where the list
+// below already says enough), 'message' shows a short note instead
+// (Dashboard).
+const nextStartRequestSeq = {};
+async function refreshNextStartHero(containerId, emptyMode){
+  const el = document.getElementById(containerId);
+  // Profile not loaded yet (first paint): keep the loading placeholder -
+  // updateAuthUI() calls this again once it is.
+  if(!currentProfile) return;
+  // Only the newest request per container may render, so a slow earlier
+  // one can't overwrite a fresher result.
+  const seq = (nextStartRequestSeq[containerId] || 0) + 1;
+  nextStartRequestSeq[containerId] = seq;
   try{
-    const { data: events, error: eventsError } = await pitwallClient
-      .from('team_events')
-      .select('id,name,event_date,slot_times,game,closed')
-      .order('event_date', { ascending: true });
-    if(eventsError) throw eventsError;
-    const upcoming = (events || []).filter(e => !e.closed && !isEventPast(e));
-    if(!upcoming.length){
-      body.innerHTML = '<span class="dash-mini-hint">Keine bevorstehenden Team Events.</span>';
-      return;
-    }
-    const { data: teams, error: teamsError } = await pitwallClient
-      .from('team_event_teams')
-      .select('id,event_id,slot_time,car,team_event_members(user_id),team_stints(position,driver_name,duration_minutes,driver:profiles!user_id(username))')
-      .in('event_id', upcoming.map(e => e.id))
-      .order('position', { foreignTable: 'team_stints', ascending: true });
-    if(teamsError) throw teamsError;
-    const myTeams = (teams || [])
-      .filter(t => (t.team_event_members || []).some(m => m.user_id === currentProfile.id))
-      .sort((a, b) => new Date(a.slot_time) - new Date(b.slot_time));
-    const myTeam = myTeams[0];
-    if(!myTeam){
-      body.innerHTML = '<span class="dash-mini-hint">Für kein bevorstehendes Event angemeldet.</span>';
-      return;
-    }
-    const event = upcoming.find(e => e.id === myTeam.event_id);
-    const stints = myTeam.team_stints || [];
-    let html = `<div class="dash-team-event-name">${escapeText(event ? event.name : 'Team Event')}</div>`;
-    html += `<div class="dash-team-event-meta">${myTeam.car ? escapeText(myTeam.car) + ' · ' : ''}${new Date(myTeam.slot_time).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>`;
-    if(stints.length){
-      html += stints.slice(0, 5).map(s => {
-        const driverName = s.driver_name || (s.driver ? s.driver.username : '') || '–';
-        const dur = s.duration_minutes ? s.duration_minutes + ' min' : '';
-        const posLabel = s.position != null ? '#' + (s.position + 1) : '';
-        return `<div class="dash-team-stint"><span><span class="pos">${escapeText(posLabel)}</span>${escapeText(driverName)}</span><span>${escapeText(dur)}</span></div>`;
-      }).join('');
+    const info = await loadMyNextStart();
+    if(nextStartRequestSeq[containerId] !== seq) return;
+    el.innerHTML = '';
+    if(info){
+      el.hidden = false;
+      el.appendChild(renderNextStartHero(info));
+    }else if(emptyMode === 'hide'){
+      el.hidden = true;
     }else{
-      html += '<span class="dash-mini-hint">Noch kein Stint-Plan.</span>';
+      el.hidden = false;
+      const empty = document.createElement('div');
+      empty.className = 'ns-empty';
+      empty.innerHTML = '<span>Du bist für kein kommendes Team-Event angemeldet.</span>';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ns-btn ghost';
+      btn.textContent = 'Team Events öffnen';
+      btn.addEventListener('click', () => showPanel('teamevents'));
+      empty.appendChild(btn);
+      const wrap = document.createElement('div');
+      wrap.className = 'ns-wrap';
+      wrap.innerHTML = '<div class="ns-label">Dein nächstes Event</div>';
+      wrap.appendChild(empty);
+      el.appendChild(wrap);
     }
-    body.innerHTML = html;
   }catch(err){
-    body.innerHTML = '<span class="dash-mini-hint">Team-Status konnte nicht geladen werden.</span>';
+    if(nextStartRequestSeq[containerId] !== seq) return;
+    console.error('Load next start failed:', err.message || err);
+    if(emptyMode === 'hide'){ el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = '<div class="ns-wrap"><div class="ns-label">Dein nächstes Event</div><div class="ns-empty">Dein nächstes Event konnte nicht geladen werden.</div></div>';
   }
+}
+
+async function loadDashboardTeamStatus(){
+  await refreshNextStartHero('dash-next-start', 'message');
 }
 
 async function loadLiveStrip(){
@@ -5773,6 +6519,16 @@ async function loadLiveStrip(){
     strip.hidden = true;
   }
 }
+// The strip names the next Schedule race, so clicking it lands on that
+// race's card - not just the top of the Dashboard, where "Dein nächstes
+// Event" sits above it.
+function goToNextRace(){
+  showPanel('dashboard');
+  requestAnimationFrame(() => {
+    document.getElementById('dash-next-race-label').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
 function tickLiveStrip(){
   const strip = document.getElementById('live-strip');
   if(strip.hidden || !strip.dataset.target) return;

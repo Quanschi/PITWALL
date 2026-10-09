@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pitwall-shell-v166';
+const CACHE_NAME = 'pitwall-shell-v167';
 const SHELL_FILES = [
   './',
   './index.html',
