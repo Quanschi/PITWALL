@@ -271,7 +271,7 @@ body{
 .sl{display:flex; flex-direction:column; border-top:1px solid var(--line);}
 .sl-tools{display:flex; justify-content:flex-end; padding-bottom:8px;}
 .sl-row[hidden]{display:none;}
-.sl-row{display:grid; grid-template-columns:38px 108px 54px minmax(130px,0.9fr) minmax(0,1fr) minmax(0,1fr) 40px; gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+.sl-row{display:grid; grid-template-columns:38px 150px 54px minmax(130px,0.9fr) minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
 .sl-laps{font-family:'JetBrains Mono',monospace; color:var(--text);}
 .sl-tires{display:flex; align-items:center; gap:7px; min-width:0; color:var(--text); font-size:12.5px;}
 .sl-tire-dots{display:inline-grid; grid-template-columns:repeat(2,7px); gap:2px; flex-shrink:0;}
@@ -297,8 +297,6 @@ body{
   .sl-tires{grid-column:2 / 3;}
   .sl-name{grid-column:1 / -1;}
   .sl-k{display:inline;}
-  .sl-row{position:relative;}
-  .sl-comment{position:absolute; top:4px; right:0;}
   .dnf-overlay-mark{font-size:48px;}
 }
 
@@ -1062,6 +1060,19 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-calc-result{font-size:12.5px;color:var(--text);margin-bottom:8px;}
 .stint-calc-hint{font-size:12px;color:var(--muted);margin-bottom:6px;}
 .stint-calc-field .stint-calc-inline{display:flex;align-items:center;gap:6px;}
+/* Padlock sitting in the right corner of its input. */
+.lock-in-field{position:relative;}
+.lock-in-field input{padding-right:32px;}
+.lock-in-field .field-lock{position:absolute;right:4px;top:50%;transform:translateY(-50%);}
+/* Recalculate button with its padlock in the right corner, like the lap time. */
+.stint-calc-apply-row{position:relative;display:inline-block;max-width:100%;}
+.stint-calc-apply-row .stint-calc-apply{padding-right:40px;}
+.stint-calc-apply-row .field-lock{position:absolute;right:6px;top:calc(50% + 3px);transform:translateY(-50%);}
+.stint-tire-budget input[type=checkbox]{width:auto;margin:0;}
+.stint-calc-apply:disabled{opacity:0.45;cursor:not-allowed;}
+.stint-size-lock{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 8px;}
+.sl-time{display:inline-flex; align-items:center; gap:6px;}
+.sl-time .stint-comment-btn{padding:0 4px;}
 .stint-ref-btn{background:none;border:none;padding:0;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--violet);cursor:pointer;text-align:left;}
 .stint-ref-btn:hover{color:var(--text);}
 .stint-locked-sub{font-size:12px;color:var(--muted);margin:0 0 4px 0;}
@@ -1078,7 +1089,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-size-pair{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;}
 .stint-rest{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;}
 .stint-rest-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.4px;text-transform:uppercase;color:var(--muted);}
-.stint-rest-input{width:68px !important;text-align:center;}
+.stint-rest-input{width:78px !important;text-align:center;}
 .stint-rest-input.filled{border-color:var(--violet);color:var(--text);}
 .stint-remaining{font-size:12.5px;color:var(--text);margin-top:6px;}
 .stint-remaining b{color:var(--violet);font-weight:600;}
@@ -1088,7 +1099,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-tire-budget b{color:var(--text);font-weight:600;}
 .stint-tire-budget .over{color:var(--red);}
 .stint-tire-budget label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
-.stint-tire-budget input{width:64px !important;text-align:center;}
+.stint-tire-budget input[type=number]{width:64px !important;text-align:center;}
 .stint-tire-menu-budget{font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
 .stint-tire-menu-budget b{color:var(--text);}
 .stint-tire-menu-budget .over{color:var(--red);}
@@ -4478,25 +4489,24 @@ function renderFieldLock(locked, what, onToggle){
   return btn;
 }
 
-// Ist-Zeit: the race's remaining time at the end of a stint, typed as h:mm
-// ("930" becomes "9:30"; one or two digits alone are minutes).
+// Ist-Zeit: the race's remaining time at the end of a stint, as hh:mm -
+// the colon goes in by itself while typing ("0930" becomes "09:30"), same
+// as the lap time field.
 function maskRestTimeInput(el){
   const d = el.value.replace(/\D/g, '').slice(0, 4);
-  el.value = d.length > 2 ? `${d.slice(0, d.length - 2)}:${d.slice(-2)}` : d;
+  el.value = d.length > 2 ? `${d.slice(0, 2)}:${d.slice(2)}` : d;
 }
 function parseRestTime(str){
   const s = (str || '').trim();
   if(!s) return null;
   const m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if(m){
-    const mins = parseInt(m[2], 10);
-    return mins < 60 ? parseInt(m[1], 10) * 60 + mins : NaN;
-  }
-  return /^\d{1,2}$/.test(s) ? parseInt(s, 10) : NaN;
+  if(!m) return NaN;
+  const mins = parseInt(m[2], 10);
+  return mins < 60 ? parseInt(m[1], 10) * 60 + mins : NaN;
 }
 function formatRestTime(minutes){
   if(minutes == null) return '';
-  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
 // Start and end of every stint in minutes from race start. Planned stint
@@ -4547,36 +4557,29 @@ function formatTireSets(tires){
 function renderTireBudgetLine(team, budget, canEdit){
   const line = document.createElement('div');
   line.className = 'stint-tire-budget';
-  line.title = 'Regenreifen (Wet) zählen nicht zum Kontingent';
+  line.title = '1 Satz = 4 Reifen · Regenreifen (Wet) zählen nicht';
   if(budget.totalSets == null){
-    line.innerHTML = `<span>Reifen verbraucht: <b>${formatTireSets(budget.usedNew + budget.usedQuali)}</b> Sätze</span><span>Kein Reifenkontingent für dieses Event hinterlegt</span>`;
+    line.innerHTML = `<span>Verbraucht: <b>${formatTireSets(budget.usedNew + budget.usedQuali)}</b> Sätze</span><span>Kein Reifenkontingent für dieses Event hinterlegt</span>`;
     return line;
   }
   const newEl = document.createElement('span');
-  newEl.innerHTML = `Neue Reifen übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireSets(budget.newLeft)}</b> von ${formatTireSets(budget.newTotal)} Sätzen`;
+  newEl.innerHTML = `Neue Sätze übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireSets(budget.newLeft)}</b> von ${formatTireSets(budget.newTotal)}`;
   line.appendChild(newEl);
 
+  // Qualifying always takes exactly one set - a tick reserves it.
   const qualiLabel = document.createElement('label');
-  qualiLabel.appendChild(document.createTextNode('Quali-Reserve:'));
-  const qualiInput = document.createElement('input');
-  qualiInput.type = 'number';
-  qualiInput.min = '0';
-  qualiInput.max = String(budget.totalSets);
-  qualiInput.step = '1';
-  qualiInput.value = String(budget.qualiSets);
-  qualiInput.disabled = !canEdit;
-  qualiInput.setAttribute('aria-label', 'Für die Quali reservierte Reifensätze');
-  qualiInput.addEventListener('change', () => {
-    const v = Math.max(0, Math.min(budget.totalSets, parseInt(qualiInput.value, 10) || 0));
-    updateTeamCalcInputs(team.id, { quali_tyre_sets: v });
-  });
-  qualiLabel.appendChild(qualiInput);
-  qualiLabel.appendChild(document.createTextNode(`von ${formatTireSets(budget.totalSets * 4)} Sätzen`));
+  const qualiCb = document.createElement('input');
+  qualiCb.type = 'checkbox';
+  qualiCb.checked = budget.qualiSets >= 1;
+  qualiCb.disabled = !canEdit || budget.totalSets < 1;
+  qualiCb.addEventListener('change', () => updateTeamCalcInputs(team.id, { quali_tyre_sets: qualiCb.checked ? 1 : 0 }));
+  qualiLabel.appendChild(qualiCb);
+  qualiLabel.appendChild(document.createTextNode('1 Satz für Quali'));
   line.appendChild(qualiLabel);
 
   if(budget.qualiSets > 0){
     const qualiLeft = document.createElement('span');
-    qualiLeft.innerHTML = `Quali-Reifen übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireSets(budget.qualiLeft)}</b>`;
+    qualiLeft.innerHTML = `Quali-Satz übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireSets(budget.qualiLeft)}</b> von ${formatTireSets(budget.qualiSets * 4)}`;
     line.appendChild(qualiLeft);
   }
   return line;
@@ -4702,7 +4705,7 @@ function renderStintCalculator(team, ev, stints){
     lapLabel.textContent = 'Rundenzeit (mm:ss:mmm)';
     lapField.appendChild(lapLabel);
     const lapInline = document.createElement('div');
-    lapInline.className = 'stint-calc-inline';
+    lapInline.className = 'stint-calc-inline lock-in-field';
     lapInline.appendChild(lapTimeInput);
     lapInline.appendChild(renderFieldLock(!!team.lap_time_locked, 'Rundenzeit',
       () => updateTeamCalcInputs(team.id, { lap_time_locked: !team.lap_time_locked })));
@@ -4777,15 +4780,23 @@ function renderStintCalculator(team, ev, stints){
     box.appendChild(result);
 
     if(!planLocked){
+      // Anyone in the team may (re)calculate; the padlock (also anyone's to
+      // open) keeps it from being pressed by accident mid-race.
+      const applyRow = document.createElement('div');
+      applyRow.className = 'stint-calc-apply-row';
       const applyBtn = document.createElement('button');
       applyBtn.type = 'button';
       applyBtn.className = 'stint-calc-apply';
+      applyBtn.disabled = !!team.recalc_locked;
       applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
       applyBtn.addEventListener('click', async () => {
         if(stints.length && !(await pitwallConfirm('Aktuellen Stintplan wirklich durch die Berechnung ersetzen? Fahrer-/Spotter-Zuordnungen, Reifen und Kommentare gehen dabei verloren.', { danger: true }))) return;
         applyCalculatedStints(team.id, stints, plan, team.team_event_members || []);
       });
-      box.appendChild(applyBtn);
+      applyRow.appendChild(applyBtn);
+      applyRow.appendChild(renderFieldLock(!!team.recalc_locked, 'Stints berechnen',
+        () => updateTeamCalcInputs(team.id, { recalc_locked: !team.recalc_locked })));
+      box.appendChild(applyRow);
     }
   }else if(!planLocked){
     const hint = document.createElement('div');
@@ -4914,8 +4925,8 @@ function renderTireControl(stint, team, canEdit, live, budget){
       if(budget.totalSets == null){
         info.textContent = 'Kein Reifenkontingent für dieses Event hinterlegt.';
       }else{
-        info.innerHTML = `Neue Reifen übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireSets(budget.newLeft)}</b> von ${formatTireSets(budget.newTotal)} Sätzen`
-          + (budget.qualiSets > 0 ? `<br>Quali-Reifen übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireSets(budget.qualiLeft)}</b> von ${formatTireSets(budget.qualiSets * 4)}` : '')
+        info.innerHTML = `Neue Sätze übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireSets(budget.newLeft)}</b> von ${formatTireSets(budget.newTotal)}`
+          + (budget.qualiSets > 0 ? `<br>Quali-Satz übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireSets(budget.qualiLeft)}</b> von ${formatTireSets(budget.qualiSets * 4)}` : '')
           + '<br>1 Satz = 4 Reifen · Regenreifen zählen nicht';
       }
       card.appendChild(info);
@@ -4987,8 +4998,8 @@ function renderTireControl(stint, team, canEdit, live, budget){
     qualiCb.addEventListener('change', () => updateStint(stint.id, { tires_from_quali: qualiCb.checked }, live));
     qualiRow.appendChild(qualiCb);
     qualiRow.appendChild(document.createTextNode(qualiAvailable || stint.tires_from_quali
-      ? 'Gebrauchte Reifen aus der Quali'
-      : 'Quali-Reifen: erst Sätze für die Quali reservieren'));
+      ? 'Gebrauchte Reifen aus dem Quali-Satz'
+      : 'Quali-Reifen: erst 1 Satz für Quali ankreuzen'));
     card.appendChild(qualiRow);
     wrap.appendChild(menu);
 
@@ -5349,6 +5360,18 @@ function renderStintPlan(team, ev){
   const budget = tireBudget(team, ev);
   wrap.appendChild(renderTireBudgetLine(team, budget, canEdit));
 
+  // One padlock for planned stint time + laps of every stint at once.
+  if(canEdit && stints.length){
+    const lockRow = document.createElement('div');
+    lockRow.className = 'stint-size-lock';
+    lockRow.appendChild(renderFieldLock(!!team.durations_locked, 'Stintzeit und Runden aller Stints',
+      () => updateTeamCalcInputs(team.id, { durations_locked: !team.durations_locked })));
+    const lockText = document.createElement('span');
+    lockText.textContent = team.durations_locked ? 'Stintzeit & Runden gesperrt' : 'Stintzeit & Runden offen';
+    lockRow.appendChild(lockText);
+    wrap.appendChild(lockRow);
+  }
+
   // Entering how many laps a stint actually took (e.g. cut short by an
   // incident) reflows the remaining laps across the stints still ahead of
   // it. Packed full-stints-first (remainder on the last one) rather than
@@ -5625,7 +5648,7 @@ function renderStintPlan(team, ev){
     if(iAmIn){
       // Planned laps and minutes share one padlock - locked, neither can
       // be typed into until someone opens it again.
-      const sizeLocked = !canEdit || !!stint.duration_locked;
+      const sizeLocked = !canEdit || !!team.durations_locked;
       const lapsInput = document.createElement('input');
       lapsInput.type = 'number';
       lapsInput.className = 'stint-duration-input';
@@ -5680,10 +5703,6 @@ function renderStintPlan(team, ev){
       minutesUnit.textContent = 'min';
       minutesPair.appendChild(minutesUnit);
 
-      if(canEdit){
-        minutesPair.appendChild(renderFieldLock(!!stint.duration_locked, 'Stintzeit und Runden',
-          () => updateStint(stint.id, { duration_locked: !stint.duration_locked }, false)));
-      }
     }else{
       const lapsEl = document.createElement('span');
       lapsEl.className = 'stint-laps';
@@ -5703,11 +5722,11 @@ function renderStintPlan(team, ev){
       restInput.type = 'text';
       restInput.inputMode = 'numeric';
       restInput.className = 'stint-rest-input' + (stint.remaining_minutes != null ? ' filled' : '');
-      restInput.placeholder = 'h:mm';
+      restInput.placeholder = 'hh:mm';
       restInput.value = formatRestTime(stint.remaining_minutes);
       restInput.disabled = !canEdit;
       restInput.setAttribute('aria-label', `Ist-Zeit: Rest-Renndauer nach Stint ${stintIdx + 1}`);
-      restInput.title = 'Ist-Zeit: Restzeit des Rennens am Ende dieses Stints (z.B. 9:30). Die folgenden Stints werden auf die noch zu fahrende Zeit und die Rundenzeit neu berechnet - die Soll-Runden/-Zeit dieses Stints bleiben.';
+      restInput.title = 'Ist-Zeit: Restzeit des Rennens am Ende dieses Stints als hh:mm (z.B. 09:30). Die folgenden Stints werden auf die noch zu fahrende Zeit und die Rundenzeit neu berechnet - die Soll-Runden/-Zeit dieses Stints bleiben.';
       restInput.addEventListener('input', () => maskRestTimeInput(restInput));
       restInput.addEventListener('change', () => {
         const val = parseRestTime(restInput.value);
@@ -6162,7 +6181,7 @@ function renderStintOverview(team, startMs, raceMinutes){
   const list = document.createElement('div');
   list.className = 'sl';
   list.dataset.teamId = team.id;
-  list.innerHTML = '<div class="sl-row sl-head"><span>Stint</span><span>Zeit</span><span>Runden</span><span>Reifen</span><span>Fahrer</span><span>Spotter</span><span></span></div>';
+  list.innerHTML = '<div class="sl-row sl-head"><span>Stint</span><span>Zeit</span><span>Runden</span><span>Reifen</span><span>Fahrer</span><span>Spotter</span></div>';
   stints.forEach((s, i) => {
     const { from, to } = timeline[i];
     const driver = stintDriverName(s);
@@ -6212,16 +6231,13 @@ function renderStintOverview(team, startMs, raceMinutes){
     });
     tireEl.appendChild(dots);
     tireEl.appendChild(document.createTextNode(tireChangeSummary(s)));
-    const commentCell = document.createElement('span');
-    commentCell.className = 'sl-comment';
-    if(iAmIn) commentCell.appendChild(renderCommentButton(s, team, i + 1));
+    if(iAmIn) timeEl.appendChild(renderCommentButton(s, team, i + 1));
     row.appendChild(num);
     row.appendChild(timeEl);
     row.appendChild(lapsEl);
     row.appendChild(tireEl);
     row.appendChild(nameEl('Fahrer', driver, driverColor));
     row.appendChild(nameEl('Spotter', spotter, spotterColor));
-    row.appendChild(commentCell);
     list.appendChild(row);
   });
   wrap.appendChild(list);
@@ -6738,7 +6754,7 @@ function formatDayTab(d){
 // Shared between the main list and the single-event draft editor so the
 // two select() calls can't silently drift apart the way they already have
 // once this session.
-const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,dnf,lap_time_locked,quali_tyre_sets,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,duration_locked,tires_from_quali,remaining_minutes,team_stint_comments(id,user_id,body,created_at,updated_at,profiles(username)),driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
+const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,dnf,lap_time_locked,quali_tyre_sets,durations_locked,recalc_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,tires_from_quali,remaining_minutes,team_stint_comments(id,user_id,body,created_at,updated_at,profiles(username)),driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
 
 // Every team query wants the same columns and the same order (teams by
 // creation, stints by position) - `filter` adds the event condition.
