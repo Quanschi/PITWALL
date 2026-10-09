@@ -970,6 +970,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-row.zero-laps .stint-time{text-decoration:line-through;}
 /* Added during the race (Ist-Zeit): red. Running right now: green. */
 .stint-row.ist-added{background:rgba(232,92,74,0.14);border-radius:8px;padding:4px 6px;}
+.stint-row.ist-added.active{background:rgba(34,197,94,0.12);}
 .stint-added-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--green);background:rgba(34,197,94,0.14);padding:2px 7px;border-radius:10px;flex-shrink:0;}
 .sl-row.dropped .sl-num, .sl-row.dropped .sl-time{text-decoration:line-through;}
 .sl-row.dropped{opacity:0.45;}
@@ -4660,7 +4661,18 @@ function isPlanLocked(team){
 }
 // DNF or a locked plan: everything can still be looked at, nothing changed.
 function isTeamReadOnly(team){
-  return !!team.dnf || isPlanLocked(team);
+  return !!team.dnf || !!team._eventDone || isPlanLocked(team);
+}
+// A finished event is look-only: closed by its creator, or the last race
+// of it is over (start + duration) - not just "the day has passed", so a
+// race running past midnight stays editable until it actually ends.
+function isEventOver(ev){
+  if(ev.closed) return true;
+  const slots = ev.slot_times || [];
+  if(!slots.length) return false;
+  const lastStart = Math.max(...slots.map(iso => new Date(iso).getTime()));
+  if(ev.duration_minutes > 0) return Date.now() > lastStart + ev.duration_minutes * 60000;
+  return isEventPast(ev);
 }
 
 const LOCK_ICON_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -5264,7 +5276,7 @@ function formatCommentTime(iso){
 
 function openStintComments(stint, team, number){
   const iAmIn = !!currentProfile && (team.team_event_members || []).some(m => m.user_id === currentProfile.id);
-  const canWrite = iAmIn && !team.dnf;
+  const canWrite = iAmIn && !team.dnf && !team._eventDone;
   const colorOf = teamColorMap(team);
   let comments = (stint.team_stint_comments || []).slice();
   let editingId = null;
@@ -5341,7 +5353,9 @@ function openStintComments(stint, team, number){
   }else{
     const note = document.createElement('div');
     note.className = 'comments-readonly';
-    note.textContent = team.dnf ? 'Team ist DNF - Kommentare sind schreibgeschützt.' : 'Nur Mitglieder dieses Teams können kommentieren.';
+    note.textContent = team.dnf ? 'Team ist DNF - Kommentare sind schreibgeschützt.'
+      : team._eventDone ? 'Event abgeschlossen - Kommentare sind nur noch zum Lesen.'
+      : 'Nur Mitglieder dieses Teams können kommentieren.';
     modal.appendChild(note);
     modal.appendChild(message);
   }
@@ -5546,6 +5560,11 @@ function renderStintPlan(team, ev){
     dnfNote.className = 'stint-locked-sub';
     dnfNote.innerHTML = '<span class="dnf-badge">DNF</span> Team ist ausgeschieden - der Plan ist schreibgeschützt.';
     wrap.appendChild(dnfNote);
+  }else if(team._eventDone){
+    const doneNote = document.createElement('p');
+    doneNote.className = 'stint-locked-sub';
+    doneNote.textContent = 'Event abgeschlossen - der Plan ist nur noch zum Ansehen.';
+    wrap.appendChild(doneNote);
   }else if(iAmIn){
     wrap.appendChild(renderStintCalculator(team, ev, stints));
   }
@@ -5806,7 +5825,9 @@ function renderStintPlan(team, ev){
     const row = document.createElement('div');
     row.className = 'stint-row' + (isZeroLaps ? ' zero-laps' : '') + (stint.ist_added && !isZeroLaps ? ' ist-added' : '');
     const now = Date.now();
-    if(stintEnd.getTime() <= now) row.classList.add('completed');
+    // In a finished event every stint is over - fading them all would only
+    // make the plan (and its red/green marks) hard to read.
+    if(stintEnd.getTime() <= now && !team._eventDone) row.classList.add('completed');
     // Shown to everyone looking at this plan, not just team members - "who's
     // on track right now" is useful to know regardless of whether you've
     // joined.
@@ -6769,7 +6790,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         chip.appendChild(document.createTextNode(label));
         // The team leader (👑) can hand the crown to another member with an
         // account by tapping their name.
-        const canHandOver = currentProfile && currentProfile.id === t.created_by && m.user_id && m.user_id !== t.created_by && !t.dnf;
+        const canHandOver = currentProfile && currentProfile.id === t.created_by && m.user_id && m.user_id !== t.created_by && !t.dnf && !t._eventDone;
         if(canHandOver){
           chip.classList.add('handover');
           chip.setAttribute('role', 'button');
@@ -6787,7 +6808,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
           chip.addEventListener('click', handOver);
           chip.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); handOver(); } });
         }
-        if(isManual && iAmIn && !t.dnf){
+        if(isManual && iAmIn && !t.dnf && !t._eventDone){
           const rm = document.createElement('button');
           rm.type = 'button';
           rm.className = 'te-member-remove';
@@ -6809,7 +6830,8 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     actionsGroup.className = 'te-team-actions';
     row.appendChild(actionsGroup);
 
-    if(currentProfile){
+    // Finished event: no joining, leaving, adding, deleting or DNF anymore.
+    if(currentProfile && !t._eventDone){
       let noteInput = null;
       if(!iAmIn){
         noteInput = document.createElement('input');
@@ -6926,6 +6948,8 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     return detail;
   }
 
+  if(isEventOver(ev)) return detail;
+
   const key = `${ev.id}::${slotIso}`;
   if(teNewTeamOpen === key){
     detail.appendChild(renderNewTeamForm(ev.id, slotIso, carData, ev.game));
@@ -6983,6 +7007,9 @@ function renderScheduleMergeControl(ev, candidates){
 
 function renderEventCard(ev, teams, carData, opts){
   opts = opts || {};
+  // Finished events: everything stays visible, nothing editable.
+  const eventOver = isEventOver(ev);
+  (teams || []).forEach(t => { t._eventDone = eventOver; });
   const card = document.createElement('div');
   card.className = 'te-event';
 
