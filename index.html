@@ -269,7 +269,10 @@ body{
    driver of a team has their own color (you: always --mine), and a stint
    row takes its driver's color - same colors in every place a team shows. */
 .sl{display:flex; flex-direction:column; border-top:1px solid var(--line);}
-.sl-tools{display:flex; justify-content:flex-end; padding-bottom:8px;}
+.sl-tools{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px 16px; padding-bottom:8px;}
+.sl-share-btn{margin-right:auto; background:none; border:1px solid var(--line); color:var(--text); border-radius:8px; padding:6px 12px; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer;}
+.sl-share-btn:hover{border-color:var(--muted);}
+.sl-share-btn:disabled{opacity:0.6; cursor:default;}
 .sl-row[hidden]{display:none;}
 .sl-row{display:grid; grid-template-columns:38px 150px 54px minmax(130px,0.9fr) minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
 .sl-laps{font-family:'JetBrains Mono',monospace; color:var(--text);}
@@ -597,6 +600,12 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .laptime-inputs span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;}
 
 .split-columns{display:flex;flex-direction:column;gap:24px;}
+/* Event editor: the form runs across the top in columns, the live preview
+   gets the full width below it. */
+.te-editor-stack{display:flex;flex-direction:column;gap:24px;}
+#te-editor-form{max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));column-gap:20px;align-items:start;}
+#te-editor-form .field-wide, #te-editor-form .form-message{grid-column:1 / -1;}
+#te-editor-form #te-publish-btn{grid-column:1 / -1;justify-self:start;}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
 .te-open-editor-btn{
@@ -901,7 +910,16 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-row.completed .stint-time{text-decoration:line-through;}
 .stint-row.active{background:rgba(34,197,94,0.12);border-radius:8px;padding:4px 6px;}
 .stint-row.active .stint-time{color:#22c55e;font-weight:700;}
-.stint-row.zero-laps{background:rgba(232,92,74,0.1);border-radius:8px;padding:4px 6px;}
+.stint-row.zero-laps{background:rgba(232,92,74,0.1);border-radius:8px;padding:4px 6px;box-shadow:inset 3px 0 0 var(--red);}
+.stint-row.zero-laps .stint-time{text-decoration:line-through;color:var(--red);}
+.stint-row.ist-added{background:rgba(34,197,94,0.1);border-radius:8px;padding:4px 6px;box-shadow:inset 3px 0 0 var(--green);}
+.stint-added-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--green);background:rgba(34,197,94,0.14);padding:2px 7px;border-radius:10px;flex-shrink:0;}
+.sl-row.dropped .sl-num, .sl-row.dropped .sl-time{color:var(--red) !important;text-decoration:line-through;}
+.sl-row.dropped{opacity:0.75;}
+.sl-row.added{box-shadow:inset 3px 0 0 var(--green);}
+.sl-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:0.4px;border-radius:8px;padding:1px 6px;text-decoration:none;display:inline-block;}
+.sl-tag.added{color:var(--green);background:rgba(34,197,94,0.14);}
+.sl-tag.dropped{color:var(--red);background:rgba(232,92,74,0.14);}
 .stint-zero-warning{
   font-family:'JetBrains Mono',monospace;
   font-size:10.5px;
@@ -931,7 +949,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   flex-shrink:0;
 }
 .stint-drag-handle{color:var(--muted);cursor:grab;flex-shrink:0;font-size:14px;line-height:1;}
-.stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);width:98px;flex-shrink:0;}
+.stint-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);min-width:98px;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;}
+.stint-time .stint-comment-btn{padding:0 4px;}
 .stint-edited-badge{
   font-family:'JetBrains Mono',monospace;
   font-size:10.5px;
@@ -980,22 +999,22 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-tire-menu-card{
   background:var(--panel-2);
   border:1px solid var(--line);
-  border-radius:12px;
-  padding:16px;
+  border-radius:14px;
+  padding:22px;
   width:100%;
-  max-width:280px;
+  max-width:400px;
   box-shadow:var(--shadow-md);
 }
 .stint-tire-menu-label{
   font-family:'JetBrains Mono',monospace;
-  font-size:10px;
+  font-size:12px;
   letter-spacing:0.4px;
   text-transform:uppercase;
   color:var(--muted);
   margin:6px 0 4px 2px;
 }
 .stint-tire-menu-label:first-child{margin-top:0;}
-.stint-tire-menu-row{display:flex;flex-wrap:wrap;gap:4px;}
+.stint-tire-menu-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
 .stint-tire-menu-item{
   display:flex;
   align-items:center;
@@ -1004,24 +1023,24 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   border:1px solid var(--line);
   color:var(--text);
   font-family:'Inter',sans-serif;
-  font-size:12.5px;
-  padding:5px 8px;
-  border-radius:6px;
+  font-size:15px;
+  padding:9px 12px;
+  border-radius:8px;
   cursor:pointer;
   text-align:left;
   white-space:nowrap;
 }
 .stint-tire-menu-item:hover{background:var(--panel);}
-.stint-tire-swatch{width:11px;height:11px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.3);}
-.stint-tire-menu-corner{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.stint-tire-swatch{width:15px;height:15px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,0.3);}
+.stint-tire-menu-corner{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 .stint-tire-corner-tag{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;
+  font-size:13px;
   color:var(--muted);
-  width:22px;
+  width:28px;
   flex-shrink:0;
 }
-.stint-tire-menu-corner select{width:auto;flex:1;}
+.stint-tire-menu-corner select{width:auto;flex:1;font-size:15px;padding:9px 12px;}
 .stint-remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0;line-height:1;}
 .stint-remove-btn:hover{color:var(--red);}
 .stint-add-btn{
@@ -1101,10 +1120,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-tire-budget .over{color:var(--red);}
 .stint-tire-budget label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
 .stint-tire-budget input[type=number]{width:64px !important;text-align:center;}
-.stint-tire-menu-budget{font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+.stint-tire-menu-budget{font-size:14px;color:var(--muted);margin-bottom:14px;line-height:1.55;}
 .stint-tire-menu-budget b{color:var(--text);}
 .stint-tire-menu-budget .over{color:var(--red);}
-.stint-tire-quali{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text);margin-top:10px;}
+.stint-tire-quali{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--text);margin-top:14px;}
 .stint-tire-quali input{width:auto;margin:0;}
 .stint-tire-quali.disabled{color:var(--muted);}
 .stint-tire-q{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--violet);vertical-align:middle;margin-right:4px;}
@@ -1271,7 +1290,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
     margin-bottom:8px;
   }
   .stint-row.active{padding:10px 34px 10px 10px;}
-  .stint-row.zero-laps{padding:10px 34px 10px 10px;}
+  .stint-row.zero-laps, .stint-row.ist-added{padding:10px 34px 10px 10px;}
   .stint-row-group{
     display:flex;
     flex-wrap:wrap;
@@ -1285,7 +1304,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .stint-row-people{flex-direction:column;align-items:stretch;gap:8px;}
   .stint-time{width:auto;font-size:13px;}
   .stint-number{width:auto;}
-  .stint-row-meta .stint-comment-btn{margin-left:auto;}
   .stint-drag-handle{order:-1;}
   .stint-remove-btn{position:absolute;top:8px;right:6px;font-size:18px;}
   .stint-driver-select-wrap, .stint-spotter-select-wrap{
@@ -1790,8 +1808,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
       <button type="button" class="te-new-team-btn" id="te-editor-close-btn">Später weiter bearbeiten</button>
     </div>
 
-    <div class="split-columns">
-      <div class="split-col-left">
+    <div class="te-editor-stack">
+      <div>
         <div class="auth-card" id="te-editor-form">
           <div class="field">
             <label>Spiel</label>
@@ -1829,7 +1847,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
             <label for="te-tyre-sets">Reifensätze (inkl. Quali, Regenreifen zählen nicht)</label>
             <input type="number" id="te-tyre-sets" min="0" max="50" step="1" placeholder="z.B. 6">
           </div>
-          <div class="field">
+          <div class="field field-wide">
             <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
             <div class="filter-row" id="te-time-tiles">
               <button type="button" class="filter-pill" data-time="00:00">00:00</button>
@@ -1858,7 +1876,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
               <button type="button" class="filter-pill" data-time="23:00">23:00</button>
             </div>
           </div>
-          <div class="field" id="te-link-schedule-field">
+          <div class="field field-wide" id="te-link-schedule-field">
             <label for="te-link-schedule">Schedule-Rennen verknüpfen (optional)</label>
             <select id="te-link-schedule">
               <option value="">Kein passendes Schedule-Rennen…</option>
@@ -1870,7 +1888,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
         </div>
       </div>
 
-      <div class="split-col-right">
+      <div>
         <p class="section-label" style="margin-top:0">Vorschau (live)</p>
         <div id="te-editor-preview"></div>
       </div>
@@ -5514,25 +5532,16 @@ function renderStintPlan(team, ev){
           patches.push({ id: s.id, laps: l, duration_minutes: minutes[k], ...increaseFlag(s.laps, l) });
         }
       }else{
-        newStints.push({ team_id: team.id, position: nextPosition++, laps: l, duration_minutes: minutes[k], laps_increased: live });
+        newStints.push({ team_id: team.id, position: nextPosition++, laps: l, duration_minutes: minutes[k], laps_increased: live, ist_added: true });
       }
     });
 
-    const surplus = following.slice(lapsPlan.length);
-    if(surplus.length){
-      const n = lapsPlan.length;
-      const remove = await pitwallConfirm(
-        `Für die restlichen ${formatRestTime(remaining)} h reichen ${n} Stint${n === 1 ? '' : 's'} - ${surplus.length} Stint${surplus.length === 1 ? '' : 's'} danach ${surplus.length === 1 ? 'wird' : 'werden'} nicht mehr gebraucht. Entfernen? (Sonst ${surplus.length === 1 ? 'bleibt er' : 'bleiben sie'} mit 0 Runden stehen.)`,
-        { confirmText: 'Entfernen', cancelText: 'Behalten', danger: true });
-      if(remove){
-        for(const s of surplus){
-          const { error: delError } = await pitwallClient.from('team_stints').delete().eq('id', s.id);
-          if(delError) console.error('Delete surplus stint failed:', delError.message);
-        }
-      }else{
-        surplus.forEach(s => { if(s.laps !== 0 || s.duration_minutes !== 0) patches.push({ id: s.id, laps: 0, duration_minutes: 0 }); });
-      }
-    }
+    // Stints no longer needed stay in the list, marked "entfällt" (0 laps,
+    // 0 minutes) - a later Ist entry can bring them back, and the ✕
+    // removes one for good.
+    following.slice(lapsPlan.length).forEach(s => {
+      if(s.laps !== 0 || s.duration_minutes !== 0) patches.push({ id: s.id, laps: 0, duration_minutes: 0 });
+    });
     await commitStintChanges(patches, newStints);
   }
 
@@ -5632,7 +5641,7 @@ function renderStintPlan(team, ev){
     if(isZeroLaps) zeroLapStints++;
 
     const row = document.createElement('div');
-    row.className = 'stint-row' + (isZeroLaps ? ' zero-laps' : '');
+    row.className = 'stint-row' + (isZeroLaps ? ' zero-laps' : '') + (stint.ist_added && !isZeroLaps ? ' ist-added' : '');
     const now = Date.now();
     if(stintEnd.getTime() <= now) row.classList.add('completed');
     // Shown to everyone looking at this plan, not just team members - "who's
@@ -5707,7 +5716,7 @@ function renderStintPlan(team, ev){
     timeEl.className = 'stint-time';
     timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
     groupMeta.appendChild(timeEl);
-    if(iAmIn) groupMeta.appendChild(renderCommentButton(stint, team, stintIdx + 1));
+    if(iAmIn) timeEl.appendChild(renderCommentButton(stint, team, stintIdx + 1));
 
     if(iAmIn){
       // Planned laps and minutes share one padlock - locked, neither can
@@ -5788,9 +5797,14 @@ function renderStintPlan(team, ev){
       restInput.className = 'stint-rest-input' + (stint.remaining_minutes != null ? ' filled' : '');
       restInput.placeholder = 'hh:mm';
       restInput.value = formatRestTime(stint.remaining_minutes);
-      restInput.disabled = !canEdit;
+      // Only once the race is on - before that there's nothing to enter.
+      const raceStarted = Date.now() >= startMs;
+      restInput.disabled = !canEdit || !raceStarted;
+      if(!raceStarted) restInput.placeholder = 'ab Start';
       restInput.setAttribute('aria-label', `Ist-Zeit: Rest-Renndauer nach Stint ${stintIdx + 1}`);
-      restInput.title = 'Ist-Zeit: Restzeit des Rennens am Ende dieses Stints als hh:mm (z.B. 09:30). Die folgenden Stints werden auf die noch zu fahrende Zeit und die Rundenzeit neu berechnet - die Soll-Runden/-Zeit dieses Stints bleiben.';
+      restInput.title = raceStarted
+        ? 'Ist-Zeit: Restzeit des Rennens am Ende dieses Stints als hh:mm (z.B. 09:30). Die folgenden Stints werden auf die noch zu fahrende Zeit und die Rundenzeit neu berechnet - die Soll-Runden/-Zeit dieses Stints bleiben.'
+        : `Ist-Zeit kann erst ab Rennstart (${formatClock(startMs)} Uhr) eingetragen werden`;
       restInput.addEventListener('input', () => {
         maskRestTimeInput(restInput);
         restInput.classList.remove('invalid');
@@ -5825,12 +5839,20 @@ function renderStintPlan(team, ev){
     if(isZeroLaps){
       const zeroBadge = document.createElement('span');
       zeroBadge.className = 'stint-zero-warning';
-      zeroBadge.textContent = '⚠ 0 Runden';
-      zeroBadge.title = 'Dieser Stint hat durch eine Neuverteilung keine Runden mehr - wird so nicht mehr gefahren, ggf. entfernen';
+      zeroBadge.textContent = '✕ entfällt';
+      zeroBadge.title = 'Wird laut Ist-Zeit bzw. Neuverteilung nicht mehr gebraucht - bleibt zur Info stehen, mit ✕ entfernen';
       groupStatus.appendChild(zeroBadge);
     }
 
-    if(stint.laps_increased && !isZeroLaps){
+    if(stint.ist_added && !isZeroLaps){
+      const addedBadge = document.createElement('span');
+      addedBadge.className = 'stint-added-badge';
+      addedBadge.textContent = '+ neu durch Ist-Zeit';
+      addedBadge.title = 'Laut Ist-Zeit wird dieser Stint zusätzlich gebraucht';
+      groupStatus.appendChild(addedBadge);
+    }
+
+    if(stint.laps_increased && !isZeroLaps && !stint.ist_added){
       const increasedBadge = document.createElement('span');
       increasedBadge.className = 'stint-increased-badge';
       increasedBadge.textContent = '⬆ mehr Runden als geplant';
@@ -5910,7 +5932,7 @@ function renderStintPlan(team, ev){
     total.className = 'stint-total' + mismatchClass;
     let text = `${planned} von ${raceMinutes} min geplant`;
     if(mismatchClass === ' under') text += ' - Plan deckt die Renndauer nicht ab';
-    if(zeroLapStints > 0) text += ` · ⚠ ${zeroLapStints} Stint${zeroLapStints === 1 ? '' : 's'} ohne Runden`;
+    if(zeroLapStints > 0) text += ` · ${zeroLapStints} Stint${zeroLapStints === 1 ? ' entfällt' : 's entfallen'}`;
     total.textContent = text;
     wrap.appendChild(total);
 
@@ -6211,7 +6233,193 @@ function tireChangeSummary(s){
 // Read-only stint list, shared by the "Dein nächstes Event" tile and the
 // team cards: one row per stint with its time, driver and spotter, each
 // in that person's team color (you: always --mine).
-function renderStintOverview(team, startMs, raceMinutes){
+// ---- Stint plan as a picture: the same overview, drawn on a canvas so it
+// can go straight into Discord/WhatsApp (share sheet on phones, otherwise
+// copied to the clipboard and downloaded). ----
+function stintPlanImageColors(){
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return {
+    bg: css('--carbon') || '#111317', panel: css('--panel') || '#1B1E24', line: css('--line') || '#2E333C',
+    text: css('--text') || '#E9E7E1', muted: css('--muted') || '#8B9099', mine: css('--mine') || '#FFB020',
+    start: css('--start') || '#E85C4A', red: css('--red') || '#E85C4A', green: css('--green') || '#22c55e',
+    resolve: c => (c && c.startsWith('var(')) ? css(c.slice(4, -1)) : c,
+  };
+}
+async function renderStintPlanImage(team, startMs, raceMinutes, meta){
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  const C = stintPlanImageColors();
+  const { stints, timeline, laps } = stintWeights(team, raceMinutes);
+  const colorOf = teamColorMap(team);
+  const W = 1040, pad = 40, rowH = 46, headH = 150, tableHead = 34, footH = 56;
+  const H = headH + tableHead + stints.length * rowH + footH;
+  const scale = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  const fit = (text, maxW) => {
+    if(ctx.measureText(text).width <= maxW) return text;
+    let t = text;
+    while(t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    return t + '…';
+  };
+
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C.mine;
+  ctx.fillRect(0, 0, W, 4);
+
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = C.mine;
+  ctx.font = "700 13px 'JetBrains Mono', monospace";
+  ctx.fillText('PITWALL · STINTPLAN', pad, 38);
+  ctx.fillStyle = C.text;
+  ctx.font = "700 32px 'Rajdhani', sans-serif";
+  ctx.fillText(fit(meta.eventName || 'Team Event', W - 2 * pad), pad, 78);
+  ctx.fillStyle = C.muted;
+  ctx.font = "500 15px 'Inter', sans-serif";
+  const when = startMs != null ? `${formatDayHeader(new Date(startMs))} · ${formatClock(startMs)} Uhr` : '';
+  const sub = [meta.teamLabel, team.car, when, formatDuration(raceMinutes)].filter(Boolean).join(' · ');
+  ctx.fillText(fit(sub, W - 2 * pad), pad, 108);
+  if(team.dnf){
+    ctx.fillStyle = C.red;
+    ctx.font = "700 28px 'Rajdhani', sans-serif";
+    ctx.textAlign = 'right';
+    ctx.fillText('DNF', W - pad, 78);
+    ctx.textAlign = 'left';
+  }
+
+  const cols = { num: pad, time: pad + 52, laps: pad + 210, tires: pad + 290, driver: pad + 580, spotter: pad + 790 };
+  let y = headH;
+  ctx.fillStyle = C.muted;
+  ctx.font = "700 11px 'JetBrains Mono', monospace";
+  [['STINT', cols.num], ['ZEIT', cols.time], ['RUNDEN', cols.laps], ['REIFEN', cols.tires], ['FAHRER', cols.driver], ['SPOTTER', cols.spotter]]
+    .forEach(([label, x]) => ctx.fillText(label, x, y + 20));
+  y += tableHead;
+  ctx.strokeStyle = C.line;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, y - 0.5); ctx.lineTo(W - pad, y - 0.5); ctx.stroke();
+
+  stints.forEach((st, i) => {
+    const rowTop = y + i * rowH;
+    const base = rowTop + 29;
+    if(i % 2 === 1){
+      ctx.fillStyle = C.panel;
+      ctx.fillRect(pad - 10, rowTop, W - 2 * pad + 20, rowH);
+    }
+    const dropped = laps[i] === 0;
+    const added = !!st.ist_added && !dropped;
+    if(added || dropped){
+      ctx.fillStyle = added ? C.green : C.red;
+      ctx.fillRect(pad - 10, rowTop, 3, rowH);
+    }
+    const driver = stintDriverName(st);
+    const spotter = stintSpotterName(st);
+    const driverColor = C.resolve(driver ? colorOf(st.user_id, driver) : null);
+    const spotterColor = C.resolve(spotter ? colorOf(st.spotter_id, spotter) : null);
+    const timeText = startMs != null
+      ? `${formatClock(startMs + timeline[i].from * 60000)}–${formatClock(startMs + timeline[i].to * 60000)}`
+      : `${st.duration_minutes || 0} min`;
+
+    ctx.font = "700 15px 'JetBrains Mono', monospace";
+    ctx.fillStyle = dropped ? C.red : (driverColor || C.muted);
+    ctx.fillText(`#${i + 1}`, cols.num, base);
+    ctx.fillText(timeText, cols.time, base);
+    if(dropped){
+      const w = ctx.measureText(timeText).width;
+      ctx.fillRect(cols.time, base - 5, w, 1.5);
+    }
+    if(added || dropped){
+      ctx.font = "700 10px 'JetBrains Mono', monospace";
+      ctx.fillStyle = added ? C.green : C.red;
+      ctx.fillText(added ? 'NEU' : 'ENTFÄLLT', cols.time, base + 13);
+    }
+
+    ctx.font = "500 15px 'JetBrains Mono', monospace";
+    ctx.fillStyle = C.text;
+    ctx.fillText(laps[i] != null ? String(laps[i]) : '–', cols.laps, base);
+
+    TIRE_CORNERS.forEach(([key], k) => {
+      const cx = cols.tires + 5 + (k % 2) * 11;
+      const cy = base - 13 + Math.floor(k / 2) * 11;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      if(st[key]){
+        ctx.fillStyle = TIRE_COMPOUND_COLORS[st[key]] || C.muted;
+        ctx.fill();
+      }else{
+        ctx.strokeStyle = C.muted;
+        ctx.stroke();
+      }
+    });
+    ctx.font = "500 14px 'Inter', sans-serif";
+    ctx.fillStyle = C.text;
+    ctx.fillText(fit(tireChangeSummary(st), cols.driver - cols.tires - 40), cols.tires + 28, base);
+
+    ctx.font = "600 15px 'Inter', sans-serif";
+    ctx.fillStyle = driverColor || C.muted;
+    ctx.fillText(fit(driver || 'offen', cols.spotter - cols.driver - 16), cols.driver, base);
+    ctx.fillStyle = spotterColor || C.muted;
+    ctx.fillText(fit(spotter || 'offen', W - pad - cols.spotter), cols.spotter, base);
+
+    ctx.strokeStyle = C.line;
+    ctx.beginPath(); ctx.moveTo(pad, rowTop + rowH - 0.5); ctx.lineTo(W - pad, rowTop + rowH - 0.5); ctx.stroke();
+  });
+
+  ctx.fillStyle = C.muted;
+  ctx.font = "500 12px 'Inter', sans-serif";
+  const stamp = new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  ctx.fillText(`Stand ${stamp} · Pitwall`, pad, H - 22);
+
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+async function shareStintPlanImage(team, startMs, raceMinutes, meta, btn){
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Bild wird erstellt…';
+  const done = text => {
+    btn.textContent = text;
+    setTimeout(() => { btn.textContent = label; btn.disabled = false; }, 2200);
+  };
+  try{
+    const blob = await renderStintPlanImage(team, startMs, raceMinutes, meta);
+    const safe = (meta.eventName || 'stintplan').replace(/[^\w\-]+/g, '_').slice(0, 60);
+    const file = new File([blob], `Stintplan_${safe}.png`, { type: 'image/png' });
+    // Phones (and some desktops): the system share sheet.
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      try{
+        await navigator.share({ files: [file], title: `Stintplan · ${meta.eventName || ''}` });
+        done('✓ Geteilt');
+        return;
+      }catch(e){
+        if(e && e.name === 'AbortError'){ done(label); return; }
+      }
+    }
+    // Otherwise: onto the clipboard (paste straight into Discord) and saved.
+    let copied = false;
+    try{
+      if(navigator.clipboard && window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        copied = true;
+      }
+    }catch(e){}
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    done(copied ? '✓ Kopiert & gespeichert' : '✓ Bild gespeichert');
+  }catch(err){
+    console.error('Stint plan image failed:', err && err.message);
+    done('Bild fehlgeschlagen');
+  }
+}
+
+function renderStintOverview(team, startMs, raceMinutes, shareMeta){
   const { stints, timeline, laps } = stintWeights(team, raceMinutes);
   if(!stints.length) return null;
   const colorOf = teamColorMap(team);
@@ -6225,11 +6433,23 @@ function renderStintOverview(team, startMs, raceMinutes){
 
   const wrap = document.createElement('div');
   wrap.className = 'sl-wrap';
+  const tools = document.createElement('div');
+  tools.className = 'sl-tools';
+  if(shareMeta){
+    const shareBtn = document.createElement('button');
+    shareBtn.type = 'button';
+    shareBtn.className = 'sl-share-btn';
+    shareBtn.textContent = '⇪ Als Bild teilen';
+    shareBtn.title = 'Stintplan als Bild teilen (am PC: kopiert und gespeichert)';
+    shareBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      shareStintPlanImage(team, startMs, raceMinutes, shareMeta, shareBtn);
+    });
+    tools.appendChild(shareBtn);
+  }
   // Same filter (and same remembered state) as the editor's own "Nur meine
   // Stints" - offered to anyone who drives or spots in this plan.
   if(myDriverCount + mySpotterCount > 0){
-    const tools = document.createElement('div');
-    tools.className = 'sl-tools';
     const label = document.createElement('label');
     label.className = 'lb-filter-toggle stint-mine-toggle';
     const cb = document.createElement('input');
@@ -6246,8 +6466,8 @@ function renderStintOverview(team, startMs, raceMinutes){
     label.appendChild(cb);
     label.appendChild(document.createTextNode(` Nur meine Stints (${myDriverCount} Fahrerstints / ${mySpotterCount} Spotterstints)`));
     tools.appendChild(label);
-    wrap.appendChild(tools);
   }
+  if(tools.childNodes.length) wrap.appendChild(tools);
   wrap.dataset.teamId = team.id;
 
   const list = document.createElement('div');
@@ -6265,7 +6485,9 @@ function renderStintOverview(team, startMs, raceMinutes){
       : (s.duration_minutes ? `${s.duration_minutes} min` : s.laps ? `${s.laps} Runden` : '–');
 
     const row = document.createElement('div');
-    row.className = 'sl-row' + (driverColor ? ' colored' : '');
+    const dropped = laps[i] === 0;
+    const added = !!s.ist_added && !dropped;
+    row.className = 'sl-row' + (driverColor ? ' colored' : '') + (dropped ? ' dropped' : '') + (added ? ' added' : '');
     row.dataset.mine = isMine(s) ? '1' : '0';
     if(mineOnly && !isMine(s)) row.hidden = true;
     const num = document.createElement('span');
@@ -6303,6 +6525,13 @@ function renderStintOverview(team, startMs, raceMinutes){
     });
     tireEl.appendChild(dots);
     tireEl.appendChild(document.createTextNode(tireChangeSummary(s)));
+    if(dropped || added){
+      const tag = document.createElement('span');
+      tag.className = 'sl-tag ' + (dropped ? 'dropped' : 'added');
+      tag.textContent = dropped ? 'entfällt' : 'neu';
+      tag.title = dropped ? 'Laut Ist-Zeit nicht mehr nötig' : 'Laut Ist-Zeit zusätzlich nötig';
+      timeEl.appendChild(tag);
+    }
     if(iAmIn) timeEl.appendChild(renderCommentButton(s, team, i + 1));
     row.appendChild(num);
     row.appendChild(timeEl);
@@ -6417,7 +6646,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     }
     info.appendChild(membersEl);
     // The read-only list steps aside while the full editor is open below.
-    const stintOverview = (iAmIn && teOpenStintPlan[t.id]) ? null : renderStintOverview(t, new Date(slotIso).getTime(), ev.duration_minutes);
+    const stintOverview = (iAmIn && teOpenStintPlan[t.id]) ? null : renderStintOverview(t, new Date(slotIso).getTime(), ev.duration_minutes, { eventName: ev.name, teamLabel: teamDisplayName(t, number) });
     if(stintOverview) info.appendChild(stintOverview);
     row.appendChild(info);
 
@@ -6826,7 +7055,7 @@ function formatDayTab(d){
 // Shared between the main list and the single-event draft editor so the
 // two select() calls can't silently drift apart the way they already have
 // once this session.
-const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,dnf,lap_time_locked,quali_tyre_sets,durations_locked,recalc_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,tires_from_quali,remaining_minutes,team_stint_comments(id,user_id,body,created_at,updated_at,profiles(username)),driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
+const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,dnf,lap_time_locked,quali_tyre_sets,durations_locked,recalc_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,tires_from_quali,remaining_minutes,ist_added,team_stint_comments(id,user_id,body,created_at,updated_at,profiles(username)),driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
 
 // Every team query wants the same columns and the same order (teams by
 // creation, stints by position) - `filter` adds the event condition.
@@ -7292,7 +7521,7 @@ function renderNextStartHero(info){
   hero.appendChild(top);
 
   // Full width below: every stint's time, laps, tires, driver and spotter.
-  const overview = renderStintOverview(team, start, ev.duration_minutes);
+  const overview = renderStintOverview(team, start, ev.duration_minutes, { eventName: ev.name, teamLabel: teamDisplayName(team, teamNumber) });
   if(overview){
     hero.appendChild(overview);
   }else{
