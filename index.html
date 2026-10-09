@@ -1141,7 +1141,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-calc-field .stint-calc-inline{display:flex;align-items:center;gap:6px;}
 /* Padlock sitting in the right corner of its input. */
 .lock-in-field{position:relative;}
-.lock-in-field input{padding-right:32px;}
+.stint-calc-field .stint-calc-inline.lock-in-field{display:block;width:140px;max-width:100%;}
+.lock-in-field input{padding-right:32px;width:100% !important;box-sizing:border-box;}
 .lock-in-field .field-lock{position:absolute;right:4px;top:50%;transform:translateY(-50%);}
 /* Recalculate button with its padlock in the right corner, like the lap time. */
 .stint-calc-apply-row{position:relative;display:inline-block;max-width:100%;}
@@ -1390,6 +1391,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   .stint-calc-row{flex-direction:column;}
   .stint-calc-field{width:100%;}
   .stint-calc-input{width:100% !important;}
+  .stint-calc-field .stint-calc-inline.lock-in-field{width:100%;}
   .stint-plan-header{gap:8px;}
 }
 
