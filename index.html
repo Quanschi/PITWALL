@@ -1091,6 +1091,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-rest-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.4px;text-transform:uppercase;color:var(--muted);}
 .stint-rest-input{width:78px !important;text-align:center;}
 .stint-rest-input.filled{border-color:var(--violet);color:var(--text);}
+.stint-rest-input.invalid{border-color:var(--red);}
 .stint-remaining{font-size:12.5px;color:var(--text);margin-top:6px;}
 .stint-remaining b{color:var(--violet);font-weight:600;}
 
@@ -1127,7 +1128,14 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .comment-actions{margin-left:auto;display:flex;gap:10px;}
 .comment-actions button{background:none;border:none;padding:0;font-size:11.5px;color:var(--violet);cursor:pointer;}
 .comment-actions button.danger{color:var(--red);}
-.comment textarea, .comments-compose textarea{width:100%;min-height:64px;resize:vertical;font-family:'Inter',sans-serif;font-size:13.5px;}
+.comment textarea, .comments-compose textarea{
+  width:100%;min-height:72px;resize:vertical;display:block;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+  padding:10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.45;
+}
+.comment textarea::placeholder, .comments-compose textarea::placeholder{color:var(--muted);}
+.comment textarea:focus, .comments-compose textarea:focus{outline:none;border-color:var(--violet);}
+.comment textarea{background:var(--panel);margin-top:2px;}
 .comment-edit-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
 .comments-compose{display:flex;flex-direction:column;gap:8px;}
 .comments-compose .pitwall-modal-actions{margin:0;}
@@ -4489,20 +4497,24 @@ function renderFieldLock(locked, what, onToggle){
   return btn;
 }
 
-// Ist-Zeit: the race's remaining time at the end of a stint, as hh:mm -
-// the colon goes in by itself while typing ("0930" becomes "09:30"), same
-// as the lap time field.
+// Ist-Zeit: the race's remaining time at the end of a stint, shown as
+// hh:mm. Typing is forgiving - "9:30", "09:30", "930", "9h30" and "9.30"
+// all mean 9 hours 30 minutes, a bare "9" means 9 hours - and the field
+// shows the normalized hh:mm once it's saved.
 function maskRestTimeInput(el){
-  const d = el.value.replace(/\D/g, '').slice(0, 4);
-  el.value = d.length > 2 ? `${d.slice(0, 2)}:${d.slice(2)}` : d;
+  const cleaned = el.value.replace(/[^0-9:.,hH ]/g, '').slice(0, 6);
+  if(cleaned !== el.value) el.value = cleaned;
 }
 function parseRestTime(str){
-  const s = (str || '').trim();
+  const s = (str || '').trim().toLowerCase();
   if(!s) return null;
-  const m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if(!m) return NaN;
-  const mins = parseInt(m[2], 10);
-  return mins < 60 ? parseInt(m[1], 10) * 60 + mins : NaN;
+  let h, m;
+  const sep = s.match(/^(\d{1,2})\s*[:.,h ]\s*(\d{1,2})$/);
+  if(sep){ h = parseInt(sep[1], 10); m = parseInt(sep[2], 10); }
+  else if(/^\d{3,4}$/.test(s)){ h = parseInt(s.slice(0, -2), 10); m = parseInt(s.slice(-2), 10); }
+  else if(/^\d{1,2}h?$/.test(s)){ h = parseInt(s, 10); m = 0; }
+  else return NaN;
+  return m < 60 ? h * 60 + m : NaN;
 }
 function formatRestTime(minutes){
   if(minutes == null) return '';
@@ -5430,7 +5442,7 @@ function renderStintPlan(team, ev){
   async function commitStintChanges(patches, newStints){
     for(const p of patches){
       const { id, ...patch } = p;
-      if(lapTime > 0 && patch.laps != null) patch.duration_minutes = durationFor(patch.laps);
+      if(lapTime > 0 && patch.laps != null && patch.duration_minutes == null) patch.duration_minutes = durationFor(patch.laps);
       const { error } = await pitwallClient.from('team_stints').update(live ? { ...patch, edited: true } : patch).eq('id', id);
       if(error) console.error('Update stint failed:', error.message);
     }
@@ -5452,9 +5464,13 @@ function renderStintPlan(team, ev){
   }
 
   // Ist-Zeit: the race's remaining time at the end of this stint. Kept
-  // apart from the stint's own planned laps/time - it only decides how the
-  // stints after it are sized: remaining time / lap time = laps still to
-  // drive, spread over them like any other redistribution.
+  // apart from the stint's own planned laps/time - it re-plans everything
+  // after it from scratch: remaining time / lap time = laps still to drive,
+  // split into as many stints as that takes (full stints first, same rule
+  // as "Stints berechnen"), each with its laps and minutes; the last one
+  // ends exactly at the end of the race. Missing stints are added, stints
+  // no longer needed are removed after asking (or kept with 0 laps).
+  // Driver/spotter/tires on the stints that stay are left as they are.
   async function applyRemainingTime(stint, remaining){
     const idx = stints.findIndex(s => s.id === stint.id);
     if(idx === -1) return;
@@ -5468,7 +5484,55 @@ function renderStintPlan(team, ev){
       loadTeamEvents();
       return;
     }
-    const { patches, newStints } = distributeLaps(stints.slice(idx + 1), Math.ceil((remaining * 60) / lapTime));
+    const following = stints.slice(idx + 1);
+    let lapsPlan = [];
+    if(remaining > 0){
+      if(maxLapsPerStint){
+        lapsPlan = computeStintPlan({ raceDurationMinutes: remaining, lapTimeSeconds: lapTime, maxLapsPerStint }).stints.map(x => x.laps);
+      }else{
+        // Without tank/consumption there's no stint length to go by - keep
+        // the number of stints and split the laps evenly.
+        const total = Math.ceil((remaining * 60) / lapTime);
+        const n = Math.max(1, following.length);
+        const base = Math.floor(total / n);
+        lapsPlan = Array.from({ length: n }, (_, k) => base + (k < total - base * n ? 1 : 0));
+      }
+    }
+    const minutes = lapsPlan.map(l => durationFor(l));
+    if(minutes.length){
+      const before = minutes.slice(0, -1).reduce((a, b) => a + b, 0);
+      minutes[minutes.length - 1] = Math.max(1, remaining - before);
+    }
+
+    const patches = [];
+    const newStints = [];
+    let nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
+    lapsPlan.forEach((l, k) => {
+      if(k < following.length){
+        const s = following[k];
+        if(s.laps !== l || s.duration_minutes !== minutes[k]){
+          patches.push({ id: s.id, laps: l, duration_minutes: minutes[k], ...increaseFlag(s.laps, l) });
+        }
+      }else{
+        newStints.push({ team_id: team.id, position: nextPosition++, laps: l, duration_minutes: minutes[k], laps_increased: live });
+      }
+    });
+
+    const surplus = following.slice(lapsPlan.length);
+    if(surplus.length){
+      const n = lapsPlan.length;
+      const remove = await pitwallConfirm(
+        `Für die restlichen ${formatRestTime(remaining)} h reichen ${n} Stint${n === 1 ? '' : 's'} - ${surplus.length} Stint${surplus.length === 1 ? '' : 's'} danach ${surplus.length === 1 ? 'wird' : 'werden'} nicht mehr gebraucht. Entfernen? (Sonst ${surplus.length === 1 ? 'bleibt er' : 'bleiben sie'} mit 0 Runden stehen.)`,
+        { confirmText: 'Entfernen', cancelText: 'Behalten', danger: true });
+      if(remove){
+        for(const s of surplus){
+          const { error: delError } = await pitwallClient.from('team_stints').delete().eq('id', s.id);
+          if(delError) console.error('Delete surplus stint failed:', delError.message);
+        }
+      }else{
+        surplus.forEach(s => { if(s.laps !== 0 || s.duration_minutes !== 0) patches.push({ id: s.id, laps: 0, duration_minutes: 0 }); });
+      }
+    }
     await commitStintChanges(patches, newStints);
   }
 
@@ -5727,13 +5791,21 @@ function renderStintPlan(team, ev){
       restInput.disabled = !canEdit;
       restInput.setAttribute('aria-label', `Ist-Zeit: Rest-Renndauer nach Stint ${stintIdx + 1}`);
       restInput.title = 'Ist-Zeit: Restzeit des Rennens am Ende dieses Stints als hh:mm (z.B. 09:30). Die folgenden Stints werden auf die noch zu fahrende Zeit und die Rundenzeit neu berechnet - die Soll-Runden/-Zeit dieses Stints bleiben.';
-      restInput.addEventListener('input', () => maskRestTimeInput(restInput));
+      restInput.addEventListener('input', () => {
+        maskRestTimeInput(restInput);
+        restInput.classList.remove('invalid');
+      });
       restInput.addEventListener('change', () => {
         const val = parseRestTime(restInput.value);
-        if(Number.isNaN(val) || (val != null && raceMinutes > 0 && val > raceMinutes)){
-          restInput.value = formatRestTime(stint.remaining_minutes);
+        const tooLong = val != null && raceMinutes > 0 && val > raceMinutes;
+        if(Number.isNaN(val) || tooLong){
+          restInput.classList.add('invalid');
+          restInput.title = tooLong
+            ? `Mehr als die Renndauer (${formatRestTime(raceMinutes)}) - bitte die Restzeit des Rennens eintragen, z.B. 09:30`
+            : 'Bitte als hh:mm eintragen, z.B. 09:30';
           return;
         }
+        if(val != null) restInput.value = formatRestTime(val);
         if(val === (stint.remaining_minutes ?? null)) return;
         applyRemainingTime(stint, val);
       });
@@ -5849,7 +5921,7 @@ function renderStintPlan(team, ev){
       const left = stints[lastIst].remaining_minutes;
       const status = document.createElement('div');
       status.className = 'stint-remaining';
-      const lapsLeft = lapTime > 0 ? ` · ≈ ${Math.ceil((left * 60) / lapTime)} Runden` : '';
+      const lapsLeft = lapTime > 0 ? ` · ≈ ${Math.ceil((left * 60) / lapTime)} Runden` : ' · ohne Rundenzeit keine Neuberechnung';
       status.innerHTML = `Ist nach Stint ${lastIst + 1}: noch <b>${escapeText(formatDuration(left) || '0min')}</b> zu fahren${lapsLeft} · gefahren ${escapeText(formatDuration(raceMinutes - left) || '0min')}`;
       wrap.appendChild(status);
     }
