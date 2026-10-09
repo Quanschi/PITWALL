@@ -274,12 +274,12 @@ body{
 .sl-share-btn:hover{border-color:var(--muted);}
 .sl-share-btn:disabled{opacity:0.6; cursor:default;}
 .sl-row[hidden]{display:none;}
-.sl-row{display:grid; grid-template-columns:38px 150px 54px minmax(130px,0.9fr) minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+.sl-row{display:grid; grid-template-columns:38px 150px 54px minmax(130px,0.9fr) minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:baseline; padding:8px; border-bottom:1px solid var(--line); font-size:13.5px;}
 .sl-laps{font-family:'JetBrains Mono',monospace; color:var(--text);}
 .sl-tires{display:flex; align-items:center; gap:7px; min-width:0; color:var(--text); font-size:12.5px;}
 .sl-tire-dots{display:inline-grid; grid-template-columns:repeat(2,7px); gap:2px; flex-shrink:0;}
 .sl-tire-dots i{width:7px; height:7px; border-radius:50%; display:block;}
-.sl-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); padding:8px 0 6px;}
+.sl-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); padding:8px 8px 6px;}
 .sl-num{font-family:'JetBrains Mono',monospace; color:var(--muted);}
 .sl-time{font-family:'JetBrains Mono',monospace; color:var(--muted); white-space:nowrap;}
 .sl-name{min-width:0; overflow-wrap:anywhere; color:var(--text);}
@@ -959,24 +959,26 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 }
 .stint-plan-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .stint-mine-toggle{font-size:11.5px;}
-.stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+/* Every row has the same padding and radius, so a colour mark (running /
+   added) only changes the background - fields stay aligned row to row. */
+.stint-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;padding:4px 6px;border-radius:8px;}
 .stint-row.dragging{opacity:0.4;}
 .stint-drop-indicator{height:3px;background:#3B82C4;border-radius:2px;margin:3px 0;}
 .stint-row.completed{opacity:0.5;}
 .stint-row.completed .stint-time{text-decoration:line-through;}
-.stint-row.active{background:rgba(34,197,94,0.12);border-radius:8px;padding:4px 6px;}
-.stint-row.active .stint-time{color:#22c55e;font-weight:700;}
+.stint-row.active{background:rgba(34,197,94,0.12);}
+.stint-row.active .stint-time{color:#22c55e;}
 .stint-row.zero-laps{opacity:0.45;}
 .stint-row.zero-laps .stint-time{text-decoration:line-through;}
 /* Added during the race (Ist-Zeit): red. Running right now: green. */
-.stint-row.ist-added{background:rgba(232,92,74,0.14);border-radius:8px;padding:4px 6px;}
+.stint-row.ist-added{background:rgba(232,92,74,0.14);}
 .stint-row.ist-added.active{background:rgba(34,197,94,0.12);}
 .stint-added-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--green);background:rgba(34,197,94,0.14);padding:2px 7px;border-radius:10px;flex-shrink:0;}
 .sl-row.dropped .sl-num, .sl-row.dropped .sl-time{text-decoration:line-through;}
 .sl-row.dropped{opacity:0.45;}
 .sl-row.added{background:rgba(232,92,74,0.14);}
 .sl-row.running{background:rgba(34,197,94,0.12);}
-.sl-row.added, .sl-row.running{border-radius:8px;padding-left:8px;padding-right:8px;}
+.sl-row.added, .sl-row.running{border-radius:8px;}
 .sl-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:0.4px;border-radius:8px;padding:1px 6px;text-decoration:none;display:inline-block;}
 .sl-tag.added{color:var(--green);background:rgba(34,197,94,0.14);}
 .sl-tag.dropped{color:var(--red);background:rgba(232,92,74,0.14);}
