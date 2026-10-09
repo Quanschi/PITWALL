@@ -844,6 +844,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-team-members.empty{color:var(--muted);}
 .te-member-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;background:var(--panel);border-radius:20px;}
 .te-member-dot{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text);background:#4A505C;flex-shrink:0;}
+.te-member-chip.handover{cursor:pointer;border:1px dashed transparent;}
+.te-member-chip.handover:hover, .te-member-chip.handover:focus-visible{border-color:var(--mine);outline:none;}
 .te-member-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;line-height:1;}
 .te-member-remove:hover{color:var(--red);}
 .te-team-btn{
@@ -1089,6 +1091,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-calc-apply-row .field-lock{position:absolute;right:6px;top:calc(50% + 3px);transform:translateY(-50%);}
 .stint-tire-budget input[type=checkbox]{width:auto;margin:0;}
 .stint-calc-apply:disabled{opacity:0.45;cursor:not-allowed;}
+.stint-calc-input.missing{border-color:var(--red) !important;}
+.stint-calc-hint.missing{color:var(--red);margin-top:8px;}
 .stint-size-lock{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 8px;}
 .sl-time{display:inline-flex; align-items:center; gap:6px;}
 .sl-time .stint-comment-btn{padding:0 4px;}
@@ -1246,6 +1250,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-new-team-form select{width:auto;min-width:150px;}
 
 .te-team-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.te-team-actions .te-dnf-btn{margin-left:10px;}
 
 /* ---- Mobile: Team Events tab - the event list stacks above the detail
    card, slots go two-across, and the team action buttons / new-team form
@@ -4771,6 +4776,10 @@ function renderStintCalculator(team, ev, stints){
 
     const tankInput = numberField('z.B. 75', team.tank_liters, '0.1');
     const consumptionInput = numberField(resourceType === 'Fuel' ? 'z.B. 3.00' : 'z.B. 4.00', team.consumption_per_lap, '0.01');
+    // Empty fields the calculation still needs get a red outline.
+    if(!(team.est_lap_time_seconds > 0)) lapTimeInput.classList.add('missing');
+    if(resourceType === 'Fuel' && !(team.tank_liters > 0)) tankInput.classList.add('missing');
+    if(!(team.consumption_per_lap > 0)) consumptionInput.classList.add('missing');
     const maxStintInput = numberField('optional', team.max_stint_minutes, '1');
 
     row.appendChild(lapField);
@@ -4829,11 +4838,28 @@ function renderStintCalculator(team, ev, stints){
       box.appendChild(applyRow);
     }
   }else if(!planLocked){
+    // The button stays visible (just greyed out) and says what's missing,
+    // instead of silently disappearing.
+    const missing = [];
+    if(!(lapTime > 0)) missing.push('Rundenzeit');
+    if(resourceType === 'Fuel'){
+      if(!(team.tank_liters > 0)) missing.push('Tank (Liter)');
+      if(!(team.consumption_per_lap > 0)) missing.push('Verbrauch (Liter/Runde)');
+    }else if(!(team.consumption_per_lap > 0)){
+      missing.push('VE-Verbrauch (%/Runde)');
+    }
+    if(!(raceDuration > 0)) missing.push('Renndauer des Events');
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'stint-calc-apply';
+    applyBtn.disabled = true;
+    applyBtn.textContent = stints.length ? 'Stints neu berechnen (ersetzt aktuelle Stints)' : 'Stints berechnen';
+    box.appendChild(applyBtn);
     const hint = document.createElement('div');
-    hint.className = 'stint-calc-hint';
-    hint.textContent = resourceType === 'Fuel'
-      ? 'Rundenzeit, Tank und Verbrauch eintragen, um den Stintplan zu berechnen (bei bekannter Strecke/Klasse wird das automatisch vorbelegt).'
-      : 'Rundenzeit und VE-Verbrauch pro Runde eintragen, um den Stintplan zu berechnen (bei bekannter Strecke/Klasse wird das automatisch vorbelegt).';
+    hint.className = 'stint-calc-hint missing';
+    hint.textContent = missing.length
+      ? `Zum Berechnen fehlt noch: ${missing.join(', ')}`
+      : 'Mit diesen Werten passt keine einzige Runde in einen Stint - Verbrauch/Tank prüfen.';
     box.appendChild(hint);
   }
 
@@ -5352,28 +5378,6 @@ function renderStintPlan(team, ev){
     filterLabel.appendChild(document.createTextNode(` Nur meine Stints (${myDriverCount} Fahrerstints / ${mySpotterCount} Spotterstints)`));
     headerTools.appendChild(filterLabel);
 
-    // Any team member can mark the team out of the race - and take it
-    // back, in case it was pressed by mistake.
-    const dnfBtn = document.createElement('button');
-    dnfBtn.type = 'button';
-    dnfBtn.className = 'te-team-btn' + (team.dnf ? '' : ' stint-dnf-btn');
-    dnfBtn.textContent = team.dnf ? 'DNF aufheben' : 'DNF';
-    dnfBtn.title = team.dnf
-      ? 'Team wieder als im Rennen markieren'
-      : 'Team als ausgeschieden (Did Not Finish) markieren - danach kann nichts mehr geändert werden';
-    dnfBtn.addEventListener('click', async () => {
-      const wantDnf = !team.dnf;
-      const msg = wantDnf
-        ? 'Team als DNF (ausgeschieden) markieren? Der Plan ist danach für alle schreibgeschützt, bleibt aber sichtbar.'
-        : 'DNF für dieses Team aufheben? Der Plan kann danach wieder bearbeitet werden.';
-      if(!(await pitwallConfirm(msg, { confirmText: wantDnf ? 'DNF setzen' : 'DNF aufheben', danger: wantDnf }))) return;
-      const { error } = await pitwallClient.from('team_event_teams').update({ dnf: wantDnf }).eq('id', team.id);
-      if(error) console.error('Toggle DNF failed:', error.message);
-      teDnfRevealed[team.id] = true; // you just did it - no need to cover it from you
-      loadTeamEvents();
-      refreshNextStartHero('dash-next-start', 'message');
-    });
-    headerTools.appendChild(dnfBtn);
   }
   header.appendChild(headerTools);
   wrap.appendChild(header);
@@ -6625,13 +6629,33 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         if(m.user_id && m.user_id === t.created_by){
           const crown = document.createElement('span');
           crown.textContent = '👑';
-          crown.title = 'Team-Ersteller';
+          crown.title = 'Teamleiter';
           chip.appendChild(crown);
         }
         let label = name;
         if(m.note) label += ` (${m.note})`;
         if(m.leave_requested) label += ' · Austritt angefragt';
         chip.appendChild(document.createTextNode(label));
+        // The team leader (👑) can hand the crown to another member with an
+        // account by tapping their name.
+        const canHandOver = currentProfile && currentProfile.id === t.created_by && m.user_id && m.user_id !== t.created_by && !t.dnf;
+        if(canHandOver){
+          chip.classList.add('handover');
+          chip.setAttribute('role', 'button');
+          chip.tabIndex = 0;
+          chip.title = `${name} zum Teamleiter machen`;
+          const handOver = async () => {
+            if(!(await pitwallConfirm(`Teamleitung (👑) wirklich an ${name} abgeben? Zurückgeben kann sie dann nur ${name}.`, { confirmText: 'Leader abgeben' }))) return;
+            const { error } = await pitwallClient.from('team_event_teams').update({ created_by: m.user_id }).eq('id', t.id);
+            if(error){
+              console.error('Hand over team leader failed:', error.message);
+              await pitwallConfirm('Teamleitung konnte nicht übergeben werden: ' + error.message, { confirmText: 'OK', cancelText: 'Schließen' });
+            }
+            loadTeamEvents();
+          };
+          chip.addEventListener('click', handOver);
+          chip.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); handOver(); } });
+        }
         if(isManual && iAmIn && !t.dnf){
           const rm = document.createElement('button');
           rm.type = 'button';
@@ -6714,6 +6738,31 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
           deleteTeam(t.id);
         });
         actionsGroup.appendChild(delTeamBtn);
+      }
+
+      // Any team member can mark the team out of the race - and take it
+      // back, in case it was pressed by mistake.
+      if(iAmIn){
+        const dnfBtn = document.createElement('button');
+        dnfBtn.type = 'button';
+        dnfBtn.className = 'te-team-btn te-dnf-btn' + (t.dnf ? '' : ' stint-dnf-btn');
+        dnfBtn.textContent = t.dnf ? 'DNF aufheben' : 'DNF';
+        dnfBtn.title = t.dnf
+          ? 'Team wieder als im Rennen markieren'
+          : 'Team als ausgeschieden (Did Not Finish) markieren - danach kann nichts mehr geändert werden';
+        dnfBtn.addEventListener('click', async () => {
+          const wantDnf = !t.dnf;
+          const msg = wantDnf
+            ? 'Team als DNF (ausgeschieden) markieren? Der Plan ist danach für alle schreibgeschützt, bleibt aber sichtbar.'
+            : 'DNF für dieses Team aufheben? Der Plan kann danach wieder bearbeitet werden.';
+          if(!(await pitwallConfirm(msg, { confirmText: wantDnf ? 'DNF setzen' : 'DNF aufheben', danger: wantDnf }))) return;
+          const { error } = await pitwallClient.from('team_event_teams').update({ dnf: wantDnf }).eq('id', t.id);
+          if(error) console.error('Toggle DNF failed:', error.message);
+          teDnfRevealed[t.id] = true; // you just did it - no need to cover it from you
+          loadTeamEvents();
+          refreshNextStartHero('dash-next-start', 'message');
+        });
+        actionsGroup.appendChild(dnfBtn);
       }
     }
     // The overview above already shows the whole plan to everyone - the
