@@ -603,9 +603,64 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 /* Event editor: the form runs across the top in columns, the live preview
    gets the full width below it. */
 .te-editor-stack{display:flex;flex-direction:column;gap:24px;}
-#te-editor-form{max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));column-gap:20px;align-items:start;}
-#te-editor-form .field-wide, #te-editor-form .form-message{grid-column:1 / -1;}
-#te-editor-form #te-publish-btn{grid-column:1 / -1;justify-self:start;}
+/* "Event erstellen" card: header, three numbered steps side by side,
+   footer with what's still missing + publish. */
+.ec-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+.ec-head{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;padding:18px 26px;border-bottom:1px solid var(--line);}
+.ec-head-left, .ec-head-right{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;}
+.ec-title{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.3px;color:var(--text);}
+.ec-draft{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.6px;text-transform:uppercase;color:var(--amber);border:1px solid var(--amber);border-radius:20px;padding:3px 10px;}
+.ec-seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:0;}
+.ec-seg .filter-pill{border:none;border-radius:8px;padding:8px 18px;background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;cursor:pointer;margin:0;}
+.ec-seg .filter-pill.active{background:var(--amber);color:var(--carbon);}
+.ec-ghost-btn{min-height:40px;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:10px;padding:0 16px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+.ec-ghost-btn:hover{border-color:var(--muted);}
+.ec-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.55fr);}
+.ec-col{padding:22px 26px;display:flex;flex-direction:column;gap:14px;min-width:0;}
+.ec-col + .ec-col{border-left:1px solid var(--line);}
+.ec-col .field{margin:0;}
+.ec-step{display:flex;align-items:baseline;gap:10px;}
+.ec-step-split{justify-content:space-between;flex-wrap:wrap;}
+.ec-step-split > div{display:flex;align-items:baseline;gap:10px;}
+.ec-num{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);}
+.ec-step-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:19px;color:var(--text);}
+.ec-step-hint{font-size:12px;color:var(--muted);}
+.ec-label-note{text-transform:none;letter-spacing:0;}
+.ec-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.ec-pair input{min-width:0;}
+.ec-quick{display:flex;flex-wrap:wrap;gap:6px;}
+.ec-quick button{flex:1 1 52px;min-height:38px;border-radius:8px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+.ec-quick button:hover{border-color:var(--muted);}
+.ec-quick button.active{background:transparent;color:var(--amber);border-color:var(--amber);}
+.ec-duration-free{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--muted);}
+.ec-duration-free input{width:68px !important;text-align:center;padding:8px 10px;}
+.ec-hours{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;}
+.ec-hours .filter-pill{margin:0;border-radius:8px;padding:9px 0;min-height:38px;background:var(--panel-2);color:var(--muted);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:12.5px;text-align:center;cursor:pointer;}
+.ec-hours .filter-pill.active{background:var(--amber);color:var(--carbon);border-color:var(--amber);font-weight:700;}
+.ec-times-summary{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);}
+.ec-card > .form-message{margin:0 26px 14px;}
+.ec-foot{display:flex;align-items:center;justify-content:space-between;gap:14px 20px;flex-wrap:wrap;padding:14px 26px;background:var(--panel-2);border-top:1px solid var(--line);}
+.ec-checks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ec-check{font-size:12.5px;border-radius:20px;padding:5px 11px;color:var(--muted);background:var(--panel);}
+.ec-check.missing{color:var(--red);background:rgba(232,92,74,0.12);font-weight:600;}
+.ec-foot-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.ec-link{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+.ec-link label{font-family:'Inter',sans-serif;font-size:13px;text-transform:none;letter-spacing:0;color:var(--muted);}
+.ec-link select{width:auto;max-width:280px;background:var(--panel);font-size:13px;padding:9px 12px;}
+.ec-publish{min-height:44px;border:none;border-radius:10px;padding:0 22px;background:var(--amber);color:var(--carbon);font-family:'Inter',sans-serif;font-weight:700;font-size:14px;cursor:pointer;}
+.ec-publish:disabled{opacity:0.45;cursor:not-allowed;}
+@media (max-width:900px){
+  .ec-body{grid-template-columns:minmax(0,1fr);}
+  .ec-col + .ec-col{border-left:none;border-top:1px solid var(--line);}
+  .ec-col{padding:18px;}
+  .ec-head, .ec-foot{padding:14px 18px;}
+  .ec-card > .form-message{margin:0 18px 14px;}
+  .ec-hours{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .ec-quick button{flex:0 0 calc((100% - 12px) / 3);}
+  .ec-foot-right, .ec-link{width:100%;}
+  .ec-link select{flex:1;max-width:none;min-width:0;}
+  .ec-publish{width:100%;}
+}
 .split-col-left{min-width:0;}
 .split-col-right{min-width:0;}
 .te-open-editor-btn{
@@ -630,7 +685,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   margin:0;
   color:var(--text);
 }
-#te-editor-form .stint-calc-apply{width:100%;margin-top:14px;}
 .lb-filter-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;}
 .lb-filter-toggle input{width:auto;}
 
@@ -912,13 +966,16 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-row.completed .stint-time{text-decoration:line-through;}
 .stint-row.active{background:rgba(34,197,94,0.12);border-radius:8px;padding:4px 6px;}
 .stint-row.active .stint-time{color:#22c55e;font-weight:700;}
-.stint-row.zero-laps{background:rgba(232,92,74,0.1);border-radius:8px;padding:4px 6px;box-shadow:inset 3px 0 0 var(--red);}
-.stint-row.zero-laps .stint-time{text-decoration:line-through;color:var(--red);}
-.stint-row.ist-added{background:rgba(34,197,94,0.1);border-radius:8px;padding:4px 6px;box-shadow:inset 3px 0 0 var(--green);}
+.stint-row.zero-laps{opacity:0.45;}
+.stint-row.zero-laps .stint-time{text-decoration:line-through;}
+/* Added during the race (Ist-Zeit): red. Running right now: green. */
+.stint-row.ist-added{background:rgba(232,92,74,0.14);border-radius:8px;padding:4px 6px;}
 .stint-added-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--green);background:rgba(34,197,94,0.14);padding:2px 7px;border-radius:10px;flex-shrink:0;}
-.sl-row.dropped .sl-num, .sl-row.dropped .sl-time{color:var(--red) !important;text-decoration:line-through;}
-.sl-row.dropped{opacity:0.75;}
-.sl-row.added{box-shadow:inset 3px 0 0 var(--green);}
+.sl-row.dropped .sl-num, .sl-row.dropped .sl-time{text-decoration:line-through;}
+.sl-row.dropped{opacity:0.45;}
+.sl-row.added{background:rgba(232,92,74,0.14);}
+.sl-row.running{background:rgba(34,197,94,0.12);}
+.sl-row.added, .sl-row.running{border-radius:8px;padding-left:8px;padding-right:8px;}
 .sl-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:0.4px;border-radius:8px;padding:1px 6px;text-decoration:none;display:inline-block;}
 .sl-tag.added{color:var(--green);background:rgba(34,197,94,0.14);}
 .sl-tag.dropped{color:var(--red);background:rgba(232,92,74,0.14);}
@@ -989,6 +1046,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-tire-label.clickable{cursor:pointer;}
 .stint-tire-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,0.3);}
 .stint-tire-menu{
+  white-space:normal;
   position:fixed;
   inset:0;
   z-index:100;
@@ -1127,7 +1185,8 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-tire-menu-budget{font-size:14px;color:var(--muted);margin-bottom:14px;line-height:1.55;}
 .stint-tire-menu-budget b{color:var(--text);}
 .stint-tire-menu-budget .over{color:var(--red);}
-.stint-tire-quali{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--text);margin-top:14px;}
+.stint-tire-quali{display:flex;align-items:flex-start;gap:10px;font-size:15px;line-height:1.35;color:var(--text);margin-top:14px;}
+.stint-tire-quali input{margin-top:2px !important;flex-shrink:0;}
 .stint-tire-quali input{width:auto;margin:0;}
 .stint-tire-quali.disabled{color:var(--muted);}
 .stint-tire-q{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--violet);vertical-align:middle;margin-right:4px;}
@@ -1808,53 +1867,75 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   </div>
 
   <div id="te-editor-view" hidden>
-    <div class="te-editor-header">
-      <h2 class="te-editor-title">Erstelle ein Event</h2>
-      <button type="button" class="te-new-team-btn" id="te-editor-close-btn">Später weiter bearbeiten</button>
-    </div>
-
     <div class="te-editor-stack">
-      <div>
-        <div class="auth-card" id="te-editor-form">
-          <div class="field">
-            <label>Spiel</label>
-            <div class="filter-row" id="te-game-select">
+      <section class="ec-card" id="te-editor-form">
+        <header class="ec-head">
+          <div class="ec-head-left">
+            <h2 class="ec-title">Event erstellen</h2>
+            <span class="ec-draft">Entwurf · nur für dich sichtbar</span>
+          </div>
+          <div class="ec-head-right">
+            <div class="ec-seg" id="te-game-select" role="group" aria-label="Spiel">
               <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
               <button type="button" class="filter-pill" data-game="acc">ACC</button>
             </div>
+            <button type="button" class="ec-ghost-btn" id="te-editor-close-btn">Später weiter bearbeiten</button>
           </div>
-          <div class="field">
-            <label for="te-name">Name</label>
-            <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
-          </div>
-          <div class="field">
-            <label for="te-date-start">Von</label>
-            <input type="date" id="te-date-start">
-          </div>
-          <div class="field">
-            <label for="te-date-end">Bis (optional, für mehrtägige Events)</label>
-            <input type="date" id="te-date-end">
-          </div>
-          <div class="field">
-            <label>Renndauer</label>
-            <div class="laptime-inputs">
-              <input type="number" id="te-duration-h" min="0" max="48" placeholder="Std">
-              <span>h</span>
-              <input type="number" id="te-duration-m" min="0" max="59" placeholder="Min">
-              <span>min</span>
+        </header>
+
+        <div class="ec-body">
+          <div class="ec-col">
+            <div class="ec-step"><span class="ec-num">01</span><span class="ec-step-name">Rennen</span></div>
+            <div class="field">
+              <label for="te-name">Name</label>
+              <input type="text" id="te-name" placeholder="z.B. 6 Hours of Spa">
+            </div>
+            <div class="field">
+              <label for="te-track">Strecke</label>
+              <select id="te-track"><option value="">Strecke wählen…</option></select>
+            </div>
+            <div class="field">
+              <label for="te-tyre-sets">Reifensätze <span class="ec-label-note">· inkl. Quali, Wets zählen nicht</span></label>
+              <input type="number" id="te-tyre-sets" min="0" max="50" step="1" placeholder="z.B. 6">
             </div>
           </div>
-          <div class="field">
-            <label for="te-track">Strecke</label>
-            <select id="te-track"><option value="">Strecke wählen…</option></select>
+
+          <div class="ec-col">
+            <div class="ec-step"><span class="ec-num">02</span><span class="ec-step-name">Zeitraum</span></div>
+            <div class="ec-pair">
+              <div class="field">
+                <label for="te-date-start">Von</label>
+                <input type="date" id="te-date-start">
+              </div>
+              <div class="field">
+                <label for="te-date-end">Bis <span class="ec-label-note">· optional</span></label>
+                <input type="date" id="te-date-end">
+              </div>
+            </div>
+            <div class="field">
+              <label>Renndauer</label>
+              <div class="ec-quick" id="te-duration-quick">
+                <button type="button" data-min="144">2,4h</button>
+                <button type="button" data-min="240">4h</button>
+                <button type="button" data-min="360">6h</button>
+                <button type="button" data-min="480">8h</button>
+                <button type="button" data-min="720">12h</button>
+                <button type="button" data-min="1440">24h</button>
+              </div>
+              <div class="ec-duration-free">
+                <span>oder</span>
+                <input type="number" id="te-duration-h" min="0" max="48" placeholder="0" aria-label="Renndauer Stunden"><span>h</span>
+                <input type="number" id="te-duration-m" min="0" max="59" placeholder="0" aria-label="Renndauer Minuten"><span>min</span>
+              </div>
+            </div>
           </div>
-          <div class="field">
-            <label for="te-tyre-sets">Reifensätze (inkl. Quali, Regenreifen zählen nicht)</label>
-            <input type="number" id="te-tyre-sets" min="0" max="50" step="1" placeholder="z.B. 6">
-          </div>
-          <div class="field field-wide">
-            <label>Uhrzeiten (mehrfach antippbar, gelten für jeden Tag im Zeitraum)</label>
-            <div class="filter-row" id="te-time-tiles">
+
+          <div class="ec-col ec-col-times">
+            <div class="ec-step ec-step-split">
+              <div><span class="ec-num">03</span><span class="ec-step-name">Startzeiten</span></div>
+              <span class="ec-step-hint">gelten für jeden Tag im Zeitraum</span>
+            </div>
+            <div class="ec-hours" id="te-time-tiles">
               <button type="button" class="filter-pill" data-time="00:00">00:00</button>
               <button type="button" class="filter-pill" data-time="01:00">01:00</button>
               <button type="button" class="filter-pill" data-time="02:00">02:00</button>
@@ -1880,18 +1961,25 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
               <button type="button" class="filter-pill" data-time="22:00">22:00</button>
               <button type="button" class="filter-pill" data-time="23:00">23:00</button>
             </div>
+            <div class="ec-times-summary" id="te-times-summary"></div>
           </div>
-          <div class="field field-wide" id="te-link-schedule-field">
-            <label for="te-link-schedule">Schedule-Rennen verknüpfen (optional)</label>
-            <select id="te-link-schedule">
-              <option value="">Kein passendes Schedule-Rennen…</option>
-            </select>
-            <p style="color:var(--muted);font-size:11.5px;margin:6px 0 0 0;">Verhindert, dass später ein doppeltes Event entsteht, wenn dieses Rennen auch im Schedule-Tab auftaucht. Gibt es das dort schon, werden die Teams direkt dorthin übertragen.</p>
-          </div>
-          <div class="form-message" id="te-create-message" hidden></div>
-          <button type="button" class="stint-calc-apply" id="te-publish-btn">✓ Event veröffentlichen</button>
         </div>
-      </div>
+
+        <div class="form-message" id="te-create-message" hidden></div>
+
+        <footer class="ec-foot">
+          <div class="ec-checks" id="te-editor-checks" aria-live="polite"></div>
+          <div class="ec-foot-right">
+            <div class="ec-link" id="te-link-schedule-field" title="Verhindert, dass später ein doppeltes Event entsteht, wenn dieses Rennen auch im Schedule-Tab auftaucht. Gibt es das dort schon, werden die Teams direkt dorthin übertragen.">
+              <label for="te-link-schedule">Schedule-Rennen</label>
+              <select id="te-link-schedule">
+                <option value="">Kein passendes Schedule-Rennen…</option>
+              </select>
+            </div>
+            <button type="button" class="ec-publish" id="te-publish-btn">Event veröffentlichen</button>
+          </div>
+        </footer>
+      </section>
 
       <div>
         <p class="section-label" style="margin-top:0">Vorschau (live)</p>
@@ -3773,7 +3861,9 @@ function readEditorFormState(){
     }else{
       const days = [];
       for(let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
-        days.push(d.toISOString().slice(0, 10));
+        // Local calendar day - toISOString() would be UTC and shift every
+        // date one day back for anyone east of UTC (CET/CEST).
+        days.push(localDayKey(d));
       }
       days.forEach(day => {
         teSelectedTimes.forEach(t => slotTimes.push(new Date(`${day}T${t}:00`).toISOString()));
@@ -3800,6 +3890,7 @@ async function populateEditorTrackOptions(game, selected){
     tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
   select.value = selected || '';
   delete select.dataset.pending;
+  updateEditorChecks();
 }
 
 async function saveEditorEvent(){
@@ -3892,11 +3983,57 @@ async function refreshEventEditorPreview(){
   preview.innerHTML = '';
   preview.appendChild(renderEventCard(ev, teams || [], carData, { isEditorPreview: true }));
 
-  const publishBtn = document.getElementById('te-publish-btn');
-  const canPublish = !!(ev.name && ev.duration_minutes > 0 && ev.slot_times && ev.slot_times.length && ev.track && ev.tyre_sets > 0);
-  publishBtn.disabled = !canPublish;
-  publishBtn.title = canPublish ? '' : 'Name, Renndauer, Strecke, Reifensätze und mindestens eine Uhrzeit werden benötigt';
+  updateEditorChecks();
 }
+
+// Footer of the "Event erstellen" card: what's done, what's still missing
+// (red), and the publish button only once everything is there. Read from
+// the form itself, so it follows every keystroke, not just saves.
+function updateEditorChecks(){
+  const state = readEditorFormState();
+  const checks = [
+    ['Name', !!state.name],
+    ['Strecke', !!state.track],
+    ['Renndauer', state.durationMinutes > 0],
+    ['Startzeit', teSelectedTimes.size > 0 && !!state.startStr],
+    ['Reifensätze', !!state.tyreSets],
+  ];
+  const box = document.getElementById('te-editor-checks');
+  box.innerHTML = '';
+  checks.forEach(([label, ok]) => {
+    const chip = document.createElement('span');
+    chip.className = 'ec-check' + (ok ? '' : ' missing');
+    chip.textContent = `${ok ? '✓' : '○'} ${label}`;
+    box.appendChild(chip);
+  });
+  const missing = checks.filter(([, ok]) => !ok).map(([label]) => label);
+  const publishBtn = document.getElementById('te-publish-btn');
+  publishBtn.disabled = missing.length > 0 || !!state.dateError;
+  publishBtn.title = missing.length ? `Fehlt noch: ${missing.join(', ')}` : (state.dateError || '');
+
+  // Starts per day x days = slots.
+  const summary = document.getElementById('te-times-summary');
+  const n = teSelectedTimes.size;
+  summary.textContent = n
+    ? `${n} Startzeit${n === 1 ? '' : 'en'} · ${state.slotTimes.length || n} Slot${(state.slotTimes.length || n) === 1 ? '' : 's'} insgesamt`
+    : 'Noch keine Startzeit gewählt';
+
+  const minutes = state.durationMinutes;
+  document.querySelectorAll('#te-duration-quick button').forEach(b => b.classList.toggle('active', Number(b.dataset.min) === minutes));
+}
+
+document.querySelectorAll('#te-duration-quick button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const minutes = Number(btn.dataset.min);
+    document.getElementById('te-duration-h').value = Math.floor(minutes / 60);
+    document.getElementById('te-duration-m').value = minutes % 60 || '';
+    updateEditorChecks();
+    saveEditorEvent();
+  });
+});
+['te-name', 'te-date-start', 'te-date-end', 'te-duration-h', 'te-duration-m', 'te-track', 'te-tyre-sets'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateEditorChecks);
+});
 
 async function openEventEditor(eventId){
   teEditorEventId = eventId;
@@ -3989,6 +4126,7 @@ document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
     btn.classList.toggle('active');
     if(btn.classList.contains('active')) teSelectedTimes.add(btn.dataset.time);
     else teSelectedTimes.delete(btn.dataset.time);
+    updateEditorChecks();
     saveEditorEvent();
   });
 });
@@ -5055,7 +5193,7 @@ function renderTireControl(stint, team, canEdit, live, budget){
     qualiRow.appendChild(qualiCb);
     qualiRow.appendChild(document.createTextNode(qualiAvailable || stint.tires_from_quali
       ? 'Gebrauchte Reifen aus dem Quali-Satz'
-      : 'Quali-Reifen: erst 1 Satz für Quali ankreuzen'));
+      : 'Quali-Reifen: erst „1 Satz für Quali“ ankreuzen'));
     card.appendChild(qualiRow);
     wrap.appendChild(menu);
 
@@ -5832,38 +5970,6 @@ function renderStintPlan(team, ev){
       groupControls.appendChild(rest);
     }
 
-    if(stint.edited){
-      const editedBadge = document.createElement('span');
-      editedBadge.className = 'stint-edited-badge';
-      editedBadge.textContent = '✎ geändert';
-      editedBadge.title = 'Nach der Planerstellung manuell angepasst';
-      groupStatus.appendChild(editedBadge);
-    }
-
-    if(isZeroLaps){
-      const zeroBadge = document.createElement('span');
-      zeroBadge.className = 'stint-zero-warning';
-      zeroBadge.textContent = '✕ entfällt';
-      zeroBadge.title = 'Wird laut Ist-Zeit bzw. Neuverteilung nicht mehr gebraucht - bleibt zur Info stehen, mit ✕ entfernen';
-      groupStatus.appendChild(zeroBadge);
-    }
-
-    if(stint.ist_added && !isZeroLaps){
-      const addedBadge = document.createElement('span');
-      addedBadge.className = 'stint-added-badge';
-      addedBadge.textContent = '+ neu durch Ist-Zeit';
-      addedBadge.title = 'Laut Ist-Zeit wird dieser Stint zusätzlich gebraucht';
-      groupStatus.appendChild(addedBadge);
-    }
-
-    if(stint.laps_increased && !isZeroLaps && !stint.ist_added){
-      const increasedBadge = document.createElement('span');
-      increasedBadge.className = 'stint-increased-badge';
-      increasedBadge.textContent = '⬆ mehr Runden als geplant';
-      increasedBadge.title = 'Ein anderer Stint wurde waehrend des Events verkuerzt - die Differenz wurde hierher verteilt, dieser Stint dauert jetzt laenger als urspruenglich geplant';
-      groupStatus.appendChild(increasedBadge);
-    }
-
     const driverLabel = (stint.driver && stint.driver.username) || stint.driver_name || null;
     const spotterLabel = (stint.spotter && stint.spotter.username) || stint.spotter_name || null;
 
@@ -6314,9 +6420,9 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
     }
     const dropped = laps[i] === 0;
     const added = !!st.ist_added && !dropped;
-    if(added || dropped){
-      ctx.fillStyle = added ? C.green : C.red;
-      ctx.fillRect(pad - 10, rowTop, 3, rowH);
+    if(added){
+      ctx.fillStyle = 'rgba(232,92,74,0.16)';
+      ctx.fillRect(pad - 10, rowTop, W - 2 * pad + 20, rowH);
     }
     const driver = stintDriverName(st);
     const spotter = stintSpotterName(st);
@@ -6327,17 +6433,12 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
       : `${st.duration_minutes || 0} min`;
 
     ctx.font = "700 15px 'JetBrains Mono', monospace";
-    ctx.fillStyle = dropped ? C.red : (driverColor || C.muted);
+    ctx.fillStyle = dropped ? C.muted : (driverColor || C.muted);
     ctx.fillText(`#${i + 1}`, cols.num, base);
     ctx.fillText(timeText, cols.time, base);
     if(dropped){
       const w = ctx.measureText(timeText).width;
       ctx.fillRect(cols.time, base - 5, w, 1.5);
-    }
-    if(added || dropped){
-      ctx.font = "700 10px 'JetBrains Mono', monospace";
-      ctx.fillStyle = added ? C.green : C.red;
-      ctx.fillText(added ? 'NEU' : 'ENTFÄLLT', cols.time, base + 13);
     }
 
     ctx.font = "500 15px 'JetBrains Mono', monospace";
@@ -6491,7 +6592,9 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     const row = document.createElement('div');
     const dropped = laps[i] === 0;
     const added = !!s.ist_added && !dropped;
-    row.className = 'sl-row' + (driverColor ? ' colored' : '') + (dropped ? ' dropped' : '') + (added ? ' added' : '');
+    const nowMs = Date.now();
+    const running = startMs != null && !dropped && startMs + from * 60000 <= nowMs && nowMs < startMs + to * 60000;
+    row.className = 'sl-row' + (driverColor ? ' colored' : '') + (dropped ? ' dropped' : '') + (added ? ' added' : '') + (running ? ' running' : '');
     row.dataset.mine = isMine(s) ? '1' : '0';
     if(mineOnly && !isMine(s)) row.hidden = true;
     const num = document.createElement('span');
@@ -6529,13 +6632,6 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     });
     tireEl.appendChild(dots);
     tireEl.appendChild(document.createTextNode(tireChangeSummary(s)));
-    if(dropped || added){
-      const tag = document.createElement('span');
-      tag.className = 'sl-tag ' + (dropped ? 'dropped' : 'added');
-      tag.textContent = dropped ? 'entfällt' : 'neu';
-      tag.title = dropped ? 'Laut Ist-Zeit nicht mehr nötig' : 'Laut Ist-Zeit zusätzlich nötig';
-      timeEl.appendChild(tag);
-    }
     if(iAmIn) timeEl.appendChild(renderCommentButton(s, team, i + 1));
     row.appendChild(num);
     row.appendChild(timeEl);
