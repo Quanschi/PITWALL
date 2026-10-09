@@ -2859,8 +2859,14 @@ const pitwallClient = supabase.createClient(PITWALL_SUPABASE_URL, PITWALL_SUPABA
 
 let currentProfile = null; // { id, username, avatar_url }
 
+// Safe for text AND quoted attribute values (option value="...").
 function escapeText(str){
-  return String(str).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+// A literal string for PostgREST's ilike: % and _ would otherwise act as
+// wildcards (a username like "max_m" would match "maxXm" too).
+function ilikeLiteral(str){
+  return String(str).replace(/[\\%_]/g, c => '\\' + c);
 }
 
 function showFormMessage(id, text, isSuccess){
@@ -4236,20 +4242,33 @@ async function joinTeam(teamId, note){
   // a second one - carries over anything already recorded against their
   // name (stint driver/spotter assignments) as if they'd been a real
   // member from the start.
+  // Exact name only - the database's claim rule compares exactly, so a
+  // looser match here would just fail to claim (and then not join at all).
   const { data: manualMatch } = await pitwallClient
     .from('team_event_members')
     .select('id')
     .eq('team_id', teamId)
     .is('user_id', null)
-    .ilike('manual_name', currentProfile.username)
+    .eq('manual_name', currentProfile.username)
+    .limit(1)
     .maybeSingle();
 
+  let claimed = false;
   if(manualMatch){
-    await pitwallClient.from('team_event_members').update({ user_id: session.user.id, manual_name: null, note: note || null }).eq('id', manualMatch.id);
-    await pitwallClient.from('team_stints').update({ user_id: session.user.id, driver_name: null }).eq('team_id', teamId).ilike('driver_name', currentProfile.username);
-    await pitwallClient.from('team_stints').update({ spotter_id: session.user.id, spotter_name: null }).eq('team_id', teamId).ilike('spotter_name', currentProfile.username);
-  }else{
-    await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id, note: note || null });
+    const { data: claimRows, error: claimError } = await pitwallClient.from('team_event_members')
+      .update({ user_id: session.user.id, manual_name: null, note: note || null })
+      .eq('id', manualMatch.id)
+      .select('id');
+    claimed = !claimError && claimRows && claimRows.length > 0;
+    if(claimed){
+      const name = ilikeLiteral(currentProfile.username);
+      await pitwallClient.from('team_stints').update({ user_id: session.user.id, driver_name: null }).eq('team_id', teamId).ilike('driver_name', name);
+      await pitwallClient.from('team_stints').update({ spotter_id: session.user.id, spotter_name: null }).eq('team_id', teamId).ilike('spotter_name', name);
+    }
+  }
+  if(!claimed){
+    const { error } = await pitwallClient.from('team_event_members').insert({ team_id: teamId, user_id: session.user.id, note: note || null });
+    if(error) console.error('Join team failed:', error.message);
   }
   loadTeamEvents();
 }
@@ -6120,6 +6139,20 @@ async function deleteStint(stintId){
 async function leaveTeam(teamId){
   const { data: { session } } = await pitwallClient.auth.getSession();
   if(!session) return;
+  // The leader leaving hands the crown to the longest-standing other member
+  // with an account first - otherwise nobody could lock the plan or hand
+  // leadership on anymore.
+  const { data: team } = await pitwallClient.from('team_event_teams')
+    .select('created_by,team_event_members(user_id,joined_at)').eq('id', teamId).maybeSingle();
+  if(team && team.created_by === session.user.id){
+    const next = (team.team_event_members || [])
+      .filter(m => m.user_id && m.user_id !== session.user.id)
+      .sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at))[0];
+    if(next){
+      const { error } = await pitwallClient.from('team_event_teams').update({ created_by: next.user_id }).eq('id', teamId);
+      if(error) console.error('Hand over leader on leave failed:', error.message);
+    }
+  }
   await pitwallClient.from('team_event_members').delete().eq('team_id', teamId).eq('user_id', session.user.id);
   loadTeamEvents();
 }
