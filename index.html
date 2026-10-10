@@ -5531,6 +5531,8 @@ function renderStintPlan(team, ev){
   const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
   // DNF, or locked until the start: look, don't touch.
   const canEdit = iAmIn && !isTeamReadOnly(team);
+  // Same per-person colours as the overview (you: --mine) - names only.
+  const colorOf = teamColorMap(team);
   const startMs = new Date(team.slot_time).getTime();
   const lapTime = team.est_lap_time_seconds;
   const raceMinutes = ev.duration_minutes || 0;
@@ -5764,11 +5766,15 @@ function renderStintPlan(team, ev){
         manualMemberByOptionValue[opt.value] = m.manual_name;
       }
       opt.textContent = (m.profiles && m.profiles.username) || m.manual_name || 'Unbekannt';
+      const optColor = colorOf(m.user_id, (m.profiles && m.profiles.username) || m.manual_name);
+      if(optColor) opt.style.color = optColor;
       sel.appendChild(opt);
     });
     const manualOpt = document.createElement('option');
     manualOpt.value = '__manual__';
     manualOpt.textContent = '✎ Name manuell eintragen…';
+    noneOpt.style.color = 'var(--muted)';
+    manualOpt.style.color = 'var(--text)';
     sel.appendChild(manualOpt);
     const matchingManualMember = currentManualName
       ? members.find(m => !m.user_id && m.manual_name === currentManualName)
@@ -5783,6 +5789,10 @@ function renderStintPlan(team, ev){
     nameInput.className = cls + '-manual';
     nameInput.placeholder = 'Name eintragen';
     nameInput.value = currentManualName || '';
+    // The chosen name shows in that person's colour; nobody picked: muted.
+    const chosenColor = (currentUserId || currentManualName) ? colorOf(currentUserId, currentManualName) : null;
+    sel.style.color = chosenColor || (sel.value ? '' : 'var(--muted)');
+    if(currentManualName && chosenColor) nameInput.style.color = chosenColor;
     nameInput.hidden = sel.value !== '__manual__';
     nameInput.disabled = !canEdit;
 
