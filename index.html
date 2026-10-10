@@ -3225,13 +3225,61 @@ let livePending = false;
 let liveCommentsRefresh = null; // set while a comments window is open
 const LIVE_TABLES = ['team_events', 'team_event_teams', 'team_event_members', 'team_stints', 'team_stint_comments'];
 
+// Someone's in the middle of something: unsaved typing in a field, a key
+// or click a moment ago, an open tire menu, a stint being dragged, or a
+// confirm dialog. Only then does a live update wait - just standing in a
+// field doesn't block it (focus and cursor are kept across the redraw).
+let lastInteractionAt = 0;
+['keydown', 'pointerdown', 'input', 'compositionstart'].forEach(type => {
+  document.addEventListener(type, () => { lastInteractionAt = Date.now(); }, true);
+});
+// Unsaved typing: a field you typed into that hasn't been saved yet (its
+// change event, which saves, clears the mark again).
+document.addEventListener('input', e => {
+  const el = e.target;
+  if(el && el.matches && el.matches('input:not([type=checkbox]), textarea')) el._liveDirty = true;
+}, true);
+document.addEventListener('change', e => { if(e.target) e.target._liveDirty = false; }, true);
+document.addEventListener('focusout', e => { if(e.target) e.target._liveDirty = false; }, true);
+const LIVE_ROOTS = '#te-list, #te-editor-preview, #dash-next-start, #te-next-start';
 function isBusyInTeamEvents(){
-  const a = document.activeElement;
-  if(a && a.matches('input, select, textarea') && a.closest('#te-list, #te-editor-preview, #dash-next-start, #te-next-start')) return true;
   if(document.querySelector('.stint-tire-menu:not([hidden])')) return true;
   if(draggedStintId) return true;
   if(!document.getElementById('pitwall-modal-overlay').hidden) return true;
+  const a = document.activeElement;
+  if(a && a.matches && a.matches('input, select, textarea') && a.closest(LIVE_ROOTS)){
+    if(a._liveDirty) return true;
+    if(Date.now() - lastInteractionAt < 1500) return true;
+  }
   return false;
+}
+// Remember which field had focus (by team, stint and position) so the
+// same field gets focus and cursor back after a redraw.
+function captureLiveFocus(){
+  const el = document.activeElement;
+  if(!el || !el.matches || !el.matches('input, select, textarea, button')) return null;
+  const root = el.closest(LIVE_ROOTS);
+  if(!root) return null;
+  const team = el.closest('[data-team-id]');
+  const stint = el.closest('[data-stint-id]');
+  const scope = stint || team || root;
+  const idx = [...scope.querySelectorAll('input, select, textarea, button')].indexOf(el);
+  let sel = null;
+  try{ sel = [el.selectionStart, el.selectionEnd]; }catch(e){}
+  return { rootId: root.id, teamId: team && team.dataset.teamId, stintId: stint && stint.dataset.stintId, idx, sel };
+}
+function restoreLiveFocus(state){
+  if(!state || document.activeElement && document.activeElement !== document.body) return;
+  const root = document.getElementById(state.rootId);
+  if(!root) return;
+  let scope = root;
+  if(state.teamId) scope = root.querySelector(`[data-team-id="${state.teamId}"]`) || null;
+  if(scope && state.stintId) scope = scope.querySelector(`[data-stint-id="${state.stintId}"]`) || null;
+  if(!scope) return;
+  const el = [...scope.querySelectorAll('input, select, textarea, button')][state.idx];
+  if(!el || el.disabled) return;
+  el.focus({ preventScroll: true });
+  if(state.sel && state.sel[0] != null){ try{ el.setSelectionRange(state.sel[0], state.sel[1]); }catch(e){} }
 }
 function runLiveRefresh(){
   if(isBusyInTeamEvents()){ livePending = true; return; }
@@ -3239,6 +3287,8 @@ function runLiveRefresh(){
   loadTeamEvents();
   refreshNextStartHero('dash-next-start', 'message');
 }
+// A waiting update follows quickly once the typing/clicking stops.
+setInterval(() => { if(livePending && !isBusyInTeamEvents()) runLiveRefresh(); }, 700);
 function scheduleLiveRefresh(payload){
   if(payload && payload.table === 'team_stint_comments' && liveCommentsRefresh) liveCommentsRefresh();
   clearTimeout(liveTimer);
@@ -3253,9 +3303,6 @@ document.addEventListener('click', () => {
   if(!livePending) return;
   setTimeout(() => { if(livePending) runLiveRefresh(); }, 400);
 });
-// Safety net: a waiting refresh also runs on its own once nothing is
-// being edited anymore (e.g. the field lost focus without an event).
-setInterval(() => { if(livePending && !isBusyInTeamEvents()) runLiveRefresh(); }, 2000);
 function startLiveUpdates(){
   if(liveChannel) return;
   liveChannel = pitwallClient.channel('pitwall-team-events');
@@ -4093,8 +4140,10 @@ async function refreshEventEditorPreview(){
   const carData = await loadCarsByClass();
   carData.allProfiles = await loadAllProfiles();
   const preview = document.getElementById('te-editor-preview');
+  const focusState = captureLiveFocus();
   preview.innerHTML = '';
   preview.appendChild(renderEventCard(ev, teams || [], carData, { isEditorPreview: true }));
+  restoreLiveFocus(focusState);
 
   updateEditorChecks();
 }
@@ -5148,7 +5197,10 @@ async function updateTeamCalcInputs(teamId, patch){
 }
 
 async function applyCalculatedStints(teamId, existingStints, plan, members){
-  await Promise.all(existingStints.map(s => pitwallClient.from('team_stints').delete().eq('id', s.id)));
+  // Replaces the whole plan - including stints a teammate added after this
+  // page last refreshed, not only the ones on screen.
+  const { error: deleteError } = await pitwallClient.from('team_stints').delete().eq('team_id', teamId);
+  if(deleteError){ console.error('Clear stints failed:', deleteError.message); loadTeamEvents(); return; }
 
   // duration_minutes is an integer column, so each stint's fractional
   // length has to be rounded - rounding every stint independently can drift
@@ -5727,7 +5779,7 @@ function renderStintPlan(team, ev){
   // filled up to a full charge/tank first, anything left over gets new
   // stints at the end; stints that aren't needed anymore drop to 0 laps.
   // Without a known max stint length, an even split instead.
-  function distributeLaps(following, toDistribute){
+  function distributeLaps(following, toDistribute, all){
     const patches = [];
     const newStints = [];
     const push = (s, l) => { if(l !== s.laps) patches.push({ id: s.id, laps: l, ...increaseFlag(s.laps, l) }); };
@@ -5743,7 +5795,7 @@ function renderStintPlan(team, ev){
       toDistribute -= l;
       push(s, l);
     });
-    let nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
+    let nextPosition = all.length ? Math.max(...all.map(s => s.position)) + 1 : 0;
     while(toDistribute > 0){
       const l = Math.min(maxLapsPerStint, toDistribute);
       toDistribute -= l;
@@ -5768,12 +5820,14 @@ function renderStintPlan(team, ev){
   }
 
   async function applyActualLaps(stint, newLaps){
-    const idx = stints.findIndex(s => s.id === stint.id);
-    if(idx === -1) return;
-    const following = stints.slice(idx + 1);
-    const remainingTotal = (stint.laps ?? 0) + following.reduce((sum, s) => sum + (s.laps ?? 0), 0);
-    const { patches, newStints } = distributeLaps(following, Math.max(0, remainingTotal - newLaps));
-    patches.unshift({ id: stint.id, laps: newLaps, ...increaseFlag(stint.laps, newLaps) });
+    const all = (await fetchFreshStints(team.id)) || stints;
+    const idx = all.findIndex(s => s.id === stint.id);
+    if(idx === -1){ loadTeamEvents(); return; }
+    const current = all[idx];
+    const following = all.slice(idx + 1);
+    const remainingTotal = (current.laps ?? 0) + following.reduce((sum, s) => sum + (s.laps ?? 0), 0);
+    const { patches, newStints } = distributeLaps(following, Math.max(0, remainingTotal - newLaps), all);
+    patches.unshift({ id: stint.id, laps: newLaps, ...increaseFlag(current.laps, newLaps) });
     await commitStintChanges(patches, newStints);
   }
 
@@ -5786,8 +5840,6 @@ function renderStintPlan(team, ev){
   // no longer needed are removed after asking (or kept with 0 laps).
   // Driver/spotter/tires on the stints that stay are left as they are.
   async function applyRemainingTime(stint, remaining){
-    const idx = stints.findIndex(s => s.id === stint.id);
-    if(idx === -1) return;
     const { error } = await pitwallClient.from('team_stints').update({ remaining_minutes: remaining }).eq('id', stint.id);
     if(error){
       console.error('Save remaining time failed:', error.message);
@@ -5798,7 +5850,10 @@ function renderStintPlan(team, ev){
       loadTeamEvents();
       return;
     }
-    const following = stints.slice(idx + 1);
+    const all = (await fetchFreshStints(team.id)) || stints;
+    const idx = all.findIndex(s => s.id === stint.id);
+    if(idx === -1){ loadTeamEvents(); return; }
+    const following = all.slice(idx + 1);
     let lapsPlan = [];
     if(remaining > 0){
       if(maxLapsPerStint){
@@ -5820,7 +5875,7 @@ function renderStintPlan(team, ev){
 
     const patches = [];
     const newStints = [];
-    let nextPosition = stints.length ? Math.max(...stints.map(s => s.position)) + 1 : 0;
+    let nextPosition = all.length ? Math.max(...all.map(s => s.position)) + 1 : 0;
     lapsPlan.forEach((l, k) => {
       if(k < following.length){
         const s = following[k];
@@ -6008,7 +6063,7 @@ function renderStintPlan(team, ev){
         const before = (e.clientY - rect.top) < rect.height / 2;
         removeDropIndicator();
         if(!draggedStintId || draggedStintId === stint.id) return;
-        reorderStints(stints, draggedStintId, stint.id, before);
+        reorderStints(team.id, draggedStintId, stint.id, before);
       });
 
       const handle = document.createElement('span');
@@ -6249,7 +6304,21 @@ function removeDropIndicator(){
   if(dropIndicatorEl && dropIndicatorEl.parentNode) dropIndicatorEl.parentNode.removeChild(dropIndicatorEl);
 }
 
-async function reorderStints(stints, draggedId, targetId, before){
+// The team's stints as they are in the database right now. Anything that
+// changes several stints at once works from this, never from what's on
+// screen, so a teammate's change from a moment ago isn't overwritten.
+async function fetchFreshStints(teamId){
+  const { data, error } = await pitwallClient
+    .from('team_stints')
+    .select('id,position,laps,duration_minutes,remaining_minutes')
+    .eq('team_id', teamId)
+    .order('position', { ascending: true });
+  if(error){ console.error('Load current stints failed:', error.message); return null; }
+  return data || [];
+}
+
+async function reorderStints(teamId, draggedId, targetId, before){
+  const stints = (await fetchFreshStints(teamId)) || [];
   const fromIdx = stints.findIndex(s => s.id === draggedId);
   const targetIdx = stints.findIndex(s => s.id === targetId);
   draggedStintId = null;
@@ -6270,6 +6339,9 @@ async function reorderStints(stints, draggedId, targetId, before){
 }
 
 async function addStint(teamId, position, laps, durationMinutes){
+  // Position from the current list, in case someone added one meanwhile.
+  const fresh = await fetchFreshStints(teamId);
+  if(fresh) position = fresh.length ? Math.max(...fresh.map(s => s.position)) + 1 : 0;
   const { error } = await pitwallClient.from('team_stints').insert({ team_id: teamId, position, laps: laps ?? null, duration_minutes: durationMinutes || 30 });
   if(error) console.error('Add stint failed:', error.message);
   loadTeamEvents();
@@ -7505,6 +7577,10 @@ async function loadTeamEvents(){
 }
 
 function rerenderTeamEvents(){
+  const focusState = captureLiveFocus();
+  try{ renderTeamEventsView(); }finally{ restoreLiveFocus(focusState); }
+}
+function renderTeamEventsView(){
   const master = document.getElementById('te-master');
   const container = document.getElementById('te-list');
   const view = teLastView;
