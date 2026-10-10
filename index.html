@@ -3309,10 +3309,25 @@ function startLiveUpdates(){
   LIVE_TABLES.forEach(table => {
     liveChannel.on('postgres_changes', { event: '*', schema: 'public', table }, scheduleLiveRefresh);
   });
+  let wasSubscribed = false;
   liveChannel.subscribe(status => {
     if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.error('Live updates:', status);
+    // Reconnected after a drop: whatever changed while offline never came
+    // through as an event - fetch the current state once.
+    if(status === 'SUBSCRIBED'){
+      if(wasSubscribed) scheduleLiveRefresh();
+      wasSubscribed = true;
+    }
   });
 }
+// Phone unlocked / tab back in front / network back: the live connection
+// may have been asleep, so catch up right away instead of showing an old
+// plan until the next change happens to arrive.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && liveChannel) scheduleLiveRefresh();
+});
+window.addEventListener('online', () => { if(liveChannel) scheduleLiveRefresh(); });
+window.addEventListener('pageshow', e => { if(e.persisted && liveChannel) scheduleLiveRefresh(); });
 function stopLiveUpdates(){
   if(!liveChannel) return;
   pitwallClient.removeChannel(liveChannel);
