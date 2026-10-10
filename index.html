@@ -605,6 +605,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-editor-stack{display:flex;flex-direction:column;gap:24px;}
 /* "Event erstellen" card: header, three numbered steps side by side,
    footer with what's still missing + publish. */
+.te-slot-sessions{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin:-6px 0 14px;}
 .ec-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
 .ec-head{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;padding:18px 26px;border-bottom:1px solid var(--line);}
 .ec-head-left, .ec-head-right{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;}
@@ -1936,6 +1937,16 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
                 <input type="number" id="te-duration-m" min="0" max="59" placeholder="0" aria-label="Renndauer Minuten"><span>min</span>
               </div>
             </div>
+            <div class="ec-pair">
+              <div class="field">
+                <label for="te-practice-min">Training <span class="ec-label-note">· min</span></label>
+                <input type="number" id="te-practice-min" min="0" max="240" step="1" placeholder="0">
+              </div>
+              <div class="field">
+                <label for="te-quali-min">Quali <span class="ec-label-note">· min</span></label>
+                <input type="number" id="te-quali-min" min="0" max="240" step="1" placeholder="0">
+              </div>
+            </div>
           </div>
 
           <div class="ec-col ec-col-times">
@@ -2308,7 +2319,7 @@ async function fetchScheduleCards(type, difficulty){
     return cards;
   }
 
-  const cols = 'series_id,tier_name,track_name,track_slug,track_config,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather';
+  const cols = 'series_id,tier_name,track_name,track_slug,track_config,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather,practice_duration_minutes,qualifying_duration_minutes';
   const tierFilter = difficulty === 'all' ? '' : `&tier_name=eq.${difficulty}`;
   const currentWeekKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
   let rows;
@@ -3813,6 +3824,8 @@ async function ensureTeamEventsForSpecialCards(cards){
   for(const card of needingTeam){
     const track = (refRows && findReferenceTrackMatch(refRows, card)) || card.track_name || null;
     const tyreSets = Number(card.tyre_allowance) > 0 ? Number(card.tyre_allowance) : null;
+    const practice = Number.isFinite(Number(card.practice_duration_minutes)) && card.practice_duration_minutes != null ? Number(card.practice_duration_minutes) : null;
+    const qualifying = Number.isFinite(Number(card.qualifying_duration_minutes)) && card.qualifying_duration_minutes != null ? Number(card.qualifying_duration_minutes) : null;
     const payload = {
       name: `${card.series_name || card.track_name} · ${card.track_name}`,
       event_date: card.times[0].toISOString().slice(0, 10),
@@ -3827,6 +3840,8 @@ async function ensureTeamEventsForSpecialCards(cards){
       sr_requirement: card.sr_requirement || null,
       track,
       tyre_sets: tyreSets,
+      practice_minutes: practice,
+      qualifying_minutes: qualifying,
       created_by: session.user.id,
     };
     const { error } = await pitwallClient
@@ -3839,7 +3854,10 @@ async function ensureTeamEventsForSpecialCards(cards){
       .update({ [column]: value })
       .eq('race_series_id', card.series_id).eq('week_key', card.week_key).is(column, null)
       .then(({ error: e }) => { if(e) console.error(`Backfill ${column} failed:`, e.message); });
-    await Promise.all([fillIfEmpty('track', track), fillIfEmpty('tyre_sets', tyreSets)]);
+    await Promise.all([
+      fillIfEmpty('track', track), fillIfEmpty('tyre_sets', tyreSets),
+      fillIfEmpty('practice_minutes', practice), fillIfEmpty('qualifying_minutes', qualifying),
+    ]);
   }
 }
 
@@ -3868,9 +3886,17 @@ function isEventPast(ev){
 // Gates the "geändert" badge to edits made while the race is actually
 // underway for this team - pre-race planning tweaks aren't a deviation
 // from the plan, only changes made mid-event are.
+// A slot starts with Training and Quali - the race itself only after both
+// (durations from the Schedule, or set in the event editor).
+function preRaceMinutes(ev){
+  return (Number(ev && ev.practice_minutes) || 0) + (Number(ev && ev.qualifying_minutes) || 0);
+}
+function teamRaceStartMs(team){
+  return new Date(team.slot_time).getTime() + (team._preMinutes || 0) * 60000;
+}
 function isEventLiveForTeam(team, ev){
   if(!team.slot_time || !ev.duration_minutes) return false;
-  const startMs = new Date(team.slot_time).getTime();
+  const startMs = new Date(team.slot_time).getTime() + preRaceMinutes(ev) * 60000;
   const endMs = startMs + ev.duration_minutes * 60000;
   const now = Date.now();
   return now >= startMs && now <= endMs;
@@ -3952,7 +3978,9 @@ function readEditorFormState(){
       slotTimes.sort();
     }
   }
-  return { name, startStr, endStr, durationMinutes, slotTimes, game, track, tyreSets, dateError };
+  const practiceMinutes = Math.max(0, parseInt(document.getElementById('te-practice-min').value, 10) || 0);
+  const qualifyingMinutes = Math.max(0, parseInt(document.getElementById('te-quali-min').value, 10) || 0);
+  return { name, startStr, endStr, durationMinutes, slotTimes, game, track, tyreSets, practiceMinutes, qualifyingMinutes, dateError };
 }
 
 // Track choices come from the reference sheet of the event's game, so the
@@ -3993,6 +4021,8 @@ async function saveEditorEvent(){
     game: state.game,
     track: state.track,
     tyre_sets: state.tyreSets,
+    practice_minutes: state.practiceMinutes,
+    qualifying_minutes: state.qualifyingMinutes,
   };
   const { error } = await pitwallClient.from('team_events').update(patch).eq('id', teEditorEventId);
   if(error){
@@ -4025,6 +4055,8 @@ function populateEditorForm(ev){
   document.getElementById('te-duration-h').value = ev.duration_minutes ? Math.floor(ev.duration_minutes / 60) || '' : '';
   document.getElementById('te-duration-m').value = ev.duration_minutes ? (ev.duration_minutes % 60) || '' : '';
   document.getElementById('te-tyre-sets').value = ev.tyre_sets > 0 ? ev.tyre_sets : '';
+  document.getElementById('te-practice-min').value = ev.practice_minutes > 0 ? ev.practice_minutes : '';
+  document.getElementById('te-quali-min').value = ev.qualifying_minutes > 0 ? ev.qualifying_minutes : '';
   populateEditorTrackOptions(ev.game || 'lmu', ev.track || '');
   teSelectedTimes = new Set(slotTimes.map(iso => formatSlotTime(iso)));
   document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => {
@@ -4220,7 +4252,7 @@ document.querySelectorAll('#te-game-select .filter-pill').forEach(btn => {
     populateEditorTrackOptions(btn.dataset.game, '').then(saveEditorEvent);
   });
 });
-['te-name', 'te-date-start', 'te-date-end', 'te-duration-h', 'te-duration-m', 'te-track', 'te-tyre-sets'].forEach(id => {
+['te-name', 'te-date-start', 'te-date-end', 'te-duration-h', 'te-duration-m', 'te-track', 'te-tyre-sets', 'te-practice-min', 'te-quali-min'].forEach(id => {
   document.getElementById(id).addEventListener('change', saveEditorEvent);
 });
 
@@ -4729,7 +4761,7 @@ function maskLapTimeInput(el){
 // needed. stints_locked stays set in the database; it simply stops
 // counting once the slot has started.
 function isPlanLocked(team){
-  return !!team.stints_locked && Date.now() < new Date(team.slot_time).getTime();
+  return !!team.stints_locked && Date.now() < teamRaceStartMs(team);
 }
 // DNF or a locked plan: everything can still be looked at, nothing changed.
 function isTeamReadOnly(team){
@@ -4743,7 +4775,7 @@ function isEventOver(ev){
   const slots = ev.slot_times || [];
   if(!slots.length) return false;
   const lastStart = Math.max(...slots.map(iso => new Date(iso).getTime()));
-  if(ev.duration_minutes > 0) return Date.now() > lastStart + ev.duration_minutes * 60000;
+  if(ev.duration_minutes > 0) return Date.now() > lastStart + (preRaceMinutes(ev) + ev.duration_minutes) * 60000;
   return isEventPast(ev);
 }
 
@@ -4871,7 +4903,7 @@ function renderStintCalculator(team, ev, stints){
   const box = document.createElement('div');
   box.className = 'stint-calc';
   const planLocked = isPlanLocked(team);
-  const startMs = new Date(team.slot_time).getTime();
+  const startMs = new Date(team.slot_time).getTime() + preRaceMinutes(ev) * 60000;
   const started = Date.now() >= startMs;
 
   const title = document.createElement('div');
@@ -5609,7 +5641,7 @@ function renderStintPlan(team, ev){
   const canEdit = iAmIn && !isTeamReadOnly(team);
   // Same per-person colours as the overview (you: --mine) - names only.
   const colorOf = teamColorMap(team);
-  const startMs = new Date(team.slot_time).getTime();
+  const startMs = new Date(team.slot_time).getTime() + preRaceMinutes(ev) * 60000; // race start, after Training + Quali
   const lapTime = team.est_lap_time_seconds;
   const raceMinutes = ev.duration_minutes || 0;
   const live = isEventLiveForTeam(team, ev);
@@ -6828,12 +6860,26 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   const title = document.createElement('h3');
   title.className = 'te-slot-detail-title';
   title.textContent = `${formatDayHeader(new Date(slotIso))} · ${formatSlotTime(slotIso)} Uhr`;
+  const pre = preRaceMinutes(ev);
+  let sessionsEl = null;
+  if(pre > 0){
+    // Training, Quali, Rennen - each with its own start time.
+    const slotMs = new Date(slotIso).getTime();
+    const parts = [];
+    if(ev.practice_minutes > 0) parts.push(`Training ${formatClock(slotMs)}`);
+    if(ev.qualifying_minutes > 0) parts.push(`Quali ${formatClock(slotMs + (Number(ev.practice_minutes) || 0) * 60000)}`);
+    parts.push(`Rennen ${formatClock(slotMs + pre * 60000)}`);
+    sessionsEl = document.createElement('div');
+    sessionsEl.className = 'te-slot-sessions';
+    sessionsEl.textContent = parts.join(' · ');
+  }
   const countEl = document.createElement('span');
   countEl.className = 'te-slot-detail-count';
   countEl.textContent = teamCountLabel(teamsHere.length, 'Noch niemand in diesem Slot');
   head.appendChild(title);
   head.appendChild(countEl);
   detail.appendChild(head);
+  if(sessionsEl) detail.appendChild(sessionsEl);
 
   // Your own team first; the rest keep their creation order. Numbers for
   // unnamed teams come from creation order, before this re-sort, so a
@@ -6940,7 +6986,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     }
     info.appendChild(membersEl);
     // The read-only list steps aside while the full editor is open below.
-    const stintOverview = ((iAmIn || t._eventDone) && teOpenStintPlan[t.id]) ? null : renderStintOverview(t, new Date(slotIso).getTime(), ev.duration_minutes, { eventName: ev.name, teamLabel: teamDisplayName(t, number) });
+    const stintOverview = ((iAmIn || t._eventDone) && teOpenStintPlan[t.id]) ? null : renderStintOverview(t, new Date(slotIso).getTime() + preRaceMinutes(ev) * 60000, ev.duration_minutes, { eventName: ev.name, teamLabel: teamDisplayName(t, number) });
     if(stintOverview) info.appendChild(stintOverview);
     row.appendChild(info);
 
@@ -7128,7 +7174,8 @@ function renderEventCard(ev, teams, carData, opts){
   opts = opts || {};
   // Finished events: everything stays visible, nothing editable.
   const eventOver = isEventOver(ev);
-  (teams || []).forEach(t => { t._eventDone = eventOver; });
+  const preMinutes = preRaceMinutes(ev);
+  (teams || []).forEach(t => { t._eventDone = eventOver; t._preMinutes = preMinutes; });
   const card = document.createElement('div');
   card.className = 'te-event';
 
@@ -7405,7 +7452,7 @@ async function loadTeamEvents(){
 
   const { data: allEvents, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,event_date,slot_times,source,game,created_by,closed,published,duration_minutes,car_classes,sr_requirement,track,tyre_sets')
+    .select('id,name,event_date,slot_times,source,game,created_by,closed,published,duration_minutes,car_classes,sr_requirement,track,tyre_sets,practice_minutes,qualifying_minutes')
     .order('event_date', { ascending: true });
 
   const showClosed = document.getElementById('te-show-closed').checked;
@@ -7737,7 +7784,7 @@ async function loadMyNextStart(){
   if(!currentProfile) return null;
   const { data: events, error } = await pitwallClient
     .from('team_events')
-    .select('id,name,slot_times,game,closed,published,duration_minutes,source,track,tyre_sets')
+    .select('id,name,slot_times,game,closed,published,duration_minutes,source,track,tyre_sets,practice_minutes,qualifying_minutes')
     .order('event_date', { ascending: true });
   if(error) throw error;
   const candidates = (events || []).filter(e => !e.closed && e.published !== false && !isEventPast(e));
@@ -7752,15 +7799,17 @@ async function loadMyNextStart(){
     if(!(t.team_event_members || []).some(m => m.user_id === currentProfile.id)) return;
     const ev = candidates.find(e => e.id === t.event_id);
     if(!ev) return;
-    const start = new Date(t.slot_time).getTime();
+    const slotMs = new Date(t.slot_time).getTime();
+    const start = slotMs + preRaceMinutes(ev) * 60000; // race start
     const end = start + (ev.duration_minutes || 0) * 60000;
     if(end <= now) return;
-    if(!best || start < best.start) best = { ev, team: t, start, end };
+    if(!best || start < best.start) best = { ev, team: t, start, end, slotMs };
   });
   if(!best) return null;
+  best.team._preMinutes = preRaceMinutes(best.ev);
   // Same numbering as the Team Events slot view: teams of a slot in
   // creation order.
-  const sameSlot = teams.filter(t => t.event_id === best.ev.id && new Date(t.slot_time).getTime() === best.start);
+  const sameSlot = teams.filter(t => t.event_id === best.ev.id && new Date(t.slot_time).getTime() === best.slotMs);
   best.teamNumber = sameSlot.findIndex(t => t.id === best.team.id) + 1;
   return best;
 }
@@ -7820,7 +7869,9 @@ function renderNextStartHero(info){
 
   const main = document.createElement('div');
   main.className = 'ns-main';
-  const dateStr = `${formatDayHeader(new Date(start))} · ${formatClock(start)} Uhr`;
+  const dateStr = info.slotMs != null && info.slotMs !== start
+    ? `${formatDayHeader(new Date(start))} · Rennstart ${formatClock(start)} Uhr · Training ab ${formatClock(info.slotMs)}`
+    : `${formatDayHeader(new Date(start))} · ${formatClock(start)} Uhr`;
   const subParts = [(ev.game || 'lmu').toUpperCase(), formatDuration(ev.duration_minutes), teamDisplayName(team, teamNumber)].filter(Boolean);
   const countdown = heroCountdownState(start, end);
   main.innerHTML = `
