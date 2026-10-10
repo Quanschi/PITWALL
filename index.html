@@ -3202,6 +3202,65 @@ async function resolveLeaveRequest(memberId, accept){
   loadTeamEvents();
 }
 
+// ---- Live updates: whatever anyone changes in Team Events (stint plans,
+// teams, members, events, comments) shows up for everyone else within a
+// moment - no reloading. Supabase Realtime pushes the change (the database
+// still applies every read rule), we just re-fetch and redraw. Never while
+// you're typing in a field or have a menu open: then it waits until you're
+// done, so nothing you're entering gets thrown away. ----
+let liveChannel = null;
+let liveTimer = null;
+let livePending = false;
+let liveCommentsRefresh = null; // set while a comments window is open
+const LIVE_TABLES = ['team_events', 'team_event_teams', 'team_event_members', 'team_stints', 'team_stint_comments'];
+
+function isBusyInTeamEvents(){
+  const a = document.activeElement;
+  if(a && a.matches('input, select, textarea') && a.closest('#te-list, #te-editor-preview, #dash-next-start, #te-next-start')) return true;
+  if(document.querySelector('.stint-tire-menu:not([hidden])')) return true;
+  if(draggedStintId) return true;
+  if(!document.getElementById('pitwall-modal-overlay').hidden) return true;
+  return false;
+}
+function runLiveRefresh(){
+  if(isBusyInTeamEvents()){ livePending = true; return; }
+  livePending = false;
+  loadTeamEvents();
+  refreshNextStartHero('dash-next-start', 'message');
+}
+function scheduleLiveRefresh(payload){
+  if(payload && payload.table === 'team_stint_comments' && liveCommentsRefresh) liveCommentsRefresh();
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(runLiveRefresh, 600);
+}
+// A refresh that had to wait runs as soon as you leave the field.
+document.addEventListener('focusout', () => {
+  if(!livePending) return;
+  setTimeout(() => { if(livePending) runLiveRefresh(); }, 400);
+});
+document.addEventListener('click', () => {
+  if(!livePending) return;
+  setTimeout(() => { if(livePending) runLiveRefresh(); }, 400);
+});
+// Safety net: a waiting refresh also runs on its own once nothing is
+// being edited anymore (e.g. the field lost focus without an event).
+setInterval(() => { if(livePending && !isBusyInTeamEvents()) runLiveRefresh(); }, 2000);
+function startLiveUpdates(){
+  if(liveChannel) return;
+  liveChannel = pitwallClient.channel('pitwall-team-events');
+  LIVE_TABLES.forEach(table => {
+    liveChannel.on('postgres_changes', { event: '*', schema: 'public', table }, scheduleLiveRefresh);
+  });
+  liveChannel.subscribe(status => {
+    if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.error('Live updates:', status);
+  });
+}
+function stopLiveUpdates(){
+  if(!liveChannel) return;
+  pitwallClient.removeChannel(liveChannel);
+  liveChannel = null;
+}
+
 function updateAuthUI(session){
   const authSection = document.getElementById('auth-section');
   const logbookSection = document.getElementById('logbook-section');
@@ -3218,8 +3277,10 @@ function updateAuthUI(session){
   document.getElementById('te-content').hidden = !session;
   if(session) loadTeamEvents();
   loadDashboardTeamStatus();
+  if(session) startLiveUpdates(); else stopLiveUpdates();
 }
 
+let lastAuthUserId = null;
 pitwallClient.auth.onAuthStateChange(async (event, session) => {
   // Session lost while the app is already open (token revoked, signed out
   // in another tab, expired refresh) - same fail-closed rule as never
@@ -3229,6 +3290,12 @@ pitwallClient.auth.onAuthStateChange(async (event, session) => {
     window.location.href = 'login.html';
     return;
   }
+  // Token refreshes and "tab back in focus" re-announce the same login -
+  // redrawing everything then would wipe whatever someone is typing (live
+  // updates already keep the data fresh). Only a new/changed user redraws.
+  const userId = session ? session.user.id : null;
+  if(userId && userId === lastAuthUserId && event !== 'USER_UPDATED') return;
+  lastAuthUserId = userId;
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
   updateAuthUI(session);
 });
@@ -5461,25 +5528,33 @@ function openStintComments(stint, team, number){
     });
   }
 
-  async function reload(){
-    message.hidden = true;
+  async function fetchComments(){
     const { data, error } = await pitwallClient
       .from('team_stint_comments')
       .select('id,user_id,body,created_at,updated_at,profiles(username)')
       .eq('stint_id', stint.id)
       .order('created_at', { ascending: true });
-    if(error){ showError('Kommentare konnten nicht geladen werden: ' + error.message); return; }
+    if(error){ showError('Kommentare konnten nicht geladen werden: ' + error.message); return false; }
     comments = data || [];
     renderList();
     list.scrollTop = list.scrollHeight;
+    return true;
+  }
+  async function reload(){
+    message.hidden = true;
+    if(!(await fetchComments())) return;
     // Counts on the bubbles everywhere else.
     loadTeamEvents();
     refreshNextStartHero('dash-next-start', 'message');
   }
+  // Someone else commented while this is open: show it right away - but
+  // never while you're editing one of yours (that would wipe your text).
+  liveCommentsRefresh = () => { if(editingId === null) fetchComments(); };
 
   function close(){
     overlay.remove();
     document.removeEventListener('keydown', onKeydown);
+    liveCommentsRefresh = null;
   }
   function onKeydown(e){
     // Escape belongs to the confirm dialog while that one is open on top.
