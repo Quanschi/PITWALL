@@ -1276,7 +1276,173 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .fc-stint-table tbody tr:nth-child(even) td{background:var(--panel-2);}
 .fc-stint-table tr.over td{color:var(--red);}
 .fc-stint-table-wrap{overflow-x:auto;}
-.fc-preset-row{display:flex;gap:8px;align-items:center;}
+/* ---- Sprit-Rechner: top bar with preset search, numbered input sections,
+   grouped stint table, preset library. ---- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.fc-topbar{display:flex;align-items:center;justify-content:space-between;gap:14px 20px;flex-wrap:wrap;margin-bottom:12px;}
+.fc-topbar-left, .fc-topbar-right{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;}
+.fc-title{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;color:var(--text);}
+.fc-search{position:relative;display:flex;align-items:center;}
+.fc-search-icon{position:absolute;left:12px;color:var(--muted);pointer-events:none;}
+.fc-search input{width:380px;max-width:100%;height:40px;padding:0 12px 0 38px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;-webkit-appearance:none;appearance:none;}
+.fc-search input::placeholder{color:var(--muted);}
+.fc-search input:focus{outline:none;border-color:var(--violet);}
+.fc-search input::-webkit-search-cancel-button{-webkit-appearance:none;width:14px;height:14px;cursor:pointer;background:var(--muted);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6l12 12M18 6L6 18' stroke='black' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;}
+.fc-search:focus-within .fc-search-icon{color:var(--violet);}
+.fc-search-results{position:absolute;top:calc(100% + 6px);left:0;width:min(420px, 92vw);z-index:40;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,0.5);padding:8px;display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow-y:auto;}
+.fc-res-head{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.6px;text-transform:uppercase;color:var(--muted);padding:8px 10px 4px;}
+.fc-res-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;border:none;border-radius:8px;padding:9px 10px;background:transparent;cursor:pointer;color:var(--text);font-family:'Inter',sans-serif;}
+.fc-res-item:hover, .fc-res-item:focus-visible{background:var(--panel-2);outline:none;}
+.fc-res-name{display:block;font-size:14px;font-weight:600;}
+.fc-res-meta{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
+.fc-res-empty{padding:10px;font-size:13px;color:var(--text);display:flex;flex-direction:column;gap:8px;}
+.fc-res-empty span{color:var(--muted);font-size:12.5px;}
+.fc-chips{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.fc-game-chip{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--muted);background:var(--panel-2);border-radius:6px;padding:2px 6px;}
+.fc-owner-chip{font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;border:1px solid currentColor;border-radius:10px;padding:1px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
+.fc-btn{min-height:44px;border-radius:10px;padding:0 16px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;}
+.fc-btn.primary{border:none;background:var(--amber);color:var(--carbon);font-weight:700;}
+.fc-btn.ghost{border:1px solid var(--line);background:transparent;color:var(--text);}
+.fc-btn.ghost:hover{border-color:var(--muted);}
+.fc-btn.small{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;}
+.fc-btn.danger{border:1px solid var(--red);background:transparent;color:var(--red);}
+.fc-btn.share-on{border:1px solid var(--green);background:transparent;color:var(--green);}
+.fc-recent{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.fc-recent-k{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-right:4px;}
+.fc-recent-btn{min-height:36px;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:18px;padding:0 14px;background:var(--panel);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;}
+.fc-recent-btn:hover{border-color:var(--muted);}
+.fc-layout{display:grid;grid-template-columns:minmax(0,460px) minmax(0,1fr);gap:20px;align-items:start;}
+.fc-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0;}
+.fc-results{position:sticky;top:16px;}
+.fc-banner{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--violet);margin-bottom:14px;}
+.fc-banner.changed{border-left-color:var(--amber);}
+.fc-banner-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.fc-banner-k{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.6px;text-transform:uppercase;color:var(--muted);}
+.fc-banner.changed .fc-banner-k b{color:var(--amber);font-weight:700;}
+.fc-banner-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-banner-meta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-banner-meta em{font-style:normal;color:var(--text);}
+.fc-banner-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.fc-link{background:none;border:none;padding:4px 6px;color:var(--muted);font-family:'Inter',sans-serif;font-size:12.5px;cursor:pointer;}
+.fc-link:hover{color:var(--text);}
+.fc-sec{border-top:1px solid var(--line);padding:4px 0;}
+.fc-sec:first-of-type{border-top:none;}
+.fc-sec > summary{list-style:none;display:flex;align-items:baseline;gap:10px;padding:10px 0;cursor:pointer;}
+.fc-sec > summary::-webkit-details-marker{display:none;}
+.fc-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--amber);}
+.fc-sec-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;color:var(--text);}
+.fc-sec-sum{margin-left:auto;font-size:12px;color:var(--muted);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;}
+.fc-sec[open] .fc-sec-sum{visibility:hidden;}
+.fc-sec-body{padding:2px 0 8px;}
+.fc-sec-body .field{margin-bottom:12px;}
+.fc-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 10px;}
+.fc-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px;}
+.fc-grid3 select, .fc-grid3 input, .fc-grid2 input{min-width:0;}
+.fc-row-wrap{display:flex;align-items:flex-end;gap:0 16px;flex-wrap:wrap;}
+.fc-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.fc-inline input{width:150px;}
+.fc-laptime-hint{margin:0 !important;color:var(--violet) !important;}
+/* Inputs: one grid, every field fills its cell, units sit inside the field. */
+.fc-sec-body{padding:2px 0 14px;}
+.fc-sec-body .field{margin-bottom:0;gap:6px;}
+.fc-grid{display:grid;gap:14px 12px;}
+.fc-g2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.fc-g3{grid-template-columns:repeat(3,minmax(0,1fr));}
+.fc-span{grid-column:1 / -1;}
+select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(232,92,74,0.15);}
+.field:has(select.fc-missing) label::after{content:' – bitte wählen';color:var(--red);text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;}
+.fc-grid select, .fc-grid input{min-width:0;width:100%;height:40px;}
+.fc-opt{text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);opacity:.7;margin-left:4px;}
+.fc-unit{position:relative;min-width:0;}
+.fc-unit input{padding-right:52px;font-variant-numeric:tabular-nums;}
+.fc-unit > span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);pointer-events:none;}
+.fc-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fc-pair .fc-unit input{padding-right:40px;}
+.fc-seg{display:inline-flex;margin:0 0 14px;}
+.fc-hint{margin:10px 0 0;font-size:12px;color:var(--violet);display:flex;gap:6px;align-items:baseline;}
+.fc-hint::before{content:'103%';font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(167,139,250,.14);flex-shrink:0;}
+.fc-switch{display:flex;align-items:center;gap:10px;margin:16px 0 0;cursor:pointer;font-size:13px;color:var(--text);width:max-content;}
+.fc-switch input{position:absolute;opacity:0;width:1px;height:1px;}
+.fc-switch-track{width:32px;height:18px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);position:relative;transition:background .15s;flex-shrink:0;}
+.fc-switch-track::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--muted);transition:transform .15s, background .15s;}
+.fc-switch input:checked + .fc-switch-track{background:rgba(255,176,32,.18);border-color:var(--amber);}
+.fc-switch input:checked + .fc-switch-track::after{transform:translateX(14px);background:var(--amber);}
+.fc-switch input:focus-visible + .fc-switch-track{outline:2px solid var(--violet);outline-offset:2px;}
+.fc-sub:has(.field:not([hidden])){margin-top:12px;padding-left:42px;}
+@media (max-width:640px){
+  .fc-stack-phone{grid-template-columns:minmax(0,1fr);}
+  .fc-g3{gap:14px 8px;}
+  .fc-opt{display:none;}
+  .fc-g3 .fc-unit input{padding-right:26px;}
+  .fc-g3 .fc-unit > span{right:9px;}
+  .fc-sub:has(.field:not([hidden])){padding-left:0;}
+}
+.fc-indent{padding-left:26px;}
+.fc-library-head{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin-bottom:14px;}
+.fc-library-head h3{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;color:var(--text);}
+.fc-lib-controls{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin-bottom:16px;}
+.fc-pills{display:flex;gap:6px;flex-wrap:wrap;}
+.fc-pill{min-height:40px;border-radius:20px;padding:0 16px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;background:transparent;color:var(--text);border:1px solid var(--line);}
+.fc-pill.active{background:var(--amber);color:var(--carbon);border-color:var(--amber);}
+.fc-pill-count{font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.75;margin-left:4px;}
+.fc-lib-opts{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;font-size:13px;color:var(--muted);}
+.fc-lib-opts select{width:auto;}
+.fc-lib-body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start;}
+.fc-lib-nav{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:2px;position:sticky;top:16px;}
+.fc-lib-nav button{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-radius:8px;border:none;background:transparent;color:var(--text);font-family:'Inter',sans-serif;font-size:13.5px;text-align:left;cursor:pointer;}
+.fc-lib-nav button:hover{background:var(--panel-2);}
+.fc-lib-nav button span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fc-lib-nav button span:last-child{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.fc-lib-groups{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.fc-lib-group > summary{list-style:none;display:flex;align-items:baseline;gap:10px;padding:4px 0 10px;cursor:pointer;}
+.fc-lib-group > summary::-webkit-details-marker{display:none;}
+.fc-lib-group h4{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;color:var(--text);}
+.fc-lib-group-count{font-size:12.5px;color:var(--muted);}
+.fc-lib-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.fc-preset-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;}
+.fc-preset-card.active{border-color:var(--violet);}
+.fc-pc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.fc-pc-name{font-size:15px;font-weight:600;color:var(--text);overflow-wrap:anywhere;}
+.fc-pc-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.fc-pc-vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:12.5px;color:var(--text);}
+.fc-pc-vals span span{display:block;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--muted);text-transform:uppercase;}
+.fc-pc-actions{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;flex-wrap:wrap;}
+.fc-pc-del{margin-left:auto;width:36px;height:36px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.fc-pc-del:hover{color:var(--red);border-color:var(--red);}
+.fc-empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;}
+.fc-empty h4{margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;color:var(--text);}
+.fc-empty p{margin:0;font-size:13px;color:var(--muted);max-width:440px;}
+.fc-save{max-width:520px !important;display:flex;flex-direction:column;gap:16px;}
+.fc-save-hint{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+.fc-save-hint em{font-style:normal;color:var(--text);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;}
+.fc-save-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--panel-2);border-radius:10px;padding:12px 14px;}
+.fc-save-sum span{display:flex;flex-direction:column;gap:2px;font-size:13px;font-weight:600;color:var(--text);min-width:0;}
+.fc-save-sum span span{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:400;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);}
+.fc-vis{display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0;}
+.fc-vis label{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;cursor:pointer;}
+.fc-vis label.on{border-color:var(--amber);background:rgba(255,176,32,0.06);}
+.fc-vis input{width:18px;height:18px;margin:0;flex-shrink:0;}
+.fc-vis b{display:block;font-size:14px;color:var(--text);}
+.fc-vis small{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
+.fc-dup{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:10px;background:rgba(232,92,74,0.1);border:1px solid rgba(232,92,74,0.35);font-size:13px;color:var(--text);}
+.fc-dup span{flex:1;min-width:160px;}
+.fc-dup button{background:none;border:none;color:var(--violet);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px;}
+@media (max-width:900px){
+  .fc-layout{grid-template-columns:minmax(0,1fr);}
+  .fc-results{position:static;}
+  .fc-lib-body{grid-template-columns:minmax(0,1fr);}
+  .fc-lib-nav{display:none;}
+}
+@media (max-width:760px){
+  .fc-topbar-right{width:100%;}
+  .fc-search{flex:1 1 100%;}
+  .fc-search input{width:100%;}
+  .fc-topbar-right .fc-btn{flex:1;}
+  .fc-sec[open] .fc-sec-sum{display:none;}
+  .fc-sec-sum{max-width:55%;}
+  .fc-save-sum{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .fc-lib-cards{grid-template-columns:minmax(0,1fr);}
+}
 .fc-preset-row select{flex:1;min-width:0;}
 .stint-calc-apply{
   font-family:'JetBrains Mono',monospace;
@@ -2013,118 +2179,144 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 
 <!-- FUEL CALC -->
 <div class="panel" id="panel-fuelcalc">
-  <p class="section-label" style="margin-top:0">Spiel</p>
-  <div class="filter-row" id="fc-game-select">
-    <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
-    <button type="button" class="filter-pill" data-game="acc">ACC</button>
-  </div>
-
-  <div class="split-columns" style="max-width:1200px;">
-  <div class="split-col-left">
-  <div class="auth-card" id="fuel-calc-card">
-
-    <div class="field">
-      <label for="fc-preset-select">Preset</label>
-      <div class="fc-preset-row">
-        <select id="fc-preset-select"><option value="">– Preset laden –</option></select>
-        <button type="button" id="fc-preset-save-btn" class="adddrivers-add-btn" title="Aktuelle Werte als Preset speichern">💾</button>
-        <button type="button" id="fc-preset-delete-btn" class="adddrivers-add-btn" title="Preset löschen" hidden>✕</button>
+  <div class="fc-topbar">
+    <div class="fc-topbar-left">
+      <h2 class="fc-title">Sprit-Rechner</h2>
+      <div class="filter-row ec-seg" id="fc-game-select" role="group" aria-label="Spiel">
+        <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
+        <button type="button" class="filter-pill" data-game="acc">ACC</button>
       </div>
     </div>
-
-    <div class="field">
-      <label for="fc-class-select">Klasse</label>
-      <select id="fc-class-select"></select>
-    </div>
-
-    <div class="field">
-      <label for="fc-track-select">Strecke</label>
-      <select id="fc-track-select"><option value="">– Strecke wählen –</option></select>
-    </div>
-
-    <div class="field" id="fc-resource-field" hidden>
-      <label>Energieart</label>
-      <div class="filter-row" id="fc-resource-select">
-        <button type="button" class="filter-pill active" data-resource="Fuel">Sprit (Liter)</button>
-        <button type="button" class="filter-pill" data-resource="VE">VE (%)</button>
+    <div class="fc-topbar-right">
+      <div class="fc-search">
+        <label class="sr-only" for="fc-search">Presets suchen</label>
+        <svg class="fc-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" id="fc-search" placeholder="Preset suchen – Strecke, Fahrzeug, Name" autocomplete="off" aria-controls="fc-search-results">
+        <div class="fc-search-results" id="fc-search-results" role="listbox" aria-label="Suchergebnisse" hidden></div>
       </div>
-    </div>
-
-    <div class="field">
-      <label>Modus</label>
-      <div class="filter-row" id="fc-mode-select">
-        <button type="button" class="filter-pill active" data-mode="time">Zeitbasiert</button>
-        <button type="button" class="filter-pill" data-mode="laps">Rundenbasiert</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="fc-laptime">Rundenzeit (mm:ss:mmm)</label>
-      <input type="text" id="fc-laptime" placeholder="01:46:500">
-      <p class="stint-calc-hint" id="fc-laptime-hint" style="margin:6px 0 0 0;" hidden></p>
-    </div>
-
-    <div class="field" id="fc-duration-field">
-      <label>Renndauer</label>
-      <div class="laptime-inputs">
-        <input type="number" id="fc-duration-h" min="0" max="48" placeholder="Std">
-        <span>h</span>
-        <input type="number" id="fc-duration-m" min="0" max="59" placeholder="Min">
-        <span>min</span>
-      </div>
-    </div>
-    <div class="field" id="fc-lapcount-field" hidden>
-      <label for="fc-lapcount">Anzahl Runden</label>
-      <input type="number" id="fc-lapcount" min="1" step="1" placeholder="z.B. 340">
-    </div>
-
-    <div class="fc-group">
-      <div class="fc-group-title">Tank &amp; Verbrauch</div>
-      <div class="field" id="fc-tank-field">
-        <label for="fc-tank">Tank (Liter)</label>
-        <input type="number" id="fc-tank" min="0" step="0.1" placeholder="z.B. 75">
-      </div>
-      <div class="field" id="fc-consumption-field">
-        <label for="fc-consumption">Verbrauch (Liter/Runde)</label>
-        <input type="number" id="fc-consumption" min="0" step="0.01" placeholder="z.B. 3.00">
-      </div>
-      <div class="field" id="fc-ve-field" hidden>
-        <label for="fc-ve-consumption">Verbrauch Virtual Energy (%/Runde)</label>
-        <input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="z.B. 4.00">
-      </div>
-
-      <label class="lb-filter-toggle" style="display:block;margin:6px 0 10px 0;">
-        <input type="checkbox" id="fc-formation-lap"> Einführungsrunde einrechnen
-      </label>
-      <div class="field" id="fc-formation-fields" hidden>
-        <label for="fc-formation-fuel" id="fc-formation-fuel-label">Verbrauch Einführungsrunde (Liter, optional)</label>
-        <input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie normale Runde, falls leer">
-      </div>
-      <div class="field" id="fc-formation-ve-field" hidden>
-        <label for="fc-formation-ve">Verbrauch Einführungsrunde (VE %, optional)</label>
-        <input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie normale Runde, falls leer">
-      </div>
-    </div>
-
-    <div class="fc-group">
-      <div class="fc-group-title">Sicherheitsmargen</div>
-      <div class="field">
-        <label for="fc-buffer">Sicherheitspuffer (zusätzliche Runden)</label>
-        <input type="number" id="fc-buffer" min="0" step="1" placeholder="1">
-      </div>
-
-      <div class="field">
-        <label for="fc-max-stint">Max. Stint-Zeit (min, optional)</label>
-        <input type="number" id="fc-max-stint" min="0" step="1" placeholder="z.B. 65">
-      </div>
+      <button type="button" class="fc-btn ghost" id="fc-open-library">Alle Presets</button>
+      <button type="button" class="fc-btn primary" id="fc-preset-save-btn">Speichern</button>
     </div>
   </div>
+  <div class="fc-recent" id="fc-recent" hidden></div>
+
+  <div class="fc-layout" id="fc-calc-view">
+    <section class="fc-card fc-inputs" aria-label="Eingaben">
+      <div class="fc-banner" id="fc-preset-banner" hidden></div>
+
+      <details class="fc-sec" id="fc-sec-1" open>
+        <summary><span class="fc-num">01</span><span class="fc-sec-title">Fahrzeug &amp; Strecke</span><span class="fc-sec-sum" id="fc-sum-1"></span></summary>
+        <div class="fc-sec-body">
+          <div class="fc-grid fc-g2 fc-stack-phone">
+            <div class="field">
+              <label for="fc-class-select">Klasse</label>
+              <select id="fc-class-select"></select>
+            </div>
+            <div class="field">
+              <label for="fc-track-select">Strecke</label>
+              <select id="fc-track-select"><option value="">– Strecke wählen –</option></select>
+            </div>
+            <div class="field fc-span" id="fc-car-field">
+              <label for="fc-car-select">Fahrzeug</label>
+              <select id="fc-car-select"><option value="">– Fahrzeug wählen –</option></select>
+            </div>
+            <div class="field fc-span" id="fc-resource-field" hidden>
+              <label>Energieart</label>
+              <div class="filter-row ec-seg fc-seg" id="fc-resource-select">
+                <button type="button" class="filter-pill active" data-resource="Fuel">Sprit (Liter)</button>
+                <button type="button" class="filter-pill" data-resource="VE">VE (%)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="fc-sec" id="fc-sec-2" open>
+        <summary><span class="fc-num">02</span><span class="fc-sec-title">Rennen</span><span class="fc-sec-sum" id="fc-sum-2"></span></summary>
+        <div class="fc-sec-body">
+          <div class="filter-row ec-seg fc-seg" id="fc-mode-select" role="group" aria-label="Modus">
+            <button type="button" class="filter-pill active" data-mode="time">Zeitbasiert</button>
+            <button type="button" class="filter-pill" data-mode="laps">Rundenbasiert</button>
+          </div>
+          <div class="fc-grid fc-g2 fc-stack-phone">
+            <div class="field" id="fc-duration-field">
+              <label for="fc-duration-h">Renndauer</label>
+              <div class="fc-pair">
+                <div class="fc-unit"><input type="number" id="fc-duration-h" min="0" max="48" placeholder="0" aria-label="Renndauer Stunden"><span>h</span></div>
+                <div class="fc-unit"><input type="number" id="fc-duration-m" min="0" max="59" placeholder="0" aria-label="Renndauer Minuten"><span>min</span></div>
+              </div>
+            </div>
+            <div class="field" id="fc-lapcount-field" hidden>
+              <label for="fc-lapcount">Renndistanz</label>
+              <div class="fc-unit"><input type="number" id="fc-lapcount" min="1" step="1" placeholder="340"><span>Runden</span></div>
+            </div>
+            <div class="field">
+              <label for="fc-laptime">Rundenzeit</label>
+              <div class="fc-unit"><input type="text" id="fc-laptime" placeholder="01:46:500" inputmode="numeric"><span>m:s:ms</span></div>
+            </div>
+          </div>
+          <p class="fc-hint" id="fc-laptime-hint" hidden></p>
+        </div>
+      </details>
+
+      <details class="fc-sec" id="fc-sec-3" open>
+        <summary><span class="fc-num">03</span><span class="fc-sec-title">Verbrauch</span><span class="fc-sec-sum" id="fc-sum-3"></span></summary>
+        <div class="fc-sec-body">
+          <div class="fc-grid fc-g3">
+            <div class="field" id="fc-tank-field">
+              <label for="fc-tank">Tank</label>
+              <div class="fc-unit"><input type="number" id="fc-tank" min="0" step="0.1" placeholder="75"><span>l</span></div>
+            </div>
+            <div class="field" id="fc-consumption-field">
+              <label for="fc-consumption">Sprit / Runde</label>
+              <div class="fc-unit"><input type="number" id="fc-consumption" min="0" step="0.01" placeholder="3.00"><span>l</span></div>
+            </div>
+            <div class="field" id="fc-ve-field" hidden>
+              <label for="fc-ve-consumption">VE / Runde</label>
+              <div class="fc-unit"><input type="number" id="fc-ve-consumption" min="0" step="0.1" placeholder="4.0"><span>%</span></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="fc-sec" id="fc-sec-4" open>
+        <summary><span class="fc-num">04</span><span class="fc-sec-title">Optionen</span><span class="fc-sec-sum" id="fc-sum-4"></span></summary>
+        <div class="fc-sec-body">
+          <div class="fc-grid fc-g2">
+            <div class="field">
+              <label for="fc-buffer">Sicherheitspuffer</label>
+              <div class="fc-unit"><input type="number" id="fc-buffer" min="0" step="1" placeholder="1"><span>Runden</span></div>
+            </div>
+            <div class="field">
+              <label for="fc-max-stint">Max. Stint-Zeit <span class="fc-opt">optional</span></label>
+              <div class="fc-unit"><input type="number" id="fc-max-stint" min="0" step="1" placeholder="–"><span>min</span></div>
+            </div>
+          </div>
+          <label class="fc-switch">
+            <input type="checkbox" id="fc-formation-lap">
+            <span class="fc-switch-track" aria-hidden="true"></span>
+            <span class="fc-switch-text">Einführungsrunde einrechnen</span>
+          </label>
+          <div class="fc-grid fc-g2 fc-sub">
+            <div class="field" id="fc-formation-fields" hidden>
+              <label for="fc-formation-fuel" id="fc-formation-fuel-label">Einf.-Runde Sprit <span class="fc-opt">optional</span></label>
+              <div class="fc-unit"><input type="number" id="fc-formation-fuel" min="0" step="0.01" placeholder="wie Runde"><span>l</span></div>
+            </div>
+            <div class="field" id="fc-formation-ve-field" hidden>
+              <label for="fc-formation-ve">Einf.-Runde VE <span class="fc-opt">optional</span></label>
+              <div class="fc-unit"><input type="number" id="fc-formation-ve" min="0" step="0.1" placeholder="wie Runde"><span>%</span></div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="fc-card fc-results" aria-label="Ergebnis">
+      <div id="fc-result"></div>
+    </section>
   </div>
 
-  <div class="split-col-right">
-    <div id="fc-result"></div>
-  </div>
-  </div>
+  <div class="fc-library" id="fc-library-view" hidden></div>
 </div>
 
 </div>
@@ -3349,6 +3541,7 @@ function updateAuthUI(session){
   document.getElementById('te-login-gate').hidden = !!session;
   document.getElementById('te-content').hidden = !session;
   if(session) loadTeamEvents();
+  if(session) fcLoadPresetsDb();
   loadDashboardTeamStatus();
   if(session) startLiveUpdates(); else stopLiveUpdates();
 }
@@ -8255,7 +8448,14 @@ function fcGaugeHtml(pct, color, name, mainLabel, subLabel){
   </div>`;
 }
 
+// The input sections' summaries and the preset banner follow every
+// recalculation.
 function updateFuelCalc(){
+  fcUpdateSummaries();
+  updateFuelCalcCore();
+  fcUpdatePresetBanner();
+}
+function updateFuelCalcCore(){
   document.getElementById('fc-duration-field').hidden = fcMode !== 'time';
   document.getElementById('fc-lapcount-field').hidden = fcMode !== 'laps';
 
@@ -8456,39 +8656,38 @@ function updateFuelCalc(){
   if(useFuel) html += '<th>Sprit</th>';
   if(useVe) html += '<th>VE</th>';
   html += '<th>Nachfüllung</th></tr></thead><tbody>';
-  stintLaps.forEach((laps, i) => {
+  // Identical stints in a row (usually every full stint in the middle)
+  // share one line - "Stints 2–6" - instead of repeating the same numbers.
+  const tableRows = stintLaps.map((laps, i) => {
     const minutes = (laps * lapTimeSeconds) / 60;
     const fuelForStint = useFuel ? laps * consumption : null;
-    // A "full" stint (every one except the shorter final remainder) that's
-    // actually bound by VE gets pushed right up to the 100% ceiling - that
-    // IS why it stops there. Showing the exact lap-rounded subtotal (e.g.
-    // 99% for 18 laps at 5.5%/lap) reads like energy was left over, when
-    // in practice it's used up to the limit. Only shown as the real
-    // partial number for the final stint, or when something other than
-    // VE is what actually capped this stint's length (then the leftover
-    // VE is real, not just lap-count rounding).
+    // A "full" stint that's actually bound by VE gets pushed right up to
+    // the 100% ceiling; only the final stint, or one
+    // capped by something other than VE, shows its real partial number.
     const isFullStint = i < stintLaps.length - 1;
     const veForStint = useVe
       ? ((isFullStint && maxLapsVe === effectiveMaxLaps) ? veTank : laps * veConsumption)
       : null;
-    const over = overflowStints.has(i);
-    // Fuel: only load what that stint actually needs, same reasoning as
-    // startFuel above - and since VE (not the tank) now sets stint length,
-    // that need can exceed what the tank holds, same as startFuel already
-    // capped for stint 1; every later stop needs the same cap, or it'd
-    // silently claim to load more fuel than physically fits. VE: a full
-    // stint always tops back up to 100% (there's no benefit to asking for
-    // less when you're going to use it all), but the shorter final stint
-    // only needs however much it actually burns - same veForStint value
-    // already shown in the VE column, not a flat 100% regardless of need.
     const refill = [
       useFuel ? `${Math.min(tank, i === 0 ? rawStartFuel : fuelForStint).toFixed(1)}L` : null,
       useVe ? `${veForStint.toFixed(0)}%` : null,
     ].filter(Boolean).join(' / ');
-    html += `<tr class="${over ? 'over' : ''}"><td>${i + 1}</td><td>${laps}</td><td>${minutes.toFixed(0)} min</td>`;
-    if(useFuel) html += `<td>${fuelForStint.toFixed(1)}L</td>`;
-    if(useVe) html += `<td>${veForStint.toFixed(0)}%</td>`;
-    html += `<td>${i === 0 ? '(Start) ' : ''}${refill}</td></tr>`;
+    return { i, laps, minutes: minutes.toFixed(0), fuel: useFuel ? fuelForStint.toFixed(1) : null, ve: useVe ? veForStint.toFixed(0) : null, refill, over: overflowStints.has(i) };
+  });
+  const sameAs = (a, b) => a.laps === b.laps && a.minutes === b.minutes && a.fuel === b.fuel && a.ve === b.ve && a.refill === b.refill && a.over === b.over;
+  const grouped = [];
+  tableRows.forEach(r => {
+    const last = grouped[grouped.length - 1];
+    if(last && r.i > 0 && last.from > 0 && sameAs(last.row, r)) last.to = r.i;
+    else grouped.push({ from: r.i, to: r.i, row: r });
+  });
+  grouped.forEach(g => {
+    const r = g.row;
+    const label = g.from === g.to ? String(g.from + 1) : `${g.from + 1}–${g.to + 1}`;
+    html += `<tr class="${r.over ? 'over' : ''}"><td>${label}</td><td>${r.laps}</td><td>${r.minutes} min</td>`;
+    if(useFuel) html += `<td>${r.fuel}L</td>`;
+    if(useVe) html += `<td>${r.ve}%</td>`;
+    html += `<td>${g.from === 0 ? '(Start) ' : ''}${r.refill}${g.to > g.from ? ' je Stopp' : ''}</td></tr>`;
   });
   html += '</tbody></table></div>';
 
@@ -8502,11 +8701,16 @@ document.querySelectorAll('#fc-game-select .filter-pill').forEach(btn => {
     document.querySelectorAll('#fc-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
     fcPopulateClasses();
     fcPopulateTracks('');
+    fcPopulateCars('');
+    fcRenderSearch();
+    if(!document.getElementById('fc-library-view').hidden) fcRenderLibrary();
   });
 });
+['fc-class-select', 'fc-track-select', 'fc-car-select'].forEach(id => document.getElementById(id).addEventListener('change', e => e.target.classList.remove('fc-missing')));
 document.getElementById('fc-class-select').addEventListener('change', () => {
   fcApplyClassPreset();
   fcApplyRefLapTime();
+  fcPopulateCars('');
 });
 document.getElementById('fc-track-select').addEventListener('change', fcApplyRefLapTime);
 document.getElementById('fc-laptime').addEventListener('input', () => { document.getElementById('fc-laptime-hint').hidden = true; });
@@ -8522,6 +8726,7 @@ async function fcPopulateTracks(selected){
   select.innerHTML = '<option value="">– Strecke wählen –</option>' +
     tracks.map(t => `<option value="${escapeText(t)}">${escapeText(t)}</option>`).join('');
   select.value = selected || '';
+  updateFuelCalc();
 }
 // Class + track picked: the 103% time goes into the lap time field (still
 // editable afterwards). Only on a real change of either - loading a saved
@@ -8568,25 +8773,17 @@ document.getElementById('fc-laptime').addEventListener('input', () => maskLapTim
   'fc-formation-fuel', 'fc-formation-ve', 'fc-buffer', 'fc-max-stint',
 ].forEach(id => document.getElementById(id).addEventListener('input', updateFuelCalc));
 
-// ---- Sprit tab presets: named snapshots of the whole form, saved to
-// localStorage (nothing server-side to protect, same as the rest of this
-// tab) so a regular team/car combo doesn't need re-entering every time. ----
+// ---- Sprit tab form state: the whole form as one object (what a preset
+// stores). Old presets lived in localStorage under this key and move to
+// the database once (fcMigrateLocalPresets). ----
 const FC_PRESETS_KEY = 'pitwall-fuel-presets';
-function fcLoadPresets(){
-  try{
-    const parsed = JSON.parse(localStorage.getItem(FC_PRESETS_KEY));
-    return Array.isArray(parsed) ? parsed : [];
-  }catch(e){ return []; }
-}
-function fcSavePresetsList(list){
-  try{ localStorage.setItem(FC_PRESETS_KEY, JSON.stringify(list)); }catch(e){}
-}
 function fcCollectFormState(){
   return {
     game: fcGame,
     mode: fcMode,
     resource: fcResourceType,
     klasse: document.getElementById('fc-class-select').value,
+    car: document.getElementById('fc-car-select').value,
     track: document.getElementById('fc-track-select').value,
     laptime: document.getElementById('fc-laptime').value,
     durationH: document.getElementById('fc-duration-h').value,
@@ -8627,50 +8824,901 @@ function fcApplyFormState(state){
   document.getElementById('fc-max-stint').value = state.maxStint || '';
   updateFuelCalc();
 }
-function fcPopulatePresetSelect(){
-  const select = document.getElementById('fc-preset-select');
-  const presets = fcLoadPresets();
-  select.innerHTML = '<option value="">– Preset laden –</option>'
-    + presets.map((p, i) => `<option value="${i}">${escapeText(p.name)}</option>`).join('');
+// ---- Sprit presets in the database: your own plus everything others
+// shared with the group. Search in the top bar, the last three used as
+// quick buttons, a library sorted by car or track, and a banner that shows
+// when the form no longer matches the loaded preset. ----
+let fcPresets = [];          // own + shared, newest first
+let fcActivePreset = null;   // id of the preset currently loaded in the form
+let fcLibState = { owner: 'all', onlyGame: true, sort: 'new', group: 'car', query: '' };
+const FC_RECENT_KEY = 'pitwall-fuel-recent';
+const FC_SHARE_DEFAULT_KEY = 'pitwall-fuel-share-default';
+// The class presets' keys -> lmuportal's class ids (for the car list).
+const FC_LMU_CLASS_IDS = { Hypercar: 'hypercar', LMP2: 'lmp2', LMP3: 'lmp3', GTE: 'gte', LMGT3: 'lmgt3' };
+const FC_FIELD_LABELS = {
+  game: 'Spiel', klasse: 'Klasse', car: 'Fahrzeug', track: 'Strecke', mode: 'Modus', resource: 'Energieart',
+  laptime: 'Rundenzeit', durationH: 'Renndauer', durationM: 'Renndauer', lapcount: 'Runden',
+  tank: 'Tank', consumption: 'Sprit/Runde', veConsumption: 'VE/Runde', formationOn: 'Einführungsrunde',
+  formationFuel: 'Einf.-Runde Sprit', formationVe: 'Einf.-Runde VE', buffer: 'Puffer', maxStint: 'Max. Stint-Zeit',
+};
+
+function fcOwnerName(p){ return (p.profiles && p.profiles.username) || 'Unbekannt'; }
+function fcIsMine(p){ return !!currentProfile && p.user_id === currentProfile.id; }
+function fcOwnerColor(p){
+  return fcIsMine(p) ? 'var(--mine)' : TE_PERSON_COLORS[teHash(p.user_id || '') % TE_PERSON_COLORS.length];
+}
+function fcOwnerChip(p){
+  const chip = document.createElement('span');
+  chip.className = 'fc-owner-chip';
+  chip.textContent = fcIsMine(p) ? (currentProfile.username || 'Du') : fcOwnerName(p);
+  chip.style.color = fcOwnerColor(p);
+  chip.title = fcIsMine(p) ? 'Dein Preset' : `Geteilt von ${fcOwnerName(p)}`;
+  return chip;
+}
+function fcGameChip(game){
+  const chip = document.createElement('span');
+  chip.className = 'fc-game-chip';
+  chip.textContent = (game || 'lmu').toUpperCase();
+  return chip;
+}
+// "BMW M4 LMGT3" from the class list - or the class, or "Eigene Werte".
+function fcCarOrClassLabel(state){
+  if(state.car) return state.car;
+  if(!state.klasse || state.klasse === 'custom') return 'Eigene Werte';
+  return state.klasse;
+}
+// "Monza · BMW M4 LMGT3" - track and car.
+function fcAutoName(state){
+  return `${state.track || 'Ohne Strecke'} · ${fcCarOrClassLabel(state)}`;
+}
+function fcPresetMeta(p){
+  const d = p.data || {};
+  const cons = d.consumption ? `${d.consumption} l/R` : (d.veConsumption ? `${d.veConsumption} %/R` : null);
+  return [p.car_class || d.klasse, d.laptime, cons].filter(Boolean).join(' · ');
+}
+function fcDurationLabel(d){
+  if(d.mode === 'laps') return d.lapcount ? `${d.lapcount} R.` : '–';
+  const h = parseInt(d.durationH, 10) || 0, m = parseInt(d.durationM, 10) || 0;
+  if(!h && !m) return '–';
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+function fcRelTime(iso){
+  const d = new Date(iso);
+  const days = Math.round((new Date(localDayKey(new Date())) - new Date(localDayKey(d))) / 86400000);
+  if(days <= 0) return 'heute';
+  if(days === 1) return 'gestern';
+  if(days < 7) return `vor ${days} Tagen`;
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+function fcHaystack(p){
+  return foldAccents([p.name, p.track, p.car, p.car_class, fcOwnerName(p)].join(' '));
+}
+function fcMatches(p, query){
+  const terms = foldAccents(query).split(/\s+/).filter(Boolean);
+  const hay = fcHaystack(p);
+  return terms.every(t => hay.includes(t));
 }
 
-document.getElementById('fc-preset-select').addEventListener('change', () => {
-  const select = document.getElementById('fc-preset-select');
-  document.getElementById('fc-preset-delete-btn').hidden = select.value === '';
-  if(select.value === '') return;
-  const preset = fcLoadPresets()[parseInt(select.value, 10)];
-  if(preset) fcApplyFormState(preset);
-});
-document.getElementById('fc-preset-save-btn').addEventListener('click', async () => {
-  const name = await pitwallPromptText('Name für dieses Preset:', '');
-  if(!name) return;
-  const presets = fcLoadPresets();
+async function fcLoadPresetsDb(){
+  if(!currentProfile) return;
+  const { data, error } = await pitwallClient
+    .from('fuel_presets')
+    .select('id,user_id,name,game,track,car,car_class,data,shared,created_at,updated_at,profiles(username)')
+    .order('updated_at', { ascending: false });
+  if(error){ console.error('Load fuel presets failed:', error.message); return; }
+  fcPresets = data || [];
+  if(await fcMigrateLocalPresets()) return; // reloads itself after moving old ones over
+  fcRenderRecent();
+  fcUpdatePresetBanner();
+  if(!document.getElementById('fc-library-view').hidden) fcRenderLibraryList();
+}
+
+// Presets from before they lived in the database (this browser only) move
+// over once, as private presets of whoever is signed in.
+async function fcMigrateLocalPresets(){
+  let local = [];
+  try{
+    if(localStorage.getItem('pitwall-fuel-presets-migrated') === currentProfile.id) return false;
+    local = JSON.parse(localStorage.getItem(FC_PRESETS_KEY) || '[]');
+  }catch(e){ return false; }
+  const markDone = () => { try{ localStorage.setItem('pitwall-fuel-presets-migrated', currentProfile.id); }catch(e){} };
+  if(!Array.isArray(local) || !local.length){ markDone(); return false; }
+  const taken = new Set(fcPresets.filter(fcIsMine).map(p => p.game + '|' + p.name.toLowerCase()));
+  const rows = [];
+  local.forEach(p => {
+    if(!p || !p.name) return;
+    const { name, ...data } = p;
+    const game = data.game === 'acc' ? 'acc' : 'lmu';
+    const key = game + '|' + String(name).toLowerCase();
+    if(taken.has(key)) return;
+    taken.add(key);
+    rows.push({ user_id: currentProfile.id, name: String(name).slice(0, 120), game, track: data.track || null, car: data.car || null, car_class: data.klasse || null, data, shared: false });
+  });
+  if(rows.length){
+    const { error } = await pitwallClient.from('fuel_presets').insert(rows);
+    if(error){ console.error('Move local presets failed:', error.message); return false; }
+  }
+  markDone();
+  await fcLoadPresetsDb();
+  return true;
+}
+
+// ---- recently used ----
+function fcRecentIds(){
+  try{ const v = JSON.parse(localStorage.getItem(FC_RECENT_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; }
+}
+function fcPushRecent(id){
+  const ids = [id, ...fcRecentIds().filter(x => x !== id)].slice(0, 6);
+  try{ localStorage.setItem(FC_RECENT_KEY, JSON.stringify(ids)); }catch(e){}
+  fcRenderRecent();
+}
+function fcRenderRecent(){
+  const box = document.getElementById('fc-recent');
+  const items = fcRecentIds().map(id => fcPresets.find(p => p.id === id)).filter(Boolean).slice(0, 3);
+  box.innerHTML = '';
+  box.hidden = !items.length;
+  if(!items.length) return;
+  const k = document.createElement('span');
+  k.className = 'fc-recent-k';
+  k.textContent = 'Zuletzt';
+  box.appendChild(k);
+  items.forEach(p => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'fc-recent-btn';
+    btn.appendChild(fcGameChip(p.game));
+    btn.appendChild(document.createTextNode(p.name));
+    btn.addEventListener('click', () => fcLoadPreset(p));
+    box.appendChild(btn);
+  });
+}
+
+// ---- loading a preset + "changed" banner ----
+function fcLoadPreset(p){
+  fcApplyFormState(p.data || {});
+  fcPopulateCars((p.data && p.data.car) || p.car || '');
+  fcActivePreset = p.id;
+  fcPushRecent(p.id);
+  fcUpdatePresetBanner();
+}
+function fcNorm(state){
+  const out = {};
+  Object.keys(FC_FIELD_LABELS).forEach(k => {
+    const v = state ? state[k] : undefined;
+    out[k] = typeof v === 'boolean' ? v : String(v ?? '').trim();
+  });
+  if(out.formationOn === '') out.formationOn = false;
+  return out;
+}
+function fcDiff(a, b){
+  const x = fcNorm(a), y = fcNorm(b);
+  return Object.keys(FC_FIELD_LABELS).filter(k => x[k] !== y[k]).map(k => ({ key: k, from: x[k], to: y[k] }));
+}
+function fcShowVal(v){
+  if(v === true) return 'an';
+  if(v === false) return 'aus';
+  return v === '' ? '–' : v;
+}
+const FC_DIFF_UNITS = { durationH: 'h', durationM: 'min', lapcount: 'Runden', tank: 'l', consumption: 'l', veConsumption: '%', formationFuel: 'l', formationVe: '%', buffer: 'Runden', maxStint: 'min' };
+function fcDiffText(d){
+  const unit = FC_DIFF_UNITS[d.key];
+  const val = v => { const t = fcShowVal(v); return unit && t !== '–' ? `${t} ${unit}` : t; };
+  return `${FC_FIELD_LABELS[d.key]} ${val(d.from)} → ${val(d.to)}`;
+}
+// The loaded preset: name, who it's from, and - once the form differs -
+// what changed plus save / save as new / discard.
+function fcUpdatePresetBanner(){
+  const box = document.getElementById('fc-preset-banner');
+  if(!box) return;
+  const p = fcActivePreset ? fcPresets.find(x => x.id === fcActivePreset) : null;
+  if(!p){ box.hidden = true; box.innerHTML = ''; fcActivePreset = null; return; }
+  // Other game picked: the preset stays loaded but out of sight (and can't
+  // be saved over as the wrong game) until you switch back.
+  if(p.game !== fcGame){ box.hidden = true; box.innerHTML = ''; return; }
+  const diffs = fcDiff(p.data, fcCollectFormState());
+  box.hidden = false;
+  box.classList.toggle('changed', diffs.length > 0);
+  box.innerHTML = '';
+
+  const top = document.createElement('div');
+  top.className = 'fc-banner-top';
+  const k = document.createElement('span');
+  k.className = 'fc-banner-k';
+  k.innerHTML = diffs.length ? 'Preset · <b>geändert</b>' : 'Preset geladen';
+  top.appendChild(k);
+  box.appendChild(top);
+
+  const name = document.createElement('div');
+  name.className = 'fc-banner-name';
+  name.textContent = p.name;
+  name.title = p.name;
+  box.appendChild(name);
+
+  const meta = document.createElement('div');
+  meta.className = 'fc-banner-meta';
+  if(diffs.length){
+    const em = document.createElement('em');
+    em.textContent = fcDiffText(diffs[0]);
+    meta.appendChild(em);
+    if(diffs.length > 1) meta.appendChild(document.createTextNode(` · +${diffs.length - 1} weitere`));
+    meta.title = diffs.map(fcDiffText).join('\n');
+  }else{
+    const owner = fcIsMine(p) ? (currentProfile.username || 'dir') : fcOwnerName(p);
+    meta.textContent = `${p.game.toUpperCase()} · von ${owner}${fcIsMine(p) && p.shared ? ' · geteilt' : ''}`;
+  }
+  box.appendChild(meta);
+  if(!diffs.length) return;
+
+  const btns = document.createElement('div');
+  btns.className = 'fc-banner-actions';
+  const discard = document.createElement('button');
+  discard.type = 'button';
+  discard.className = 'fc-link';
+  discard.textContent = 'Verwerfen';
+  discard.addEventListener('click', () => fcLoadPreset(p));
+  btns.appendChild(discard);
+  if(fcIsMine(p)){
+    const asNew = document.createElement('button');
+    asNew.type = 'button';
+    asNew.className = 'fc-btn ghost small';
+    asNew.textContent = 'Als neues';
+    asNew.addEventListener('click', () => fcOpenSaveDialog());
+    btns.appendChild(asNew);
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'fc-btn primary small';
+    save.textContent = 'Speichern';
+    save.addEventListener('click', async () => {
+      if(fcRequiredMissing()) return;
+      save.disabled = true;
+      const state = fcCollectFormState();
+      const { error } = await pitwallClient.from('fuel_presets')
+        .update({ data: state, game: state.game, track: state.track || null, car: state.car || null, car_class: state.klasse || null })
+        .eq('id', p.id);
+      if(error){ console.error('Update fuel preset failed:', error.message); save.disabled = false; return; }
+      await fcLoadPresetsDb();
+    });
+    btns.appendChild(save);
+  }else{
+    const asOwn = document.createElement('button');
+    asOwn.type = 'button';
+    asOwn.className = 'fc-btn primary small';
+    asOwn.textContent = 'Als eigenes speichern';
+    asOwn.addEventListener('click', () => fcOpenSaveDialog());
+    btns.appendChild(asOwn);
+  }
+  box.appendChild(btns);
+}
+
+// ---- top-bar search ----
+function fcRenderSearch(){
+  const input = document.getElementById('fc-search');
+  const box = document.getElementById('fc-search-results');
+  const q = input.value.trim();
+  if(!q){ box.hidden = true; box.innerHTML = ''; return; }
+  const hits = fcPresets.filter(p => p.game === fcGame && fcMatches(p, q));
+  box.innerHTML = '';
+  box.hidden = false;
+  if(!hits.length){
+    const otherGame = fcGame === 'lmu' ? 'acc' : 'lmu';
+    const other = fcPresets.filter(p => p.game === otherGame && fcMatches(p, q)).length;
+    const empty = document.createElement('div');
+    empty.className = 'fc-res-empty';
+    const t = document.createElement('div');
+    t.textContent = `Kein Preset zu „${q}“.`;
+    empty.appendChild(t);
+    const hint = document.createElement('span');
+    hint.textContent = `Gesucht in Strecke, Fahrzeug, Preset- und Nutzername – in ${fcGame.toUpperCase()}.` + (other ? ` In ${otherGame.toUpperCase()} gibt es ${other} Treffer.` : '');
+    empty.appendChild(hint);
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'fc-btn primary small';
+    save.textContent = 'Aktuelle Werte als Preset speichern';
+    save.addEventListener('click', () => { box.hidden = true; fcOpenSaveDialog(); });
+    empty.appendChild(save);
+    box.appendChild(empty);
+    return;
+  }
+  const groups = [['Meine', hits.filter(fcIsMine)], ['Geteilt von anderen', hits.filter(p => !fcIsMine(p))]];
+  groups.forEach(([label, list]) => {
+    if(!list.length) return;
+    const head = document.createElement('div');
+    head.className = 'fc-res-head';
+    head.textContent = label;
+    box.appendChild(head);
+    list.slice(0, 6).forEach(p => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fc-res-item';
+      btn.setAttribute('role', 'option');
+      const text = document.createElement('span');
+      text.style.minWidth = '0';
+      const n = document.createElement('span');
+      n.className = 'fc-res-name';
+      n.textContent = p.name;
+      const m = document.createElement('span');
+      m.className = 'fc-res-meta';
+      m.textContent = fcPresetMeta(p);
+      text.appendChild(n);
+      text.appendChild(m);
+      const chips = document.createElement('span');
+      chips.className = 'fc-chips';
+      chips.appendChild(fcGameChip(p.game));
+      chips.appendChild(fcOwnerChip(p));
+      btn.appendChild(text);
+      btn.appendChild(chips);
+      btn.addEventListener('click', () => {
+        input.value = '';
+        box.hidden = true;
+        fcLoadPreset(p);
+      });
+      box.appendChild(btn);
+    });
+  });
+}
+
+// ---- save dialog ----
+function fcNextFreeName(base, game){
+  const taken = new Set(fcPresets.filter(p => fcIsMine(p) && p.game === game).map(p => p.name.toLowerCase()));
+  if(!taken.has(base.toLowerCase())) return base;
+  for(let i = 2; i < 100; i++){ const n = `${base} ${i}`; if(!taken.has(n.toLowerCase())) return n; }
+  return base;
+}
+// A preset needs class, track and car (no car for "Eigene Werte", which
+// has no car list). Marks every empty one and jumps to the first.
+function fcRequiredMissing(){
+  const missing = ['fc-class-select', 'fc-track-select', 'fc-car-select']
+    .map(id => document.getElementById(id))
+    .filter(sel => !sel.value && !(sel.id === 'fc-car-select' && document.getElementById('fc-car-field').hidden));
+  if(!missing.length) return false;
+  document.getElementById('fc-sec-1').open = true;
+  missing.forEach(sel => sel.classList.add('fc-missing'));
+  missing[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  missing[0].focus();
+  return true;
+}
+function fcOpenSaveDialog(){
+  if(!currentProfile) return;
+  if(fcRequiredMissing()) return;
   const state = fcCollectFormState();
-  state.name = name;
-  const existingIdx = presets.findIndex(p => p.name === name);
-  if(existingIdx !== -1) presets[existingIdx] = state;
-  else presets.push(state);
-  fcSavePresetsList(presets);
-  fcPopulatePresetSelect();
-  document.getElementById('fc-preset-select').value = presets.findIndex(p => p.name === name);
-  document.getElementById('fc-preset-delete-btn').hidden = false;
-});
-document.getElementById('fc-preset-delete-btn').addEventListener('click', async () => {
-  const select = document.getElementById('fc-preset-select');
-  const idx = parseInt(select.value, 10);
-  if(isNaN(idx)) return;
-  const presets = fcLoadPresets();
-  const name = presets[idx] ? presets[idx].name : '';
-  if(!(await pitwallConfirm(`Preset "${name}" wirklich löschen?`, { danger: true }))) return;
-  presets.splice(idx, 1);
-  fcSavePresetsList(presets);
-  fcPopulatePresetSelect();
-  document.getElementById('fc-preset-delete-btn').hidden = true;
-});
+  const game = state.game || fcGame;
+  const overlay = document.createElement('div');
+  overlay.className = 'pitwall-modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'pitwall-modal fc-save';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'fc-save-title');
+  overlay.appendChild(modal);
+
+  const h = document.createElement('h3');
+  h.className = 'pitwall-modal-title';
+  h.id = 'fc-save-title';
+  h.style.margin = '0';
+  h.textContent = 'Preset speichern';
+  modal.appendChild(h);
+
+  const nameField = document.createElement('div');
+  nameField.className = 'field';
+  nameField.style.margin = '0';
+  const nameLabel = document.createElement('label');
+  nameLabel.htmlFor = 'fc-save-name';
+  nameLabel.textContent = 'Name';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.id = 'fc-save-name';
+  nameInput.maxLength = 120;
+  nameInput.value = fcAutoName(state);
+  const hint = document.createElement('div');
+  hint.className = 'fc-save-hint';
+  hint.textContent = 'Automatisch aus Strecke und Fahrzeug – frei änderbar';
+  nameField.appendChild(nameLabel);
+  nameField.appendChild(nameInput);
+  nameField.appendChild(hint);
+  modal.appendChild(nameField);
+
+  const sum = document.createElement('div');
+  sum.className = 'fc-save-sum';
+  const cons = state.consumption ? `${state.consumption} l/R` : (state.veConsumption ? `${state.veConsumption} %/R` : '–');
+  [['Klasse', state.klasse === 'custom' ? 'Eigene' : (state.klasse || '–')], ['Runde', state.laptime || '–'], ['Verbrauch', cons], ['Dauer', fcDurationLabel(state)]].forEach(([k, v]) => {
+    const s = document.createElement('span');
+    const kk = document.createElement('span');
+    kk.textContent = k;
+    s.appendChild(kk);
+    s.appendChild(document.createTextNode(v));
+    sum.appendChild(s);
+  });
+  modal.appendChild(sum);
+
+  let shareDefault = 'shared';
+  try{ shareDefault = localStorage.getItem(FC_SHARE_DEFAULT_KEY) || 'shared'; }catch(e){}
+  const vis = document.createElement('fieldset');
+  vis.className = 'fc-vis';
+  const legend = document.createElement('legend');
+  legend.className = 'sr-only';
+  legend.textContent = 'Sichtbarkeit';
+  vis.appendChild(legend);
+  const radios = [];
+  [['private', 'Nur für mich', 'auf allen deinen Geräten'], ['shared', 'Mit der Gruppe teilen', 'alle sehen und laden es, ändern kannst nur du']].forEach(([val, title, sub]) => {
+    const l = document.createElement('label');
+    const r = document.createElement('input');
+    r.type = 'radio';
+    r.name = 'fc-vis';
+    r.value = val;
+    r.checked = val === shareDefault;
+    radios.push(r);
+    const t = document.createElement('span');
+    t.innerHTML = `<b></b><small></small>`;
+    t.querySelector('b').textContent = title;
+    t.querySelector('small').textContent = sub;
+    l.appendChild(r);
+    l.appendChild(t);
+    vis.appendChild(l);
+  });
+  const paintVis = () => vis.querySelectorAll('label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+  radios.forEach(r => r.addEventListener('change', paintVis));
+  paintVis();
+  modal.appendChild(vis);
+
+  const dup = document.createElement('div');
+  dup.className = 'fc-dup';
+  dup.hidden = true;
+  const dupText = document.createElement('span');
+  const overwriteBtn = document.createElement('button');
+  overwriteBtn.type = 'button';
+  overwriteBtn.textContent = 'Überschreiben';
+  const asNewBtn = document.createElement('button');
+  asNewBtn.type = 'button';
+  dup.appendChild(dupText);
+  dup.appendChild(overwriteBtn);
+  dup.appendChild(asNewBtn);
+  modal.appendChild(dup);
+
+  const message = document.createElement('div');
+  message.className = 'form-message';
+  message.hidden = true;
+  modal.appendChild(message);
+
+  const actions = document.createElement('div');
+  actions.className = 'pitwall-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'pitwall-modal-btn';
+  cancel.textContent = 'Abbrechen';
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'pitwall-modal-btn primary';
+  actions.appendChild(cancel);
+  actions.appendChild(saveBtn);
+  modal.appendChild(actions);
+
+  const existingFor = name => fcPresets.find(p => fcIsMine(p) && p.game === game && p.name.toLowerCase() === name.trim().toLowerCase());
+  const refresh = () => {
+    const name = nameInput.value.trim();
+    const existing = name ? existingFor(name) : null;
+    dup.hidden = !existing;
+    if(existing){
+      dupText.textContent = `„${existing.name}“ gibt es schon.`;
+      asNewBtn.textContent = `Als „${fcNextFreeName(name, game)}“`;
+    }
+    saveBtn.textContent = existing ? 'Überschreiben' : (radios[1].checked ? 'Speichern & teilen' : 'Speichern');
+    saveBtn.disabled = !name;
+  };
+  nameInput.addEventListener('input', refresh);
+  radios.forEach(r => r.addEventListener('change', refresh));
+  asNewBtn.addEventListener('click', () => { nameInput.value = fcNextFreeName(nameInput.value.trim(), game); refresh(); nameInput.focus(); });
+  overwriteBtn.addEventListener('click', () => doSave());
+  refresh();
+
+  function close(){
+    overlay.remove();
+    document.removeEventListener('keydown', onKeydown);
+  }
+  function onKeydown(e){
+    if(e.key === 'Escape' && document.getElementById('pitwall-modal-overlay').hidden) close();
+    if(e.key === 'Enter' && document.activeElement === nameInput){ e.preventDefault(); doSave(); }
+  }
+  async function doSave(){
+    const name = nameInput.value.trim();
+    if(!name) return;
+    const shared = radios[1].checked;
+    try{ localStorage.setItem(FC_SHARE_DEFAULT_KEY, shared ? 'shared' : 'private'); }catch(e){}
+    const fresh = fcCollectFormState();
+    const row = { name, game, track: fresh.track || null, car: fresh.car || null, car_class: fresh.klasse || null, data: fresh, shared };
+    saveBtn.disabled = true;
+    const existing = existingFor(name);
+    let res;
+    if(existing){
+      res = await pitwallClient.from('fuel_presets').update(row).eq('id', existing.id).select('id').single();
+    }else{
+      res = await pitwallClient.from('fuel_presets').insert({ ...row, user_id: currentProfile.id }).select('id').single();
+    }
+    if(res.error){
+      message.textContent = 'Speichern fehlgeschlagen: ' + res.error.message;
+      message.hidden = false;
+      saveBtn.disabled = false;
+      return;
+    }
+    fcActivePreset = res.data.id;
+    await fcLoadPresetsDb();
+    fcPushRecent(res.data.id);
+    close();
+  }
+  cancel.addEventListener('click', close);
+  saveBtn.addEventListener('click', doSave);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKeydown);
+  document.body.appendChild(overlay);
+  nameInput.focus();
+  nameInput.select();
+}
+
+// ---- library ----
+function fcOpenLibrary(){
+  document.getElementById('fc-calc-view').hidden = true;
+  document.getElementById('fc-library-view').hidden = false;
+  fcRenderLibrary();
+  fcLoadPresetsDb();
+}
+function fcCloseLibrary(){
+  document.getElementById('fc-library-view').hidden = true;
+  document.getElementById('fc-calc-view').hidden = false;
+  updateFuelCalc();
+}
+function fcRenderLibrary(){
+  const view = document.getElementById('fc-library-view');
+  view.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'fc-library-head';
+  const left = document.createElement('div');
+  left.className = 'fc-topbar-left';
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'fc-link';
+  back.textContent = '← Zum Rechner';
+  back.addEventListener('click', fcCloseLibrary);
+  const h = document.createElement('h3');
+  h.textContent = 'Presets';
+  left.appendChild(back);
+  left.appendChild(h);
+  head.appendChild(left);
+  const search = document.createElement('div');
+  search.className = 'fc-search';
+  search.innerHTML = '<label class="sr-only" for="fc-lib-search">Presets durchsuchen</label><svg class="fc-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+  const input = document.createElement('input');
+  input.type = 'search';
+  input.id = 'fc-lib-search';
+  input.placeholder = 'Suchen – Strecke, Fahrzeug, Name';
+  input.value = fcLibState.query;
+  input.addEventListener('input', () => { fcLibState.query = input.value; fcRenderLibraryList(); });
+  search.appendChild(input);
+  head.appendChild(search);
+  view.appendChild(head);
+
+  const controls = document.createElement('div');
+  controls.className = 'fc-lib-controls';
+  const pills = document.createElement('div');
+  pills.className = 'fc-pills';
+  pills.id = 'fc-lib-owner';
+  pills.setAttribute('role', 'group');
+  pills.setAttribute('aria-label', 'Wessen Presets');
+  controls.appendChild(pills);
+  const opts = document.createElement('div');
+  opts.className = 'fc-lib-opts';
+  const only = document.createElement('label');
+  only.className = 'lb-filter-toggle';
+  const onlyCb = document.createElement('input');
+  onlyCb.type = 'checkbox';
+  onlyCb.checked = fcLibState.onlyGame;
+  onlyCb.addEventListener('change', () => { fcLibState.onlyGame = onlyCb.checked; fcRenderLibraryList(); });
+  only.appendChild(onlyCb);
+  only.appendChild(document.createTextNode(` Nur ${fcGame.toUpperCase()}`));
+  opts.appendChild(only);
+  const sortLabel = document.createElement('label');
+  sortLabel.style.display = 'flex';
+  sortLabel.style.alignItems = 'center';
+  sortLabel.style.gap = '8px';
+  sortLabel.appendChild(document.createTextNode('Sortieren'));
+  const sort = document.createElement('select');
+  [['new', 'Neueste zuerst'], ['name', 'Name'], ['track', 'Strecke']].forEach(([v, t]) => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = t;
+    sort.appendChild(o);
+  });
+  sort.value = fcLibState.sort;
+  sort.addEventListener('change', () => { fcLibState.sort = sort.value; fcRenderLibraryList(); });
+  sortLabel.appendChild(sort);
+  opts.appendChild(sortLabel);
+  const groupWrap = document.createElement('div');
+  groupWrap.style.display = 'flex';
+  groupWrap.style.alignItems = 'center';
+  groupWrap.style.gap = '8px';
+  groupWrap.appendChild(document.createTextNode('Gruppieren nach'));
+  const seg = document.createElement('div');
+  seg.className = 'filter-row ec-seg';
+  seg.setAttribute('role', 'group');
+  seg.setAttribute('aria-label', 'Gruppieren nach');
+  [['car', 'Fahrzeug'], ['track', 'Strecke']].forEach(([v, t]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'filter-pill' + (fcLibState.group === v ? ' active' : '');
+    b.textContent = t;
+    b.addEventListener('click', () => {
+      fcLibState.group = v;
+      seg.querySelectorAll('.filter-pill').forEach(x => x.classList.toggle('active', x === b));
+      fcRenderLibraryList();
+    });
+    seg.appendChild(b);
+  });
+  groupWrap.appendChild(seg);
+  opts.appendChild(groupWrap);
+  controls.appendChild(opts);
+  view.appendChild(controls);
+
+  const body = document.createElement('div');
+  body.id = 'fc-lib-body';
+  view.appendChild(body);
+  fcRenderLibraryList();
+}
+function fcRenderLibraryList(){
+  const body = document.getElementById('fc-lib-body');
+  const pills = document.getElementById('fc-lib-owner');
+  if(!body || !pills) return;
+  const inGame = fcPresets.filter(p => !fcLibState.onlyGame || p.game === fcGame);
+  const counts = { all: inGame.length, mine: inGame.filter(fcIsMine).length, shared: inGame.filter(p => !fcIsMine(p)).length };
+  pills.innerHTML = '';
+  [['all', 'Alle'], ['mine', 'Meine'], ['shared', 'Geteilt von anderen']].forEach(([v, t]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fc-pill' + (fcLibState.owner === v ? ' active' : '');
+    b.setAttribute('aria-pressed', fcLibState.owner === v ? 'true' : 'false');
+    b.textContent = t;
+    const c = document.createElement('span');
+    c.className = 'fc-pill-count';
+    c.textContent = counts[v];
+    b.appendChild(c);
+    b.addEventListener('click', () => { fcLibState.owner = v; fcRenderLibraryList(); });
+    pills.appendChild(b);
+  });
+
+  let list = inGame.filter(p => fcLibState.owner === 'all' || (fcLibState.owner === 'mine' ? fcIsMine(p) : !fcIsMine(p)));
+  if(fcLibState.query.trim()) list = list.filter(p => fcMatches(p, fcLibState.query));
+  const byName = (a, b) => a.name.localeCompare(b.name, 'de');
+  if(fcLibState.sort === 'name') list.sort(byName);
+  else if(fcLibState.sort === 'track') list.sort((a, b) => (a.track || '').localeCompare(b.track || '', 'de') || byName(a, b));
+  else list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+  body.innerHTML = '';
+  if(!fcPresets.length){
+    body.appendChild(fcEmptyCard('Noch keine Presets', 'Fülle den Rechner aus und speichere – Strecke und Fahrzeug ergeben automatisch den Namen. Geteilte Presets der anderen erscheinen hier, sobald jemand eins teilt.', 'Zum Rechner', fcCloseLibrary));
+    return;
+  }
+  if(!list.length){
+    body.appendChild(fcEmptyCard('Keine Presets für diese Auswahl', fcLibState.query.trim() ? `Nichts zu „${fcLibState.query.trim()}“.` : 'Andere Filter wählen.', 'Filter zurücksetzen', () => {
+      fcLibState = { ...fcLibState, owner: 'all', onlyGame: false, query: '' };
+      fcRenderLibrary();
+    }));
+    return;
+  }
+
+  const keyOf = p => fcLibState.group === 'track'
+    ? (p.track || 'Ohne Strecke')
+    : (p.car || (p.car_class && p.car_class !== 'custom' ? `Ohne Fahrzeug · ${p.car_class}` : 'Ohne Fahrzeug'));
+  const groups = new Map();
+  list.forEach(p => { const k = keyOf(p); if(!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  const keys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'de'));
+
+  const layout = document.createElement('div');
+  layout.className = 'fc-lib-body';
+  const nav = document.createElement('nav');
+  nav.className = 'fc-lib-nav';
+  nav.setAttribute('aria-label', fcLibState.group === 'track' ? 'Strecken' : 'Fahrzeuge');
+  const groupsEl = document.createElement('div');
+  groupsEl.className = 'fc-lib-groups';
+  keys.forEach((k, gi) => {
+    const items = groups.get(k);
+    const navBtn = document.createElement('button');
+    navBtn.type = 'button';
+    navBtn.innerHTML = '<span></span><span></span>';
+    navBtn.children[0].textContent = k;
+    navBtn.children[1].textContent = items.length;
+    navBtn.addEventListener('click', () => document.getElementById('fc-grp-' + gi).scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    nav.appendChild(navBtn);
+
+    const group = document.createElement('details');
+    group.className = 'fc-lib-group';
+    group.id = 'fc-grp-' + gi;
+    group.open = true;
+    const sum = document.createElement('summary');
+    const h = document.createElement('h4');
+    h.textContent = k;
+    const cnt = document.createElement('span');
+    cnt.className = 'fc-lib-group-count';
+    cnt.textContent = `${items.length} Preset${items.length === 1 ? '' : 's'}`;
+    sum.appendChild(h);
+    sum.appendChild(cnt);
+    group.appendChild(sum);
+    const cards = document.createElement('div');
+    cards.className = 'fc-lib-cards';
+    items.forEach(p => cards.appendChild(fcPresetCard(p)));
+    group.appendChild(cards);
+    groupsEl.appendChild(group);
+  });
+  layout.appendChild(nav);
+  layout.appendChild(groupsEl);
+  body.appendChild(layout);
+}
+function fcEmptyCard(title, text, btnLabel, onClick){
+  const box = document.createElement('div');
+  box.className = 'fc-empty';
+  const h = document.createElement('h4');
+  h.textContent = title;
+  const p = document.createElement('p');
+  p.textContent = text;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'fc-btn primary small';
+  b.textContent = btnLabel;
+  b.addEventListener('click', onClick);
+  box.appendChild(h);
+  box.appendChild(p);
+  box.appendChild(b);
+  return box;
+}
+function fcPresetCard(p){
+  const d = p.data || {};
+  const card = document.createElement('article');
+  card.className = 'fc-preset-card' + (p.id === fcActivePreset ? ' active' : '');
+  const head = document.createElement('div');
+  head.className = 'fc-pc-head';
+  const t = document.createElement('div');
+  t.style.minWidth = '0';
+  const n = document.createElement('div');
+  n.className = 'fc-pc-name';
+  n.textContent = p.name;
+  const s = document.createElement('div');
+  s.className = 'fc-pc-sub';
+  s.textContent = `${p.track || 'Ohne Strecke'} · ${fcRelTime(p.updated_at)}`;
+  t.appendChild(n);
+  t.appendChild(s);
+  const chips = document.createElement('span');
+  chips.className = 'fc-chips';
+  chips.appendChild(fcGameChip(p.game));
+  chips.appendChild(fcOwnerChip(p));
+  head.appendChild(t);
+  head.appendChild(chips);
+  card.appendChild(head);
+
+  const vals = document.createElement('div');
+  vals.className = 'fc-pc-vals';
+  const cons = d.consumption ? `${d.consumption} l/R` : (d.veConsumption ? `${d.veConsumption} %/R` : '–');
+  [['Runde', d.laptime || '–'], ['Verbrauch', cons], ['Dauer', fcDurationLabel(d)]].forEach(([k, v]) => {
+    const sp = document.createElement('span');
+    const kk = document.createElement('span');
+    kk.textContent = k;
+    sp.appendChild(kk);
+    sp.appendChild(document.createTextNode(v));
+    vals.appendChild(sp);
+  });
+  card.appendChild(vals);
+
+  const actions = document.createElement('div');
+  actions.className = 'fc-pc-actions';
+  const load = document.createElement('button');
+  load.type = 'button';
+  load.className = 'fc-btn primary small';
+  load.textContent = 'Laden';
+  load.addEventListener('click', () => { fcLoadPreset(p); fcCloseLibrary(); });
+  actions.appendChild(load);
+  if(fcIsMine(p)){
+    const share = document.createElement('button');
+    share.type = 'button';
+    share.className = 'fc-btn small ' + (p.shared ? 'share-on' : 'ghost');
+    share.textContent = p.shared ? 'Geteilt' : 'Teilen';
+    share.title = p.shared ? 'Für die Gruppe sichtbar - antippen, um es wieder privat zu machen' : 'Mit der Gruppe teilen';
+    share.setAttribute('aria-pressed', p.shared ? 'true' : 'false');
+    share.addEventListener('click', async () => {
+      share.disabled = true;
+      const { error } = await pitwallClient.from('fuel_presets').update({ shared: !p.shared }).eq('id', p.id);
+      if(error) console.error('Share fuel preset failed:', error.message);
+      await fcLoadPresetsDb();
+    });
+    actions.appendChild(share);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'fc-pc-del';
+    del.setAttribute('aria-label', `Preset ${p.name} löschen`);
+    del.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+    del.addEventListener('click', async () => {
+      const note = p.shared ? ' Es ist geteilt – die anderen sehen es danach auch nicht mehr.' : '';
+      if(!(await pitwallConfirm(`„${p.name}“ wirklich löschen?${note}`, { confirmText: 'Löschen', danger: true }))) return;
+      const { error } = await pitwallClient.from('fuel_presets').delete().eq('id', p.id);
+      if(error){ console.error('Delete fuel preset failed:', error.message); return; }
+      if(fcActivePreset === p.id) fcActivePreset = null;
+      await fcLoadPresetsDb();
+    });
+    actions.appendChild(del);
+  }
+  card.appendChild(actions);
+  return card;
+}
+
+// Car list for the chosen class (LMU from lmuportal, ACC built in).
+async function fcPopulateCars(selected){
+  const select = document.getElementById('fc-car-select');
+  const classKey = document.getElementById('fc-class-select').value;
+  const game = fcGame;
+  let cars = [];
+  if(classKey && classKey !== 'custom'){
+    if(game === 'acc') cars = ACC_CARS_BY_CLASS[classKey] || [];
+    else{
+      const data = await loadCarsByClass();
+      cars = (data.carsByClass || {})[FC_LMU_CLASS_IDS[classKey]] || [];
+    }
+  }
+  if(game !== fcGame || classKey !== document.getElementById('fc-class-select').value) return; // changed meanwhile
+  const list = cars.slice();
+  if(selected && !list.includes(selected)) list.unshift(selected);
+  select.innerHTML = '<option value="">– Fahrzeug wählen –</option>' + list.map(c => `<option value="${escapeText(c)}">${escapeText(c)}</option>`).join('');
+  select.value = selected || '';
+  // "Eigene Werte" has no car list - then there's nothing to pick.
+  document.getElementById('fc-car-field').hidden = !list.length;
+  select.classList.remove('fc-missing');
+  updateFuelCalc();
+}
+
+// Section summaries (shown when a section is folded, e.g. on phones).
+function fcUpdateSummaries(){
+  const v = id => (document.getElementById(id) || {}).value || '';
+  const klasse = v('fc-class-select');
+  document.getElementById('fc-sum-1').textContent = [klasse === 'custom' ? 'Eigene Werte' : klasse, v('fc-car-select'), v('fc-track-select')].filter(Boolean).join(' · ');
+  const dur = fcMode === 'laps' ? (v('fc-lapcount') ? `${v('fc-lapcount')} R.` : '') : fcDurationLabel({ mode: 'time', durationH: v('fc-duration-h'), durationM: v('fc-duration-m') });
+  document.getElementById('fc-sum-2').textContent = [dur === '–' ? '' : dur, v('fc-laptime')].filter(Boolean).join(' · ');
+  const { hasFuel, hasVe } = fcCapabilities();
+  document.getElementById('fc-sum-3').textContent = [
+    hasFuel && v('fc-tank') ? `${v('fc-tank')} l` : '',
+    hasFuel && v('fc-consumption') ? `${v('fc-consumption')} l/R` : '',
+    hasVe && v('fc-ve-consumption') ? `${v('fc-ve-consumption')} %/R` : '',
+  ].filter(Boolean).join(' · ');
+  document.getElementById('fc-sum-4').textContent = [
+    document.getElementById('fc-formation-lap').checked ? 'Einf.-Runde' : '',
+    `+${v('fc-buffer') === '' ? 1 : v('fc-buffer')} R.`,
+    v('fc-max-stint') ? `max ${v('fc-max-stint')} min` : '',
+  ].filter(Boolean).join(' · ');
+}
+
+function fcInitPresetUi(){
+  const input = document.getElementById('fc-search');
+  const box = document.getElementById('fc-search-results');
+  input.addEventListener('input', fcRenderSearch);
+  input.addEventListener('focus', fcRenderSearch);
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){ box.hidden = true; input.blur(); }
+    if(e.key === 'ArrowDown'){ const first = box.querySelector('.fc-res-item'); if(first){ e.preventDefault(); first.focus(); } }
+  });
+  box.addEventListener('keydown', e => {
+    const items = [...box.querySelectorAll('.fc-res-item')];
+    const i = items.indexOf(document.activeElement);
+    if(e.key === 'ArrowDown' && i < items.length - 1){ e.preventDefault(); items[i + 1].focus(); }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); (i > 0 ? items[i - 1] : input).focus(); }
+    if(e.key === 'Escape'){ box.hidden = true; input.focus(); }
+  });
+  document.addEventListener('click', e => { if(!e.target.closest('.fc-search')) box.hidden = true; });
+  document.getElementById('fc-open-library').addEventListener('click', fcOpenLibrary);
+  document.getElementById('fc-preset-save-btn').addEventListener('click', () => fcOpenSaveDialog());
+  document.getElementById('fc-car-select').addEventListener('change', updateFuelCalc);
+  document.getElementById('fc-track-select').addEventListener('change', updateFuelCalc);
+  // Phones: only the race section starts open - the rest shows its summary.
+  if(window.matchMedia('(max-width: 760px)').matches){
+    ['fc-sec-1', 'fc-sec-3', 'fc-sec-4'].forEach(id => { document.getElementById(id).open = false; });
+  }
+  fcPopulateCars('');
+}
 
 fcPopulateClasses();
 fcPopulateTracks('');
-fcPopulatePresetSelect();
+fcInitPresetUi();
 
 showPanel('dashboard');
 
