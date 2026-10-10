@@ -8573,6 +8573,12 @@ function updateFuelCalcCore(){
     return;
   }
 
+  // A typo (or someone's shared preset) like 0.001 l/lap over 99 hours
+  // would otherwise mean millions of stints and a frozen tab.
+  if(totalLaps / effectiveMaxLaps > 300){
+    result.innerHTML = '<p class="stint-calc-hint">Über 300 Stints - Renndauer, Rundenzeit und Verbrauch prüfen.</p>';
+    return;
+  }
   const stintLaps = fcSplitStints(totalLaps, effectiveMaxLaps, firstStintMaxLaps);
   const pitStops = stintLaps.length - 1;
   const rawStartFuel = useFuel ? stintLaps[0] * consumption + formationFuel : null;
@@ -8699,9 +8705,15 @@ document.querySelectorAll('#fc-game-select .filter-pill').forEach(btn => {
     if(btn.classList.contains('active')) return;
     fcGame = btn.dataset.game;
     document.querySelectorAll('#fc-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === btn));
-    fcPopulateClasses();
-    fcPopulateTracks('');
-    fcPopulateCars('');
+    const active = fcActivePreset ? fcPresets.find(x => x.id === fcActivePreset) : null;
+    if(active && active.game === fcGame){
+      fcApplyFormState(fcPresetState(active));
+      fcPopulateCars((active.data && active.data.car) || active.car || '');
+    }else{
+      fcPopulateClasses();
+      fcPopulateTracks('');
+      fcPopulateCars('');
+    }
     fcRenderSearch();
     if(!document.getElementById('fc-library-view').hidden) fcRenderLibrary();
   });
@@ -8932,6 +8944,7 @@ async function fcMigrateLocalPresets(){
     const key = game + '|' + String(name).toLowerCase();
     if(taken.has(key)) return;
     taken.add(key);
+    if(JSON.stringify(data).length > 15000) return;
     rows.push({ user_id: currentProfile.id, name: String(name).slice(0, 120), game, track: data.track || null, car: data.car || null, car_class: data.klasse || null, data, shared: false });
   });
   if(rows.length){
@@ -8974,8 +8987,17 @@ function fcRenderRecent(){
 }
 
 // ---- loading a preset + "changed" banner ----
+function fcPresetState(p){
+  const d = (p.data && typeof p.data === 'object') ? p.data : {};
+  return {
+    ...d,
+    game: p.game === 'acc' ? 'acc' : 'lmu',
+    mode: d.mode === 'laps' ? 'laps' : 'time',
+    resource: d.resource === 'VE' ? 'VE' : 'Fuel',
+  };
+}
 function fcLoadPreset(p){
-  fcApplyFormState(p.data || {});
+  fcApplyFormState(fcPresetState(p));
   fcPopulateCars((p.data && p.data.car) || p.car || '');
   fcActivePreset = p.id;
   fcPushRecent(p.id);
@@ -9015,7 +9037,7 @@ function fcUpdatePresetBanner(){
   // Other game picked: the preset stays loaded but out of sight (and can't
   // be saved over as the wrong game) until you switch back.
   if(p.game !== fcGame){ box.hidden = true; box.innerHTML = ''; return; }
-  const diffs = fcDiff(p.data, fcCollectFormState());
+  const diffs = fcDiff(fcPresetState(p), fcCollectFormState());
   box.hidden = false;
   box.classList.toggle('changed', diffs.length > 0);
   box.innerHTML = '';
@@ -9334,7 +9356,9 @@ function fcOpenSaveDialog(){
       res = await pitwallClient.from('fuel_presets').insert({ ...row, user_id: currentProfile.id }).select('id').single();
     }
     if(res.error){
-      message.textContent = 'Speichern fehlgeschlagen: ' + res.error.message;
+      message.textContent = res.error.code === '23505'
+        ? 'Den Namen gibt es schon (vielleicht von einem anderen Gerät gespeichert) - bitte einen anderen wählen.'
+        : 'Speichern fehlgeschlagen: ' + res.error.message;
       message.hidden = false;
       saveBtn.disabled = false;
       return;
