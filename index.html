@@ -7186,7 +7186,7 @@ function renderEventCard(ev, teams, carData, opts){
   const badges = [];
   if(ev.published === false) badges.push('Entwurf');
   if(ev.source === 'auto') badges.push('Aus Schedule');
-  if(ev.closed || isEventPast(ev)) badges.push('Abgeschlossen');
+  if(isEventOver(ev)) badges.push('Abgeschlossen');
   if(badges.length){
     const badgesRow = document.createElement('div');
     badgesRow.className = 'te-badges-row';
@@ -7442,7 +7442,12 @@ function selectTeams(filter){
 // master-detail view re-renders instantly instead of refetching.
 let teLastView = null;
 
+let teLoadSeq = 0;
 async function loadTeamEvents(){
+  // Several loads can overlap (your own change + a live update): only the
+  // newest one may draw, so a slower older answer never shows stale data.
+  const seq = ++teLoadSeq;
+  let view = null;
   refreshNextStartHero('te-next-start', 'hide');
   // Pulls every special-event schedule race up front (not just whichever
   // ones the Schedule tab's own filter happens to have fetched already) so
@@ -7457,23 +7462,25 @@ async function loadTeamEvents(){
 
   const showClosed = document.getElementById('te-show-closed').checked;
   if(error){
-    teLastView = { message: `Fehler beim Laden: ${error.message}` };
+    view = { message: `Fehler beim Laden: ${error.message}` };
   }else if(!allEvents || allEvents.length === 0){
-    teLastView = { message: 'Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.' };
+    view = { message: 'Noch keine Team Events — leg eins an oder warte auf ein Special Event im Schedule-Tab.' };
   }else{
     const events = allEvents.filter(ev => {
       if((ev.game || 'lmu') !== teGameFilter) return false;
-      const isDone = ev.closed || isEventPast(ev);
+      // Over = race finished (start + Training/Quali + duration), not "the
+      // calendar day passed" - a race running past midnight stays open.
+      const isDone = isEventOver(ev);
       return showClosed ? isDone : !isDone;
     });
     if(events.length === 0){
       const gameLabel = teGameFilter === 'acc' ? 'ACC' : 'LMU';
-      teLastView = { message: `Keine ${showClosed ? 'abgeschlossenen' : 'offenen'} ${gameLabel}-Team-Events.` };
+      view = { message: `Keine ${showClosed ? 'abgeschlossenen' : 'offenen'} ${gameLabel}-Team-Events.` };
     }else{
       const { data: teams, error: teamsError } = await selectTeams(q => q.in('event_id', events.map(e => e.id)));
 
       if(teamsError){
-        teLastView = { message: `Fehler beim Laden der Teams: ${teamsError.message}` };
+        view = { message: `Fehler beim Laden der Teams: ${teamsError.message}` };
       }else{
         const carData = await loadCarsByClass();
         carData.allProfiles = await loadAllProfiles();
@@ -7482,10 +7489,12 @@ async function loadTeamEvents(){
         const teamsByEvent = {};
         (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
         const autoEventCandidates = allEvents.filter(e => e.source === 'auto');
-        teLastView = { events, teamsByEvent, carData, autoEventCandidates, showClosed };
+        view = { events, teamsByEvent, carData, autoEventCandidates, showClosed };
       }
     }
   }
+  if(seq !== teLoadSeq) return;
+  teLastView = view;
   rerenderTeamEvents();
 
   // Keeps the draft editor's live preview in sync with anything that just
@@ -7787,7 +7796,7 @@ async function loadMyNextStart(){
     .select('id,name,slot_times,game,closed,published,duration_minutes,source,track,tyre_sets,practice_minutes,qualifying_minutes')
     .order('event_date', { ascending: true });
   if(error) throw error;
-  const candidates = (events || []).filter(e => !e.closed && e.published !== false && !isEventPast(e));
+  const candidates = (events || []).filter(e => e.published !== false && !isEventOver(e));
   if(!candidates.length) return null;
 
   const { data: teams, error: teamsError } = await selectTeams(q => q.in('event_id', candidates.map(e => e.id)));
