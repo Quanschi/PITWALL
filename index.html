@@ -6418,8 +6418,12 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
   const C = stintPlanImageColors();
   const { stints, timeline, laps } = stintWeights(team, raceMinutes);
   const colorOf = teamColorMap(team);
+  // "Nur meine Stints" on: the picture holds just those, keeping their real
+  // stint numbers and times.
+  const meId = currentProfile && currentProfile.id;
+  const shown = stints.map((s, i) => i).filter(i => !meta.mineOnly || (meId && (stints[i].user_id === meId || stints[i].spotter_id === meId)));
   const W = 1040, pad = 40, rowH = 46, headH = 150, tableHead = 34, footH = 56;
-  const H = headH + tableHead + stints.length * rowH + footH;
+  const H = headH + tableHead + shown.length * rowH + footH;
   const scale = 2;
   const canvas = document.createElement('canvas');
   canvas.width = W * scale;
@@ -6448,7 +6452,7 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
   ctx.fillStyle = C.muted;
   ctx.font = "500 15px 'Inter', sans-serif";
   const when = startMs != null ? `${formatDayHeader(new Date(startMs))} · ${formatClock(startMs)} Uhr` : '';
-  const sub = [meta.teamLabel, team.car, when, formatDuration(raceMinutes)].filter(Boolean).join(' · ');
+  const sub = [meta.teamLabel, team.car, when, formatDuration(raceMinutes), meta.mineOnly && currentProfile ? `nur Stints von ${currentProfile.username}` : null].filter(Boolean).join(' · ');
   ctx.fillText(fit(sub, W - 2 * pad), pad, 108);
   if(team.dnf){
     ctx.fillStyle = C.red;
@@ -6469,10 +6473,11 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(pad, y - 0.5); ctx.lineTo(W - pad, y - 0.5); ctx.stroke();
 
-  stints.forEach((st, i) => {
-    const rowTop = y + i * rowH;
+  shown.forEach((i, k) => {
+    const st = stints[i];
+    const rowTop = y + k * rowH;
     const base = rowTop + 29;
-    if(i % 2 === 1){
+    if(k % 2 === 1){
       ctx.fillStyle = C.panel;
       ctx.fillRect(pad - 10, rowTop, W - 2 * pad + 20, rowH);
     }
@@ -6606,7 +6611,9 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     shareBtn.title = 'Stintplan als Bild teilen (am PC: kopiert und gespeichert)';
     shareBtn.addEventListener('click', e => {
       e.stopPropagation();
-      shareStintPlanImage(team, startMs, raceMinutes, shareMeta, shareBtn);
+      // Same filter as the list: "Nur meine Stints" on -> only those in the picture.
+      const mineOnlyNow = !!teMyStintsOnly[team.id] && (myDriverCount + mySpotterCount) > 0;
+      shareStintPlanImage(team, startMs, raceMinutes, { ...shareMeta, mineOnly: mineOnlyNow }, shareBtn);
     });
     tools.appendChild(shareBtn);
   }
