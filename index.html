@@ -1241,6 +1241,12 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .dnf-overlay{position:absolute;inset:0;z-index:5;border-radius:inherit;background:rgba(10,10,12,0.62);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;width:100%;color:inherit;}
 .dnf-overlay-mark{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:64px;line-height:1;letter-spacing:4px;color:var(--red);}
 .dnf-overlay-hint{font-size:12px;color:#d4d4d8;}
+.dnf-overlay-when{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#f4f4f5;}
+.sl-row.dnf{background:rgba(232,92,74,0.22);box-shadow:inset 0 0 0 1px var(--red);border-radius:8px;}
+.sl-dnf{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:0.4px;color:#fff;background:var(--red);border-radius:8px;padding:1px 6px;}
+.stint-row.dnf-stint{background:rgba(232,92,74,0.22);box-shadow:inset 0 0 0 1px var(--red);}
+.ns-countdown[data-phase="dnf"] .ns-fact-k{color:var(--red);}
+.ns-countdown[data-phase="dnf"] .ns-fact-v{color:var(--red);}
 .dnf-badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:0.6px;color:var(--red);border:1px solid var(--red);border-radius:10px;padding:1px 7px;}
 .stint-dnf-btn{border-color:var(--red) !important;color:var(--red) !important;}
 .fc-group{border:1px solid var(--line); border-radius:10px; padding:14px 14px 0; margin-bottom:14px;}
@@ -5870,7 +5876,23 @@ function openStintComments(stint, team, number){
 // wherever it shows (slot view, "Dein nächstes Event"). Tapping the cover
 // lifts it, everything underneath can still be looked at but not changed.
 let teDnfRevealed = {}; // teamId -> cover lifted this session
-function addDnfCover(host, team){
+// When (race time) and in which stint the team went out - from dnf_at,
+// which the database stamps when DNF is pressed. Null for an older DNF
+// without a time, or one only marked after the race.
+function teamDnfInfo(team, raceStartMs, raceMinutes){
+  if(!team || !team.dnf || !team.dnf_at || raceStartMs == null) return null;
+  const elapsedMin = (new Date(team.dnf_at).getTime() - raceStartMs) / 60000;
+  if(elapsedMin < 0) return { label: 'vor Rennstart', stintIdx: -1 };
+  if(raceMinutes && elapsedMin >= raceMinutes) return null;
+  const { timeline } = stintWeights(team, raceMinutes);
+  const stintIdx = timeline.findIndex(t => elapsedMin >= t.from && elapsedMin < t.to);
+  return { label: `nach ${formatHeroCountdown(elapsedMin * 60000)}`, stintIdx };
+}
+function dnfSummary(info){
+  if(!info) return '';
+  return [info.label, info.stintIdx >= 0 ? `Stint #${info.stintIdx + 1}` : null].filter(Boolean).join(' · ');
+}
+function addDnfCover(host, team, info){
   host.classList.add('dnf-host');
   if(teDnfRevealed[team.id]) return;
   const cover = document.createElement('button');
@@ -5878,7 +5900,10 @@ function addDnfCover(host, team){
   cover.className = 'dnf-overlay';
   cover.dataset.teamId = team.id;
   cover.setAttribute('aria-label', 'Team ist ausgeschieden (DNF) - antippen zum Ansehen');
-  cover.innerHTML = '<span class="dnf-overlay-mark">DNF</span><span class="dnf-overlay-hint">Antippen zum Ansehen</span>';
+  cover.innerHTML = '<span class="dnf-overlay-mark">DNF</span><span class="dnf-overlay-when"></span><span class="dnf-overlay-hint">Antippen zum Ansehen</span>';
+  const when = cover.querySelector('.dnf-overlay-when');
+  when.textContent = dnfSummary(info);
+  when.hidden = !info;
   cover.addEventListener('click', e => {
     e.stopPropagation();
     teDnfRevealed[team.id] = true;
@@ -5936,7 +5961,9 @@ function renderStintPlan(team, ev){
   if(team.dnf){
     const dnfNote = document.createElement('p');
     dnfNote.className = 'stint-locked-sub';
-    dnfNote.innerHTML = '<span class="dnf-badge">DNF</span> Team ist ausgeschieden - der Plan ist schreibgeschützt.';
+    dnfNote.innerHTML = '<span class="dnf-badge">DNF</span> <span></span>';
+    const planDnf = teamDnfInfo(team, teamRaceStartMs(team), ev && ev.duration_minutes);
+    dnfNote.lastChild.textContent = `Team ist ausgeschieden${planDnf ? ` (${dnfSummary(planDnf)})` : ''} - der Plan ist schreibgeschützt.`;
     wrap.appendChild(dnfNote);
   }else if(team._eventDone){
     const doneNote = document.createElement('p');
@@ -6220,7 +6247,11 @@ function renderStintPlan(team, ev){
     // Shown to everyone looking at this plan, not just team members - "who's
     // on track right now" is useful to know regardless of whether you've
     // joined.
-    if(stintStart.getTime() <= now && now < stintEnd.getTime()) row.classList.add('active');
+    if(!team.dnf && stintStart.getTime() <= now && now < stintEnd.getTime()) row.classList.add('active');
+    if(team.dnf){
+      const dnfHere = teamDnfInfo(team, teamRaceStartMs(team), ev && ev.duration_minutes);
+      if(dnfHere && dnfHere.stintIdx === stintIdx) row.classList.add('dnf-stint');
+    }
     row.dataset.stintId = stint.id;
 
     // Four groups, appended to `row` in the same left-to-right order their
@@ -7060,6 +7091,7 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
   list.className = 'sl';
   list.dataset.teamId = team.id;
   list.innerHTML = '<div class="sl-row sl-head"><span>Stint</span><span>Zeit</span><span>Runden</span><span>Reifen</span><span>Fahrer</span><span>Spotter</span></div>';
+  const dnfInfo = teamDnfInfo(team, startMs, raceMinutes);
   stints.forEach((s, i) => {
     const { from, to } = timeline[i];
     const driver = stintDriverName(s);
@@ -7074,8 +7106,9 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     const dropped = laps[i] === 0;
     const added = !!s.ist_added && !dropped;
     const nowMs = Date.now();
-    const running = startMs != null && !dropped && startMs + from * 60000 <= nowMs && nowMs < startMs + to * 60000;
-    row.className = 'sl-row' + (driverColor ? ' colored' : '') + (dropped ? ' dropped' : '') + (added ? ' added' : '') + (running ? ' running' : '');
+    const running = !team.dnf && startMs != null && !dropped && startMs + from * 60000 <= nowMs && nowMs < startMs + to * 60000;
+    const dnfStint = !!dnfInfo && dnfInfo.stintIdx === i;
+    row.className = 'sl-row' + (driverColor ? ' colored' : '') + (dropped ? ' dropped' : '') + (added ? ' added' : '') + (running ? ' running' : '') + (dnfStint ? ' dnf' : '');
     row.dataset.mine = isMine(s) ? '1' : '0';
     if(mineOnly && !isMine(s)) row.hidden = true;
     const num = document.createElement('span');
@@ -7084,6 +7117,13 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     const timeEl = document.createElement('span');
     timeEl.className = 'sl-time';
     timeEl.textContent = time;
+    if(dnfStint){
+      const tag = document.createElement('span');
+      tag.className = 'sl-dnf';
+      tag.textContent = 'DNF';
+      tag.title = `Ausgeschieden ${dnfInfo.label}`;
+      timeEl.appendChild(tag);
+    }
     if(s.remaining_minutes != null) timeEl.title = `Ist: noch ${formatDuration(s.remaining_minutes) || '0min'} Rennzeit nach diesem Stint`;
     if(driverColor){ num.style.color = driverColor; timeEl.style.color = driverColor; }
     const nameEl = (label, name, color) => {
@@ -7199,7 +7239,8 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
     if(t.dnf){
       const dnfBadge = document.createElement('span');
       dnfBadge.className = 'dnf-badge';
-      dnfBadge.textContent = 'DNF';
+      const cardDnf = teamDnfInfo(t, new Date(t.slot_time).getTime() + preRaceMinutes(ev) * 60000, ev.duration_minutes);
+      dnfBadge.textContent = cardDnf ? `DNF · ${dnfSummary(cardDnf)}` : 'DNF';
       headRow.appendChild(dnfBadge);
     }
     if(t.car){
@@ -7385,7 +7426,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
       row.appendChild(stintToggle);
       if(isStintOpen) row.appendChild(renderStintPlan(t, ev));
     }
-    if(t.dnf) addDnfCover(row, t);
+    if(t.dnf) addDnfCover(row, t, teamDnfInfo(t, new Date(t.slot_time).getTime() + preRaceMinutes(ev) * 60000, ev.duration_minutes));
     detail.appendChild(row);
   });
 
@@ -7712,7 +7753,7 @@ function formatDayTab(d){
 // Shared between the main list and the single-event draft editor so the
 // two select() calls can't silently drift apart the way they already have
 // once this session.
-const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,dnf,lap_time_locked,quali_tyre_sets,durations_locked,recalc_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,tires_from_quali,remaining_minutes,ist_added,team_stint_comments(id,user_id,body,created_at,updated_at,profiles(username)),driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
+const TEAM_EVENT_TEAMS_COLUMNS = 'id,event_id,slot_time,name,car,created_by,est_lap_time_seconds,tank_liters,consumption_per_lap,resource_type,max_stint_minutes,stints_locked,dnf,dnf_at,lap_time_locked,quali_tyre_sets,durations_locked,recalc_locked,team_event_members(id,user_id,manual_name,note,leave_requested,profiles(username)),team_stints(id,position,user_id,spotter_id,duration_minutes,laps,laps_increased,driver_name,spotter_name,edited,tire_fl,tire_fr,tire_rl,tire_rr,tires_from_quali,remaining_minutes,ist_added,team_stint_comments(id,user_id,body,created_at,updated_at,profiles(username)),driver:profiles!user_id(username),spotter:profiles!spotter_id(username))';
 
 // Every team query wants the same columns and the same order (teams by
 // creation, stints by position) - `filter` adds the event condition.
@@ -8137,7 +8178,7 @@ function paintHeroCountdown(el, state){
 }
 // Keeps every visible hero countdown live without re-rendering the tile.
 setInterval(() => {
-  document.querySelectorAll('.ns-countdown').forEach(el => {
+  document.querySelectorAll('.ns-countdown:not([data-phase="dnf"])').forEach(el => {
     paintHeroCountdown(el, heroCountdownState(Number(el.dataset.slot), Number(el.dataset.start), Number(el.dataset.end)));
   });
 }, 1000);
@@ -8178,7 +8219,10 @@ function renderNextStartHero(info){
     : `${formatDayHeader(new Date(start))} · ${formatClock(start)} Uhr`;
   const subParts = [(ev.game || 'lmu').toUpperCase(), formatDuration(ev.duration_minutes), teamDisplayName(team, teamNumber)].filter(Boolean);
   const slotStart = info.slotMs != null ? Math.min(info.slotMs, start) : start;
-  const countdown = heroCountdownState(slotStart, start, end);
+  const heroDnf = teamDnfInfo(team, start, ev.duration_minutes);
+  const countdown = team.dnf
+    ? { phase: 'dnf', k: heroDnf && heroDnf.stintIdx >= 0 ? `DNF · Stint #${heroDnf.stintIdx + 1}` : 'DNF', v: heroDnf ? heroDnf.label : 'Ausgeschieden' }
+    : heroCountdownState(slotStart, start, end);
   main.innerHTML = `
     <div>
       <div class="ns-when">${escapeText(dateStr)}</div>
@@ -8230,7 +8274,7 @@ function renderNextStartHero(info){
   plan.appendChild(actions);
   top.appendChild(plan);
 
-  if(team.dnf) addDnfCover(hero, team);
+  if(team.dnf) addDnfCover(hero, team, heroDnf);
   wrap.appendChild(hero);
   return wrap;
 }
