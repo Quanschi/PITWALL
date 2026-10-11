@@ -6899,11 +6899,16 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
   const when = startMs != null ? `${formatDayHeader(new Date(startMs))} · ${formatClock(startMs)} Uhr` : '';
   const sub = [meta.teamLabel, team.car, when, formatDuration(raceMinutes), meta.mineOnly && currentProfile ? `nur Stints von ${currentProfile.username}` : null].filter(Boolean).join(' · ');
   ctx.fillText(fit(sub, W - 2 * pad), pad, 108);
+  const imgDnf = team.dnf ? teamDnfInfo(team, startMs, raceMinutes) : null;
   if(team.dnf){
     ctx.fillStyle = C.red;
     ctx.font = "700 28px 'Rajdhani', sans-serif";
     ctx.textAlign = 'right';
     ctx.fillText('DNF', W - pad, 78);
+    if(imgDnf){
+      ctx.font = "700 13px 'JetBrains Mono', monospace";
+      ctx.fillText(dnfSummary(imgDnf), W - pad, 50);
+    }
     ctx.textAlign = 'left';
   }
 
@@ -6932,6 +6937,13 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
     if(added){
       ctx.fillStyle = 'rgba(232,92,74,0.16)';
       ctx.fillRect(pad - 10, rowTop, W - 2 * pad + 20, rowH);
+    }
+    if(imgDnf && imgDnf.stintIdx === i){
+      ctx.fillStyle = 'rgba(232,92,74,0.28)';
+      ctx.fillRect(pad - 10, rowTop, W - 2 * pad + 20, rowH);
+      ctx.strokeStyle = C.red;
+      ctx.strokeRect(pad - 9.5, rowTop + 0.5, W - 2 * pad + 19, rowH - 1);
+      ctx.strokeStyle = C.line;
     }
     const driver = stintDriverName(st);
     const spotter = stintSpotterName(st);
