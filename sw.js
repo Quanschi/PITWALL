@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pitwall-shell-v191';
+const CACHE_NAME = 'pitwall-shell-v192';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -10,8 +10,12 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener('install', event => {
+  // cache: 'reload' skips the browser's HTTP cache (GitHub Pages keeps
+  // files up to 10 minutes), so a new version never stores the old page.
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_FILES)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(SHELL_FILES.map(url => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
   );
 });
 
