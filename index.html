@@ -8117,11 +8117,10 @@ function formatHeroCountdown(ms){
   return `${mins}Min`;
 }
 // Counts down to the slot (when the session opens, practice included),
-// then to the race start, then the race's remaining time.
+// then shows how long it runs until the race ends.
 function heroCountdownState(slot, start, end){
   const now = Date.now();
   if(now < slot) return { k: 'Start in', v: formatHeroCountdown(slot - now) };
-  if(now < start) return { k: 'Rennstart in', v: formatHeroCountdown(start - now) };
   if(now < end) return { k: 'Läuft noch', v: formatHeroCountdown(end - now) };
   return { k: 'Rennen', v: 'Beendet' };
 }
