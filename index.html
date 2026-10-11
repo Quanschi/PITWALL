@@ -8116,16 +8116,19 @@ function formatHeroCountdown(ms){
   if(hours > 0) return `${hours}Std ${mins}Min`;
   return `${mins}Min`;
 }
-function heroCountdownState(start, end){
+// Counts down to the slot (when the session opens, practice included),
+// then to the race start, then the race's remaining time.
+function heroCountdownState(slot, start, end){
   const now = Date.now();
-  if(now < start) return { k: 'Start in', v: formatHeroCountdown(start - now) };
+  if(now < slot) return { k: 'Start in', v: formatHeroCountdown(slot - now) };
+  if(now < start) return { k: 'Rennstart in', v: formatHeroCountdown(start - now) };
   if(now < end) return { k: 'Läuft noch', v: formatHeroCountdown(end - now) };
   return { k: 'Rennen', v: 'Beendet' };
 }
 // Keeps every visible hero countdown live without re-rendering the tile.
 setInterval(() => {
   document.querySelectorAll('.ns-countdown').forEach(el => {
-    const state = heroCountdownState(Number(el.dataset.start), Number(el.dataset.end));
+    const state = heroCountdownState(Number(el.dataset.slot), Number(el.dataset.start), Number(el.dataset.end));
     el.querySelector('.ns-fact-k').textContent = state.k;
     el.querySelector('.ns-fact-v').textContent = state.v;
   });
@@ -8166,7 +8169,8 @@ function renderNextStartHero(info){
     ? `${formatDayHeader(new Date(start))} · Rennstart ${formatClock(start)} Uhr · Training ab ${formatClock(info.slotMs)}`
     : `${formatDayHeader(new Date(start))} · ${formatClock(start)} Uhr`;
   const subParts = [(ev.game || 'lmu').toUpperCase(), formatDuration(ev.duration_minutes), teamDisplayName(team, teamNumber)].filter(Boolean);
-  const countdown = heroCountdownState(start, end);
+  const slotStart = info.slotMs != null ? Math.min(info.slotMs, start) : start;
+  const countdown = heroCountdownState(slotStart, start, end);
   main.innerHTML = `
     <div>
       <div class="ns-when">${escapeText(dateStr)}</div>
@@ -8174,7 +8178,7 @@ function renderNextStartHero(info){
       <div class="ns-sub">${escapeText(subParts.join(' · '))}</div>
     </div>
     <div class="ns-facts">
-      <div class="ns-fact ns-countdown" data-start="${start}" data-end="${end}">
+      <div class="ns-fact ns-countdown" data-slot="${slotStart}" data-start="${start}" data-end="${end}">
         <span class="ns-fact-k">${escapeText(countdown.k)}</span>
         <span class="ns-fact-v start">${escapeText(countdown.v)}</span>
       </div>
