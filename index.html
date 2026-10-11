@@ -6893,7 +6893,7 @@ async function renderStintPlanImage(team, startMs, raceMinutes, meta){
   ctx.fillText('PITWALL · STINTPLAN', pad, 38);
   ctx.fillStyle = C.text;
   ctx.font = "700 32px 'Rajdhani', sans-serif";
-  ctx.fillText(fit(meta.eventName || 'Team Event', W - 2 * pad), pad, 78);
+  ctx.fillText(fit(meta.eventName || 'Team Event', W - 2 * pad - (team.dnf ? 90 : 0)), pad, 78); // room for the red DNF on the right
   ctx.fillStyle = C.muted;
   ctx.font = "500 15px 'Inter', sans-serif";
   const when = startMs != null ? `${formatDayHeader(new Date(startMs))} · ${formatClock(startMs)} Uhr` : '';
