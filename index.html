@@ -4497,6 +4497,8 @@ async function openEventEditor(eventId){
   document.getElementById('te-publish-btn').textContent = teEditorPublished ? 'Fertig' : 'Event veröffentlichen';
   document.getElementById('te-editor-close-btn').textContent = teEditorPublished ? 'Schließen' : 'Später weiter bearbeiten';
   if(teEditorPublished) document.getElementById('te-link-schedule-field').hidden = true;
+  // Switching LMU/ACC would scramble tracks and classes of existing teams.
+  document.getElementById('te-game-select').hidden = teEditorPublished;
   teEditorLockedTimes = new Set();
   if(teEditorPublished){
     const { data: teamRows } = await pitwallClient.from('team_event_teams').select('slot_time').eq('event_id', eventId);
