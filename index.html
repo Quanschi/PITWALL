@@ -2115,8 +2115,8 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
               <select id="te-track"><option value="">Strecke wählen…</option></select>
             </div>
             <div class="field">
-              <label for="te-tyre-sets">Reifensätze <span class="ec-label-note">· inkl. Quali, Wets zählen nicht</span></label>
-              <input type="number" id="te-tyre-sets" min="0" max="50" step="1" placeholder="z.B. 6">
+              <label for="te-tyre-sets">Reifen <span class="ec-label-note">· Anzahl inkl. Quali, Wets zählen nicht</span></label>
+              <input type="number" id="te-tyre-sets" min="0" max="400" step="1" placeholder="z.B. 24">
             </div>
           </div>
 
@@ -2717,7 +2717,7 @@ function buildScheduleDetails(card){
     items.push(['Tyre Warmers', card.tyre_warmers ? 'Aktiviert' : 'Deaktiviert']);
   }
   if(card.tyre_allowance !== null && card.tyre_allowance !== undefined){
-    items.push(['Reifensätze', String(card.tyre_allowance)]);
+    items.push(['Reifen', String(card.tyre_allowance)]);
   }
   if(card.fuel_multiplier !== null && card.fuel_multiplier !== undefined){
     items.push(['Rank Multiplikator', `${card.fuel_multiplier}×`]);
@@ -4443,7 +4443,7 @@ function updateEditorChecks(){
     ['Strecke', !!state.track],
     ['Renndauer', state.durationMinutes > 0],
     ['Startzeit', teSelectedTimes.size > 0 && !!state.startStr],
-    ['Reifensätze', !!state.tyreSets],
+    ['Reifen', !!state.tyreSets],
   ];
   const box = document.getElementById('te-editor-checks');
   box.innerHTML = '';
@@ -4583,7 +4583,7 @@ document.getElementById('te-publish-btn').addEventListener('click', async () => 
     return;
   }
   if(!state.name || !state.slotTimes.length || !(state.durationMinutes > 0) || !state.track || !state.tyreSets){
-    showFormMessage('te-create-message', 'Bitte Name, Renndauer, Strecke, Reifensätze und mindestens eine Uhrzeit angeben.');
+    showFormMessage('te-create-message', 'Bitte Name, Renndauer, Strecke, Reifen und mindestens eine Uhrzeit angeben.');
     return;
   }
   await saveEditorEvent();
@@ -4667,7 +4667,7 @@ function buildMergePreview(manual, target, teams){
     duration_minutes: v => v ? formatDuration(v) : '–',
     practice_minutes: v => v != null ? `${v} min` : '–',
     qualifying_minutes: v => v != null ? `${v} min` : '–',
-    tyre_sets: v => v != null ? `${v} Sätze` : '–',
+    tyre_sets: v => v != null ? `${v} Reifen` : '–',
     track: v => v || '–',
   };
   const labels = { duration_minutes: 'Renndauer', practice_minutes: 'Training', qualifying_minutes: 'Quali', tyre_sets: 'Reifen', track: 'Strecke' };
@@ -5237,63 +5237,56 @@ function stintTimeline(stints, raceMinutes){
   });
 }
 
-// Tire sets: 1 set = 4 tires, so changing fewer corners uses part of a set.
-// Wets are free and never count. The event's allowance includes whatever
-// the team holds back for qualifying; tires marked "aus der Quali" come out
-// of that reserve instead of the new ones.
+// The event's allowance is a number of single tires (lmuportal's "tyres:
+// 58 (q+r)"), qualifying included. Changing fewer corners uses fewer tires,
+// wets are free and never count. A team can hold one set (4 tires) back for
+// qualifying; tires marked "aus der Quali" come out of that reserve.
 function countedTires(s){
   return TIRE_CORNERS.filter(([key]) => s[key] && s[key] !== 'Wet').length;
 }
 function tireBudget(team, ev){
-  const totalSets = ev && Number(ev.tyre_sets) > 0 ? Number(ev.tyre_sets) : null;
-  const qualiSets = totalSets != null ? Math.min(totalSets, Math.max(0, Number(team.quali_tyre_sets) || 0)) : 0;
+  const totalTires = ev && Number(ev.tyre_sets) > 0 ? Math.round(Number(ev.tyre_sets)) : null;
+  const qualiTires = totalTires != null && Number(team.quali_tyre_sets) > 0 ? Math.min(4, totalTires) : 0;
   let usedNew = 0, usedQuali = 0;
   (team.team_stints || []).forEach(s => {
     const n = countedTires(s);
     if(s.tires_from_quali) usedQuali += n; else usedNew += n;
   });
-  const newTotal = totalSets != null ? (totalSets - qualiSets) * 4 : null;
+  const newTotal = totalTires != null ? totalTires - qualiTires : null;
   return {
-    totalSets, qualiSets, usedNew, usedQuali, newTotal,
+    totalTires, qualiTires, usedNew, usedQuali, newTotal,
     newLeft: newTotal != null ? newTotal - usedNew : null,
-    qualiLeft: qualiSets * 4 - usedQuali,
+    qualiLeft: qualiTires - usedQuali,
   };
 }
-// Tires as sets with quarter fractions: 6 -> "1½", 3 -> "¾", -2 -> "−½".
-function formatTireSets(tires){
-  const sign = tires < 0 ? '−' : '';
-  const abs = Math.abs(tires);
-  const whole = Math.floor(abs / 4);
-  const frac = ['', '¼', '½', '¾'][Math.round(abs % 4)] || '';
-  return sign + (whole || !frac ? String(whole) : '') + frac;
-}
+function formatTireCount(n){ return n < 0 ? `−${Math.abs(n)}` : String(n); }
 
 function renderTireBudgetLine(team, budget, canEdit){
   const line = document.createElement('div');
   line.className = 'stint-tire-budget';
-  line.title = '1 Satz = 4 Reifen · Regenreifen (Wet) zählen nicht';
-  if(budget.totalSets == null){
-    line.innerHTML = `<span>Verbraucht: <b>${formatTireSets(budget.usedNew + budget.usedQuali)}</b> Sätze</span><span>Kein Reifenkontingent für dieses Event hinterlegt</span>`;
+  line.title = 'Anzahl einzelner Reifen · 1 Satz = 4 Reifen · Regenreifen (Wet) zählen nicht';
+  if(budget.totalTires == null){
+    line.innerHTML = `<span>Verbraucht: <b>${budget.usedNew + budget.usedQuali}</b> Reifen</span><span>Kein Reifenkontingent für dieses Event hinterlegt</span>`;
     return line;
   }
   const newEl = document.createElement('span');
-  newEl.innerHTML = `Neue Sätze übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireSets(budget.newLeft)}</b> von ${formatTireSets(budget.newTotal)}`;
+  newEl.innerHTML = `Neue Reifen übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireCount(budget.newLeft)}</b> von ${budget.newTotal}`;
   line.appendChild(newEl);
 
   // Qualifying always takes exactly one set - a tick reserves it.
   const qualiLabel = document.createElement('label');
   const qualiCb = document.createElement('input');
   qualiCb.type = 'checkbox';
-  qualiCb.checked = budget.qualiSets >= 1;
-  qualiCb.disabled = !canEdit || budget.totalSets < 1;
+  qualiCb.checked = budget.qualiTires > 0;
+  qualiCb.disabled = !canEdit || budget.totalTires < 4;
   qualiCb.addEventListener('change', () => updateTeamCalcInputs(team.id, { quali_tyre_sets: qualiCb.checked ? 1 : 0 }));
   qualiLabel.appendChild(qualiCb);
-  qualiLabel.appendChild(document.createTextNode('1 Satz für Quali'));
+  qualiLabel.appendChild(document.createTextNode('1 Satz (4 Reifen) für Quali'));
   line.appendChild(qualiLabel);
 
-  if(budget.qualiSets > 0){
+  if(budget.qualiTires > 0){
     const qualiLeft = document.createElement('span');
-    qualiLeft.innerHTML = `Quali-Satz übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireSets(budget.qualiLeft)}</b> von ${formatTireSets(budget.qualiSets * 4)}`;
+    qualiLeft.innerHTML = `Quali-Satz übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireCount(budget.qualiLeft)}</b> von ${budget.qualiTires} Reifen`;
     line.appendChild(qualiLeft);
   }
   return line;
@@ -5660,12 +5653,12 @@ function renderTireControl(stint, team, canEdit, live, budget){
     if(budget){
       const info = document.createElement('div');
       info.className = 'stint-tire-menu-budget';
-      if(budget.totalSets == null){
+      if(budget.totalTires == null){
         info.textContent = 'Kein Reifenkontingent für dieses Event hinterlegt.';
       }else{
-        info.innerHTML = `Neue Sätze übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireSets(budget.newLeft)}</b> von ${formatTireSets(budget.newTotal)}`
-          + (budget.qualiSets > 0 ? `<br>Quali-Satz übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireSets(budget.qualiLeft)}</b> von ${formatTireSets(budget.qualiSets * 4)}` : '')
-          + '<br>1 Satz = 4 Reifen · Regenreifen zählen nicht';
+        info.innerHTML = `Neue Reifen übrig: <b class="${budget.newLeft < 0 ? 'over' : ''}">${formatTireCount(budget.newLeft)}</b> von ${budget.newTotal}`
+          + (budget.qualiTires > 0 ? `<br>Quali-Satz übrig: <b class="${budget.qualiLeft < 0 ? 'over' : ''}">${formatTireCount(budget.qualiLeft)}</b> von ${budget.qualiTires} Reifen` : '')
+          + '<br>Regenreifen zählen nicht';
       }
       card.appendChild(info);
     }
@@ -5726,7 +5719,7 @@ function renderTireControl(stint, team, canEdit, live, budget){
 
     // Used tires from qualifying - only possible once some were reserved
     // for it (Reifen-Zeile im Stintplan).
-    const qualiAvailable = budget && budget.qualiSets > 0;
+    const qualiAvailable = budget && budget.qualiTires > 0;
     const qualiRow = document.createElement('label');
     qualiRow.className = 'stint-tire-quali' + (qualiAvailable || stint.tires_from_quali ? '' : ' disabled');
     const qualiCb = document.createElement('input');
@@ -5737,7 +5730,7 @@ function renderTireControl(stint, team, canEdit, live, budget){
     qualiRow.appendChild(qualiCb);
     qualiRow.appendChild(document.createTextNode(qualiAvailable || stint.tires_from_quali
       ? 'Gebrauchte Reifen aus dem Quali-Satz'
-      : 'Quali-Reifen: erst „1 Satz für Quali“ ankreuzen'));
+      : 'Quali-Reifen: erst „1 Satz (4 Reifen) für Quali“ ankreuzen'));
     card.appendChild(qualiRow);
     wrap.appendChild(menu);
 
@@ -8088,7 +8081,7 @@ function renderEventCard(ev, teams, carData, opts){
   const dateParts = [formatEventDateRange(ev.slot_times)];
   if(duration) dateParts.push(duration);
   if(ev.track) dateParts.push(ev.track);
-  if(ev.tyre_sets > 0) dateParts.push(`${ev.tyre_sets} Reifensätze`);
+  if(ev.tyre_sets > 0) dateParts.push(`${ev.tyre_sets} Reifen`);
   dateEl.textContent = dateParts.join(' · ');
   left.appendChild(nameEl);
   left.appendChild(dateEl);
