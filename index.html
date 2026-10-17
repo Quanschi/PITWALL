@@ -1181,6 +1181,10 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-event-menu button:hover, .te-event-menu button:focus-visible{background:rgba(255,255,255,0.06); outline:none;}
 .te-event-menu b{font-size:13.5px;}
 .te-event-menu small{font-size:12px; color:var(--muted);}
+/* Phones: the pencil wraps below the title on the left - open the menu rightwards. */
+@media (max-width:640px){
+  .te-event-menu{left:0; right:auto; width:min(280px, calc(100vw - 48px));}
+}
 .te-header-btn.pencil:hover{color:var(--amber); border-color:var(--amber);}
 .ec-hours .filter-pill.locked{cursor:not-allowed;}
 .ec-hours .filter-pill.locked{box-shadow:inset 0 -2px 0 rgba(17,19,23,0.55);}
@@ -1191,6 +1195,7 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .te-move-teams small{color:var(--muted); font-size:12px;}
 .te-move-k{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.5px; color:var(--muted); margin:0;}
 .te-move select, .te-move input[type="datetime-local"]{width:100%; height:42px; box-sizing:border-box;}
+.te-move input[type="datetime-local"]{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:0 12px; font-family:'Inter',sans-serif; font-size:14px; color-scheme:dark;}
 .te-move-preview{padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5; white-space:pre-line; background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.35);}
 .te-move-check{display:flex; gap:10px; align-items:flex-start; font-size:13px;}
 .te-move-check input{margin-top:2px;}
@@ -7981,7 +7986,13 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     else{
       const slot = chosenSlot();
       lines.push(`${picked.length} Team${picked.length === 1 ? '' : 's'} ziehen nach „${t.name}“ – mit Mitgliedern, Stints und Kommentaren.`);
-      if(slotSel.value === 'custom' && !slot) lines.push('Bitte eine Uhrzeit wählen.');
+      if(slotSel.value === 'custom' && !slot){
+        lines.push('Bitte eine Uhrzeit wählen.');
+        preview.textContent = lines.join('\n');
+        go.textContent = `${picked.length} Team${picked.length === 1 ? '' : 's'} verschieben`;
+        go.disabled = true;
+        return;
+      }
       const newSlots = [...new Set(picked.map(p => slot ? new Date(slot).getTime() : new Date(p.slot_time).getTime()))];
       const targetSlots = times(t.slot_times);
       const missing = newSlots.filter(ms => !targetSlots.includes(ms));
