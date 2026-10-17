@@ -4621,15 +4621,26 @@ document.querySelectorAll('#te-game-select .filter-pill').forEach(btn => {
   document.getElementById(id).addEventListener('change', saveEditorEvent);
 });
 
-async function deleteTeamEvent(id){
-  const { error } = await pitwallClient.from('team_events').delete().eq('id', id);
-  if(error) console.error('Delete team event failed:', error.message);
+// Deleting takes every team, stint plan and comment with it - always ask.
+async function deleteTeamEvent(ev, teams){
+  const n = (teams || []).length;
+  const lines = [`„${ev.name || 'Team Event'}“ wirklich löschen?`];
+  lines.push(n ? `${n} Team${n === 1 ? '' : 's'} mit allen Mitgliedern, Stintplänen und Kommentaren ${n === 1 ? 'geht' : 'gehen'} dabei unwiderruflich verloren.` : 'Das Event hat keine Teams.');
+  if(ev.source === 'auto') lines.push('Hinweis: Ein Schedule-Event wird beim nächsten Schedule-Abgleich wieder angelegt (ohne Teams). Zum Ausblenden lieber „Abschließen“.');
+  if(!(await pitwallConfirm(lines.join('\n\n'), { confirmText: 'Löschen', danger: true }))) return;
+  const { data, error } = await pitwallClient.from('team_events').delete().eq('id', ev.id).select('id');
+  if(error || !(data && data.length)){
+    await pitwallAlert(`Löschen fehlgeschlagen${error ? `: ${error.message}` : ' – keine Berechtigung.'}`);
+  }
+  if(teSelectedEventId === ev.id) teSelectedEventId = null;
   loadTeamEvents();
 }
 
 async function setTeamEventClosed(id, closed){
-  const { error } = await pitwallClient.from('team_events').update({ closed }).eq('id', id);
-  if(error) console.error('Close/reopen team event failed:', error.message);
+  const { data, error } = await pitwallClient.from('team_events').update({ closed }).eq('id', id).select('id');
+  if(error || !(data && data.length)){
+    await pitwallAlert(`${closed ? 'Abschließen' : 'Wieder öffnen'} fehlgeschlagen${error ? `: ${error.message}` : ' – keine Berechtigung.'}`);
+  }
   loadTeamEvents();
 }
 
@@ -8130,12 +8141,14 @@ function renderEventCard(ev, teams, carData, opts){
   const isAdmin = !!(currentProfile && currentProfile.is_admin);
   // Pencil: the creator of a self-made event, or the admin (any event).
   const canManage = ev.published !== false && !opts.isEditorPreview && (isAdmin || (isCreator && ev.source === 'manual'));
-  if(isCreator || canManage){
+  if(isCreator || canManage || isAdmin){
     const headerRight = document.createElement('div');
     headerRight.className = 'te-event-header-right';
     if(canManage) headerRight.appendChild(renderEventManageMenu(ev, teams, isAdmin));
 
-    if(isCreator){
+    // Close/reopen and delete: the creator, and the admin for every event
+    // (finished and closed ones included).
+    if(isCreator || isAdmin){
       const actions = document.createElement('div');
       actions.className = 'te-event-actions';
 
@@ -8153,7 +8166,7 @@ function renderEventCard(ev, teams, carData, opts){
       delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
       delBtn.title = 'Event entfernen';
       delBtn.setAttribute('aria-label', 'Event entfernen');
-      delBtn.addEventListener('click', () => deleteTeamEvent(ev.id));
+      delBtn.addEventListener('click', () => deleteTeamEvent(ev, teams));
       actions.appendChild(delBtn);
 
       headerRight.appendChild(actions);
