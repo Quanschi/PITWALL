@@ -189,7 +189,7 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
   <form id="auth-form">
     <div class="field" id="field-username" hidden>
       <label for="auth-username">Benutzername</label>
-      <input type="text" id="auth-username" autocomplete="username" placeholder="Wird auf der Bestenliste angezeigt">
+      <input type="text" id="auth-username" maxlength="32" autocomplete="username" placeholder="Wird auf der Bestenliste angezeigt">
     </div>
     <div class="field" id="field-invite" hidden>
       <label for="auth-invite-code">Einladungscode</label>
@@ -253,7 +253,7 @@ function translateAuthError(msg){
   if(/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
   if(/email not confirmed/i.test(msg)) return 'Bitte zuerst die E-Mail bestätigen (Link steht in deinem Postfach).';
   if(/password.*(least|characters)/i.test(msg)) return 'Passwort muss mindestens 6 Zeichen haben.';
-  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Ungültiger Einladungscode.';
+  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Einladungscode ungültig oder Benutzername schon vergeben (Groß-/Kleinschreibung zählt dabei nicht).';
   return msg;
 }
 
@@ -295,6 +295,10 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
       const inviteCode = document.getElementById('auth-invite-code').value.trim();
       if(!username){
         showFormMessage('auth-message', 'Bitte einen Benutzernamen wählen.');
+        return;
+      }
+      if(username.length < 2 || username.length > 32){
+        showFormMessage('auth-message', 'Benutzername: 2–32 Zeichen.');
         return;
       }
       if(!inviteCode){

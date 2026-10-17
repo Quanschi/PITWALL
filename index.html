@@ -1949,7 +1949,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
             <div class="form-message" id="account-avatar-message" hidden></div>
             <button type="button" class="account-dropdown-item" id="account-username-toggle">Nutzernamen ändern</button>
             <div id="account-username-form" class="account-username-form" hidden>
-              <input type="text" id="account-username-input" placeholder="Neuer Nutzername">
+              <input type="text" id="account-username-input" maxlength="32" placeholder="Neuer Nutzername">
               <button type="button" class="te-team-btn" id="account-username-save">Speichern</button>
               <div class="form-message" id="account-username-message" hidden></div>
             </div>
@@ -3301,6 +3301,10 @@ document.getElementById('account-username-save').addEventListener('click', async
     showFormMessage('account-username-message', 'Bitte einen Nutzernamen eingeben.');
     return;
   }
+  if(newName.length < 2 || newName.length > 32){
+    showFormMessage('account-username-message', 'Nutzername: 2–32 Zeichen.');
+    return;
+  }
   if(newName === currentProfile.username){
     document.getElementById('account-username-form').hidden = true;
     return;
@@ -3310,7 +3314,9 @@ document.getElementById('account-username-save').addEventListener('click', async
   const { error } = await pitwallClient.from('profiles').update({ username: newName }).eq('id', session.user.id);
   if(error){
     // Postgres unique_violation
-    const msg = error.code === '23505' ? 'Nutzername ist bereits vergeben.' : 'Speichern fehlgeschlagen: ' + error.message;
+    const msg = error.code === '23505' ? 'Nutzername ist bereits vergeben (Groß-/Kleinschreibung zählt dabei nicht).'
+      : error.code === '23514' ? 'Nutzername: 2–32 Zeichen, ohne Leerzeichen am Anfang oder Ende.'
+      : 'Speichern fehlgeschlagen: ' + error.message;
     showFormMessage('account-username-message', msg);
     return;
   }
