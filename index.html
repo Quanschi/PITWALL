@@ -3136,6 +3136,14 @@ function pitwallConfirm(message, { confirmText = 'Bestätigen', cancelText = 'Ab
   });
 }
 
+// pitwallConfirm with just an OK button - for results and errors.
+async function pitwallAlert(message){
+  const cancel = document.getElementById('pitwall-modal-cancel');
+  cancel.hidden = true;
+  try{ await pitwallConfirm(message, { confirmText: 'OK' }); }
+  finally{ cancel.hidden = false; }
+}
+
 // Same modal look as pitwallConfirm, but for a single line of text input
 // (e.g. naming a preset) - native prompt() doesn't match the rest of the
 // app's styled dialogs. Built dynamically like openAddDriversModal rather
@@ -4537,43 +4545,78 @@ async function setTeamEventClosed(id, closed){
 
 // A manually-created event can end up duplicating a race that later also
 // shows up from Schedule (auto-synced, with richer info - car classes, SR
-// requirement, series data). This moves every team (and, since they're
-// only foreign-keyed to team_id not event_id, everything under them -
-// members, stint plans, all of it) from the manual event onto the real
-// schedule one, adding any of its slot times the target doesn't already
-// have so nothing becomes an orphaned, invisible team, then removes the
-// now-empty manual event. One-directional on purpose - the schedule event
-// is always treated as the "real" one to consolidate onto.
-async function mergeManualEventIntoSchedule(manualEventId, targetEventId){
-  const { data: manualTeams, error: teamsFetchError } = await pitwallClient
-    .from('team_event_teams').select('id,slot_time').eq('event_id', manualEventId);
-  if(teamsFetchError){ console.error('Load teams to merge failed:', teamsFetchError.message); return; }
-
-  const { data: targetEvent, error: targetFetchError } = await pitwallClient
-    .from('team_events').select('slot_times').eq('id', targetEventId).maybeSingle();
-  if(targetFetchError || !targetEvent){
-    if(targetFetchError) console.error('Load target event failed:', targetFetchError.message);
-    return;
-  }
-
-  const existing = new Set((targetEvent.slot_times || []).map(iso => new Date(iso).getTime()));
-  const missing = [];
-  (manualTeams || []).forEach(t => {
-    const ms = new Date(t.slot_time).getTime();
-    if(!existing.has(ms)){ existing.add(ms); missing.push(t.slot_time); }
-  });
+// requirement, series data). Moving it over is one database call
+// (merge_manual_event_into_schedule): it adds the teams' slot times the
+// schedule event doesn't have yet, moves every team (members, stint plans,
+// comments - all hang off the team) and deletes the now-empty manual
+// event, all or nothing. One-directional on purpose - the schedule event
+// is always the "real" one. Before that, a preview says exactly what will
+// happen: target, teams, new slots and which settings change.
+function formatSlotForPreview(ms){
+  const d = new Date(ms);
+  return `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${formatClock(ms)}`;
+}
+function buildMergePreview(manual, target, teams){
+  const targetSlots = (target.slot_times || []).map(iso => new Date(iso).getTime());
+  const teamSlots = [...new Set((teams || []).map(t => new Date(t.slot_time).getTime()))].sort((a, b) => a - b);
+  const missing = teamSlots.filter(ms => !targetSlots.includes(ms));
+  const lines = [`Ziel: ${target.name} (${formatEventDateRange(target.slot_times)})`];
+  lines.push(teams.length
+    ? `${teams.length} Team${teams.length === 1 ? '' : 's'} ziehen um - mit Mitgliedern, Stintplan und Kommentaren.`
+    : 'Dieses Event hat keine Teams.');
   if(missing.length){
-    const mergedSlotTimes = [...(targetEvent.slot_times || []), ...missing].sort();
-    const { error: slotUpdateError } = await pitwallClient.from('team_events').update({ slot_times: mergedSlotTimes }).eq('id', targetEventId);
-    if(slotUpdateError){ console.error('Extend target slot_times failed:', slotUpdateError.message); return; }
+    lines.push('', 'Diese Slots gibt es im Schedule-Event noch nicht, sie werden ergänzt:');
+    missing.forEach(ms => {
+      const near = targetSlots.find(t => t !== ms && Math.abs(t - ms) <= 30 * 60000);
+      lines.push(`• ${formatSlotForPreview(ms)}` + (near ? ` - Achtung: dort gibt es schon ${formatClock(near)}, evtl. derselbe Slot?` : ''));
+    });
+  }else if(teams.length){
+    lines.push('Alle Uhrzeiten gibt es im Schedule-Event schon.');
   }
+  const show = {
+    duration_minutes: v => v ? formatDuration(v) : '–',
+    practice_minutes: v => v != null ? `${v} min` : '–',
+    qualifying_minutes: v => v != null ? `${v} min` : '–',
+    tyre_sets: v => v != null ? `${v} Sätze` : '–',
+    track: v => v || '–',
+  };
+  const labels = { duration_minutes: 'Renndauer', practice_minutes: 'Training', qualifying_minutes: 'Quali', tyre_sets: 'Reifen', track: 'Strecke' };
+  const diffs = Object.keys(show).filter(k => String(manual[k] ?? '') !== String(target[k] ?? ''));
+  if(diffs.length){
+    lines.push('', 'Danach gelten die Einstellungen des Schedule-Events:');
+    diffs.forEach(k => lines.push(`• ${labels[k]}: ${show[k](manual[k])} → ${show[k](target[k])}`));
+    if(diffs.some(k => k === 'practice_minutes' || k === 'qualifying_minutes')) lines.push('  (Rennstart und Stintzeiten verschieben sich dadurch)');
+  }
+  lines.push('', 'Dieses Event wird danach gelöscht. Rückgängig machen geht nicht.');
+  return lines.join('\n');
+}
+const MERGE_ERRORS = {
+  only_manual_into_schedule: 'Übertragen geht nur von einem selbst erstellten Event auf ein Schedule-Event.',
+  event_not_found: 'Eines der beiden Events gibt es nicht mehr - die Liste wird neu geladen.',
+  not_signed_in: 'Du bist nicht mehr angemeldet.',
+};
+async function confirmAndMergeIntoSchedule(manualEventId, targetEventId){
+  const [m, t, tm] = await Promise.all([
+    pitwallClient.from('team_events').select('*').eq('id', manualEventId).maybeSingle(),
+    pitwallClient.from('team_events').select('*').eq('id', targetEventId).maybeSingle(),
+    pitwallClient.from('team_event_teams').select('id,slot_time').eq('event_id', manualEventId),
+  ]);
+  const loadError = m.error || t.error || tm.error;
+  if(loadError || !m.data || !t.data){
+    await pitwallAlert(loadError ? `Übertragen nicht möglich: ${loadError.message}` : MERGE_ERRORS.event_not_found);
+    loadTeamEvents();
+    return false;
+  }
+  const sure = await pitwallConfirm(buildMergePreview(m.data, t.data, tm.data || []), { confirmText: 'Übertragen', danger: true });
+  if(!sure) return false;
 
-  const { error: moveError } = await pitwallClient.from('team_event_teams').update({ event_id: targetEventId }).eq('event_id', manualEventId);
-  if(moveError){ console.error('Move teams failed:', moveError.message); return; }
-
-  const { error: deleteError } = await pitwallClient.from('team_events').delete().eq('id', manualEventId);
-  if(deleteError) console.error('Delete merged manual event failed:', deleteError.message);
-
+  const { data, error } = await pitwallClient.rpc('merge_manual_event_into_schedule', { p_manual: manualEventId, p_target: targetEventId });
+  if(error){
+    const key = Object.keys(MERGE_ERRORS).find(k => (error.message || '').includes(k));
+    await pitwallAlert(`Übertragen fehlgeschlagen - es wurde nichts verändert.\n${key ? MERGE_ERRORS[key] : error.message}`);
+    loadTeamEvents();
+    return false;
+  }
   if(teEditorEventId === manualEventId){
     // The open draft just merged itself away - fall back to the list
     // instead of leaving the editor open on a now-deleted event.
@@ -4581,7 +4624,35 @@ async function mergeManualEventIntoSchedule(manualEventId, targetEventId){
     document.getElementById('te-editor-view').hidden = true;
     document.getElementById('te-list-view').hidden = false;
   }
+  const moved = (data && data.moved_teams) || 0;
+  const added = (data && data.added_slots) || 0;
+  await pitwallAlert(`Übertragen: ${moved} Team${moved === 1 ? '' : 's'}` + (added ? `, ${added} Slot${added === 1 ? '' : 's'} ergänzt.` : '.'));
+  teSelectedEventId = targetEventId;
   loadTeamEvents();
+  return true;
+}
+// Only schedule events that can plausibly be the same race: same game,
+// not over, within a week of this event's slots, not on another track.
+function mergeCandidatesFor(ev, autoEvents){
+  const times = list => (list || []).map(iso => new Date(iso).getTime()).filter(Number.isFinite);
+  const mine = times(ev.slot_times);
+  const myTrack = ev.track ? foldAccents(ev.track) : '';
+  const WEEK = 7 * 86400000;
+  return (autoEvents || [])
+    .filter(c => c.id !== ev.id && (c.game || 'lmu') === (ev.game || 'lmu') && !isEventOver(c))
+    .map(c => {
+      const theirs = times(c.slot_times);
+      const gap = mine.length && theirs.length ? Math.min(...mine.flatMap(a => theirs.map(b => Math.abs(a - b)))) : Infinity;
+      return { c, gap };
+    })
+    .filter(({ c, gap }) => {
+      if(gap > WEEK) return false;
+      if(!myTrack || !c.track) return true;
+      const theirTrack = foldAccents(c.track);
+      return theirTrack.includes(myTrack) || myTrack.includes(theirTrack);
+    })
+    .sort((a, b) => a.gap - b.gap)
+    .map(({ c }) => c);
 }
 
 // Claims a schedule race's identifiers for a still-manual event so the
@@ -4596,7 +4667,7 @@ async function linkEventToScheduleRace(eventId, card){
     .from('team_events').select('id').eq('race_series_id', card.series_id).eq('week_key', card.week_key).maybeSingle();
   if(findError){ console.error('Look up existing schedule event failed:', findError.message); return; }
   if(existingAuto && existingAuto.id !== eventId){
-    await mergeManualEventIntoSchedule(eventId, existingAuto.id);
+    await confirmAndMergeIntoSchedule(eventId, existingAuto.id);
     return;
   }
   const { error } = await pitwallClient.from('team_events').update({
@@ -7495,12 +7566,9 @@ function renderScheduleMergeControl(ev, candidates){
   mergeBtn.textContent = 'Daten übertragen';
   mergeBtn.addEventListener('click', async () => {
     if(!select.value) return;
-    const sure = await pitwallConfirm(
-      'Alle Teams dieses Events (inkl. Mitglieder und Stintplan) auf das ausgewählte Schedule-Event übertragen? Dieses Event wird danach gelöscht - nichts Eingestelltes geht dabei verloren.',
-      { confirmText: 'Übertragen', danger: true }
-    );
-    if(!sure) return;
-    mergeManualEventIntoSchedule(ev.id, select.value);
+    mergeBtn.disabled = true;
+    await confirmAndMergeIntoSchedule(ev.id, select.value);
+    mergeBtn.disabled = false;
   });
   row.appendChild(select);
   row.appendChild(mergeBtn);
@@ -7562,13 +7630,13 @@ function renderEventCard(ev, teams, carData, opts){
 
   // A manually-created event whose race also exists as an auto-synced
   // Schedule event is a likely accidental duplicate - offer to consolidate
-  // onto the Schedule one (see mergeManualEventIntoSchedule) rather than
+  // onto the Schedule one (see confirmAndMergeIntoSchedule) rather than
   // leaving people's already-built teams/stint plans stranded on the copy
   // nobody else will find. Schedule/lmuportal only ever covers LMU, so
   // this only ever applies to LMU events.
   let mergeControl = null;
   if(ev.source === 'manual' && (ev.game || 'lmu') === 'lmu' && ev.published !== false && !opts.isEditorPreview){
-    const candidates = opts.autoEventCandidates || [];
+    const candidates = mergeCandidatesFor(ev, opts.autoEventCandidates);
     if(candidates.length) mergeControl = renderScheduleMergeControl(ev, candidates);
   }
 
