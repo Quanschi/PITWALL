@@ -2779,6 +2779,7 @@ function formatCountdown(msRemaining){
   const mins = totalMin % 60;
   if(days > 0) return `Startet in ${days}T ${hours}Std`;
   if(hours > 0) return `Startet in ${hours}Std ${mins}Min`;
+  if(totalMin < 1) return 'Startet in <1Min';
   return `Startet in ${mins}Min`;
 }
 
@@ -3488,7 +3489,8 @@ document.addEventListener('change', e => { if(e.target) e.target._liveDirty = fa
 document.addEventListener('focusout', e => { if(e.target) e.target._liveDirty = false; }, true);
 const LIVE_ROOTS = '#te-list, #te-editor-preview, #dash-next-start, #te-next-start';
 function isBusyInTeamEvents(){
-  if(document.querySelector('.stint-tire-menu:not([hidden])')) return true;
+  if(document.querySelector('.stint-tire-menu:not([hidden]), .te-event-menu:not([hidden])')) return true;
+  if(document.querySelector('.pitwall-modal-overlay:not([hidden])')) return true;
   if(draggedStintId) return true;
   if(!document.getElementById('pitwall-modal-overlay').hidden) return true;
   const a = document.activeElement;
@@ -3568,8 +3570,11 @@ function startLiveUpdates(){
 // Phone unlocked / tab back in front / network back: the live connection
 // may have been asleep, so catch up right away instead of showing an old
 // plan until the next change happens to arrive.
+// A glance away of a few seconds keeps the connection alive - no redraw then.
+let liveHiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible' && liveChannel) scheduleLiveRefresh();
+  if(document.visibilityState === 'hidden'){ liveHiddenAt = Date.now(); return; }
+  if(liveChannel && Date.now() - liveHiddenAt > 10000) scheduleLiveRefresh();
 });
 window.addEventListener('online', () => { if(liveChannel) scheduleLiveRefresh(); });
 window.addEventListener('pageshow', e => { if(e.persisted && liveChannel) scheduleLiveRefresh(); });
