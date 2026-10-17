@@ -1164,7 +1164,33 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
 .stint-calc-input.missing{border-color:var(--red) !important;}
 .stint-calc-hint.missing{color:var(--red);margin-top:8px;}
 .stint-size-lock{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0 0 8px;}
-.sl-time{display:inline-flex; align-items:center; gap:6px;}
+.sl-time{display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;}
+/* Daylight-saving switch inside a stint: the shown times already include it. */
+.dst-note{flex-basis:100%; font-family:'Inter',sans-serif; font-size:10.5px; font-weight:600; color:var(--violet); white-space:nowrap;}
+.stint-row .dst-note{flex-basis:auto; margin-left:4px;}
+.dst-banner{display:flex; gap:8px; align-items:flex-start; margin:0 0 10px; padding:9px 12px; border-radius:10px; font-size:12.5px; line-height:1.45; background:rgba(167,139,250,0.10); border:1px solid rgba(167,139,250,0.35);}
+.dst-banner b{color:#C4B5FD;}
+/* Event menu behind the pencil (creator of a manual event, admin). */
+.te-event-menu-wrap{position:relative;}
+.te-event-menu{position:absolute; top:calc(100% + 6px); right:0; z-index:30; width:280px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,0.5); padding:6px; display:flex; flex-direction:column;}
+.te-event-menu button{display:flex; flex-direction:column; gap:2px; text-align:left; padding:10px 12px; border:none; border-radius:8px; background:transparent; color:var(--text); font-family:'Inter',sans-serif; cursor:pointer;}
+.te-event-menu button:hover, .te-event-menu button:focus-visible{background:rgba(255,255,255,0.06); outline:none;}
+.te-event-menu b{font-size:13.5px;}
+.te-event-menu small{font-size:12px; color:var(--muted);}
+.te-header-btn.pencil:hover{color:var(--amber); border-color:var(--amber);}
+.ec-hours .filter-pill.locked{cursor:not-allowed;}
+.ec-hours .filter-pill.locked{box-shadow:inset 0 -2px 0 rgba(17,19,23,0.55);}
+.te-move{max-width:600px; max-height:calc(100vh - 32px); overflow-y:auto; box-sizing:border-box;}
+.te-move-teams{display:flex; flex-direction:column; gap:6px;}
+.te-move-teams label{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; cursor:pointer; font-size:13.5px;}
+.te-move-teams label:has(input:checked){border-color:var(--amber); background:rgba(255,176,32,0.07);}
+.te-move-teams small{color:var(--muted); font-size:12px;}
+.te-move-k{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.5px; color:var(--muted); margin:0;}
+.te-move select, .te-move input[type="datetime-local"]{width:100%; height:42px; box-sizing:border-box;}
+.te-move-preview{padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5; white-space:pre-line; background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.35);}
+.te-move-check{display:flex; gap:10px; align-items:flex-start; font-size:13px;}
+.te-move-check input{margin-top:2px;}
+.te-move-check small{display:block; color:var(--muted); font-size:12px;}
 .sl-time .stint-comment-btn{padding:0 4px;}
 .stint-ref-btn{background:none;border:none;padding:0;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--violet);cursor:pointer;text-align:left;}
 .stint-ref-btn:hover{color:var(--text);}
@@ -3202,7 +3228,7 @@ function pitwallPromptText(message, defaultValue){
 }
 
 async function loadOwnProfile(userId){
-  const { data } = await pitwallClient.from('profiles').select('id,username,avatar_url').eq('id', userId).maybeSingle();
+  const { data } = await pitwallClient.from('profiles').select('id,username,avatar_url,is_admin').eq('id', userId).maybeSingle();
   return data;
 }
 
@@ -4320,7 +4346,10 @@ async function saveEditorEventOnce(){
   };
   const { error } = await pitwallClient.from('team_events').update(patch).eq('id', teEditorEventId);
   if(error){
-    showFormMessage('te-create-message', 'Konnte nicht gespeichert werden: ' + error.message);
+    const msg = error.message || '';
+    showFormMessage('te-create-message', msg.includes('slot_has_teams')
+      ? 'Nicht gespeichert: In einer Startzeit, die dabei wegfallen würde, stehen Teams. Erst die Teams verschieben.'
+      : 'Konnte nicht gespeichert werden: ' + msg);
     return;
   }
   refreshEventEditorPreview();
@@ -4417,7 +4446,7 @@ function updateEditorChecks(){
   });
   const missing = checks.filter(([, ok]) => !ok).map(([label]) => label);
   const publishBtn = document.getElementById('te-publish-btn');
-  publishBtn.disabled = missing.length > 0 || !!state.dateError;
+  publishBtn.disabled = !teEditorPublished && (missing.length > 0 || !!state.dateError);
   publishBtn.title = missing.length ? `Fehlt noch: ${missing.join(', ')}` : (state.dateError || '');
 
   // Starts per day x days = slots.
@@ -4456,9 +4485,29 @@ async function openEventEditor(eventId){
     return;
   }
   populateEditorForm(ev);
+  // A published event is edited live: no publish step, no schedule link,
+  // and start times that already have teams can't be removed.
+  teEditorPublished = ev.published !== false;
+  document.querySelector('#te-editor-view .ec-title').textContent = teEditorPublished ? 'Event bearbeiten' : 'Event erstellen';
+  document.querySelector('#te-editor-view .ec-draft').textContent = teEditorPublished ? 'Veröffentlicht · Änderungen sehen alle sofort' : 'Entwurf · nur für dich sichtbar';
+  document.getElementById('te-publish-btn').textContent = teEditorPublished ? 'Fertig' : 'Event veröffentlichen';
+  document.getElementById('te-editor-close-btn').textContent = teEditorPublished ? 'Schließen' : 'Später weiter bearbeiten';
+  if(teEditorPublished) document.getElementById('te-link-schedule-field').hidden = true;
+  teEditorLockedTimes = new Set();
+  if(teEditorPublished){
+    const { data: teamRows } = await pitwallClient.from('team_event_teams').select('slot_time').eq('event_id', eventId);
+    (teamRows || []).forEach(r => teEditorLockedTimes.add(formatSlotTime(r.slot_time)));
+  }
+  document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => {
+    const locked = teEditorLockedTimes.has(b.dataset.time);
+    b.classList.toggle('locked', locked);
+    b.title = locked ? 'Hier stehen Teams – erst die Teams verschieben, dann lässt sich die Zeit entfernen.' : '';
+  });
   refreshEventEditorPreview();
-  populateScheduleLinkOptions();
+  if(!teEditorPublished) populateScheduleLinkOptions();
 }
+let teEditorPublished = false;
+let teEditorLockedTimes = new Set();
 
 let editorScheduleCandidates = [];
 
@@ -4510,6 +4559,11 @@ document.getElementById('te-open-editor-btn').addEventListener('click', async ()
 document.getElementById('te-editor-close-btn').addEventListener('click', closeEventEditor);
 
 document.getElementById('te-publish-btn').addEventListener('click', async () => {
+  if(teEditorPublished){
+    await saveEditorEvent();
+    if(document.getElementById('te-create-message').hidden) closeEventEditor();
+    return;
+  }
   if(!teEditorEventId) return;
   hideFormMessage('te-create-message');
   const state = readEditorFormState();
@@ -4532,6 +4586,10 @@ document.getElementById('te-publish-btn').addEventListener('click', async () => 
 
 document.querySelectorAll('#te-time-tiles .filter-pill').forEach(btn => {
   btn.addEventListener('click', () => {
+    if(btn.classList.contains('locked') && btn.classList.contains('active')){
+      showFormMessage('te-create-message', `${btn.dataset.time}: Hier stehen Teams – erst die Teams verschieben, dann lässt sich die Zeit entfernen.`);
+      return;
+    }
     btn.classList.toggle('active');
     if(btn.classList.contains('active')) teSelectedTimes.add(btn.dataset.time);
     else teSelectedTimes.delete(btn.dataset.time);
@@ -5980,6 +6038,39 @@ function teamDnfInfo(team, raceStartMs, raceMinutes){
   const stintIdx = timeline.findIndex(t => elapsedMin >= t.from && elapsedMin < t.to);
   return { label: `nach ${formatHeroCountdown(elapsedMin * 60000)}`, stintIdx };
 }
+// Daylight-saving switch inside a time span (e.g. a stint): null, or where
+// the clock jumps. The device's own time zone decides, like every other
+// time Pitwall shows - the displayed times already include the jump.
+function dstShiftInfo(startMs, endMs){
+  if(!(endMs > startMs)) return null;
+  const a = new Date(startMs).getTimezoneOffset();
+  if(a === new Date(endMs).getTimezoneOffset()) return null;
+  let lo = startMs, hi = endMs;
+  while(hi - lo > 60000){
+    const mid = lo + Math.max(60000, Math.floor((hi - lo) / 120000) * 60000);
+    if(mid >= hi) break;
+    if(new Date(mid).getTimezoneOffset() === a) lo = mid; else hi = mid;
+  }
+  const back = new Date(hi).getTimezoneOffset() > a; // autumn: clock goes back
+  const fromH = (new Date(hi - 1).getHours() + 1) % 24;
+  const toH = new Date(hi).getHours();
+  return { at: hi, back, from: `${fromH}:00`, to: `${toH}:00` };
+}
+function dstNoteEl(info){
+  const el = document.createElement('span');
+  el.className = 'dst-note';
+  el.textContent = `${info.from} → ${info.to} · eingerechnet`;
+  el.title = `Zeitumstellung: Um ${info.from} wird die Uhr auf ${info.to} ${info.back ? 'zurück' : 'vor'}gestellt. Die angezeigten Zeiten sind schon umgerechnet, die Dauer stimmt.`;
+  return el;
+}
+function dstBannerEl(info, stintNumbers){
+  const el = document.createElement('div');
+  el.className = 'dst-banner';
+  const day = new Date(info.at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  el.innerHTML = '<b>Zeitumstellung:</b> <span></span>';
+  el.lastChild.textContent = `In der Nacht auf ${day} wird die Uhr um ${info.from} auf ${info.to} ${info.back ? 'zurück' : 'vor'}gestellt. Die Zeiten sind schon umgerechnet – betroffen: Stint ${stintNumbers.join(', ')}.`;
+  return el;
+}
 function dnfSummary(info){
   if(!info) return '';
   return [info.label, info.stintIdx >= 0 ? `Stint #${info.stintIdx + 1}` : null].filter(Boolean).join(' · ');
@@ -6412,6 +6503,8 @@ function renderStintPlan(team, ev){
     timeEl.className = 'stint-time';
     timeEl.textContent = `${formatSlotTime(stintStart.toISOString())}–${formatSlotTime(stintEnd.toISOString())}`;
     groupMeta.appendChild(timeEl);
+    const stintDst = dstShiftInfo(stintStart.getTime(), stintEnd.getTime());
+    if(stintDst) groupMeta.appendChild(dstNoteEl(stintDst));
     // Finished events are a trophy cabinet: everyone may read the comments.
     if(iAmIn || team._eventDone) timeEl.appendChild(renderCommentButton(stint, team, stintIdx + 1));
 
@@ -7196,6 +7289,8 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
   list.dataset.teamId = team.id;
   list.innerHTML = '<div class="sl-row sl-head"><span>Stint</span><span>Zeit</span><span>Runden</span><span>Reifen</span><span>Fahrer</span><span>Spotter</span></div>';
   const dnfInfo = teamDnfInfo(team, startMs, raceMinutes);
+  let dstFirst = null;
+  const dstStints = [];
   stints.forEach((s, i) => {
     const { from, to } = timeline[i];
     const driver = stintDriverName(s);
@@ -7258,6 +7353,12 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     tireEl.appendChild(dots);
     tireEl.appendChild(document.createTextNode(tireChangeSummary(s)));
     if(iAmIn || team._eventDone) timeEl.appendChild(renderCommentButton(s, team, i + 1));
+    const dst = startMs != null ? dstShiftInfo(startMs + from * 60000, startMs + to * 60000) : null;
+    if(dst){
+      timeEl.appendChild(dstNoteEl(dst));
+      if(!dstFirst) dstFirst = dst;
+      dstStints.push(i + 1);
+    }
     row.appendChild(num);
     row.appendChild(timeEl);
     row.appendChild(lapsEl);
@@ -7267,6 +7368,7 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
     list.appendChild(row);
   });
   stripeStintRows(list);
+  if(dstFirst) wrap.appendChild(dstBannerEl(dstFirst, dstStints));
   wrap.appendChild(list);
   return wrap;
 }
@@ -7596,6 +7698,276 @@ function renderScheduleMergeControl(ev, candidates){
   return { toggle, row };
 }
 
+function renderEventManageMenu(ev, teams, isAdmin){
+  const wrap = document.createElement('div');
+  wrap.className = 'te-event-menu-wrap';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'te-header-btn icon pencil';
+  btn.setAttribute('aria-label', 'Event verwalten');
+  btn.setAttribute('aria-haspopup', 'menu');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.title = 'Event verwalten';
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>';
+  const menu = document.createElement('div');
+  menu.className = 'te-event-menu';
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+  const item = (title, sub, onClick) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'menuitem');
+    b.innerHTML = '<b></b><small></small>';
+    b.querySelector('b').textContent = title;
+    b.querySelector('small').textContent = sub;
+    b.addEventListener('click', () => { close(); onClick(); });
+    menu.appendChild(b);
+  };
+  item('Event bearbeiten', 'Name, Zeiten, Dauer, Training/Quali, Reifen', () => openEventEditor(ev.id));
+  if(isAdmin && teams.length){
+    item('Teams verschieben …', 'einzelne Teams in ein anderes Event', () => openMoveTeamsDialog(ev, teams, false));
+    item('Mit anderem Event zusammenlegen …', 'alle Teams rüber, dieses Event danach löschen', () => openMoveTeamsDialog(ev, teams, true));
+  }
+  function onDocClick(e){ if(!wrap.contains(e.target)) close(); }
+  function onKey(e){ if(e.key === 'Escape'){ close(); btn.focus(); } }
+  function close(){
+    menu.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', onDocClick);
+    document.removeEventListener('keydown', onKey);
+  }
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if(!menu.hidden){ close(); return; }
+    menu.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('keydown', onKey);
+    menu.querySelector('button').focus();
+  });
+  wrap.appendChild(btn);
+  wrap.appendChild(menu);
+  return wrap;
+}
+
+// Admin: move some (or all) teams of an event into another event, keeping
+// their slot time or choosing one; with "delete empty" this merges events.
+// One database call (admin_move_teams) - all or nothing.
+async function openMoveTeamsDialog(ev, teams, mergeAll){
+  const { data: events, error } = await pitwallClient.from('team_events')
+    .select('id,name,slot_times,game,track,source,published,closed,duration_minutes,practice_minutes,qualifying_minutes,tyre_sets');
+  if(error){ await pitwallAlert(`Events konnten nicht geladen werden: ${error.message}`); return; }
+  // Team counts make same-named events (e.g. three "24h Le Mans HY") tell apart.
+  const { data: teamRows } = await pitwallClient.from('team_event_teams').select('event_id');
+  const teamCount = {};
+  (teamRows || []).forEach(r => { teamCount[r.event_id] = (teamCount[r.event_id] || 0) + 1; });
+  const times = list => (list || []).map(iso => new Date(iso).getTime()).filter(Number.isFinite);
+  const mine = times(ev.slot_times);
+  const myTrack = ev.track ? foldAccents(ev.track) : '';
+  const targets = (events || []).filter(e => e.id !== ev.id && e.published !== false).map(e => {
+    const theirs = times(e.slot_times);
+    const gap = mine.length && theirs.length ? Math.min(...mine.flatMap(a => theirs.map(b => Math.abs(a - b)))) : Infinity;
+    const sameTrack = !!myTrack && !!e.track && (foldAccents(e.track).includes(myTrack) || myTrack.includes(foldAccents(e.track)));
+    return { e, score: (sameTrack ? 0 : 1) * 1e13 + gap };
+  }).sort((a, b) => a.score - b.score).map(x => x.e);
+  if(!targets.length){ await pitwallAlert('Es gibt kein anderes veröffentlichtes Event als Ziel.'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pitwall-modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'pitwall-modal te-move';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'te-move-title');
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
+  modal.style.gap = '14px';
+  overlay.appendChild(modal);
+  const h = document.createElement('h3');
+  h.className = 'pitwall-modal-title';
+  h.id = 'te-move-title';
+  h.style.margin = '0';
+  h.textContent = mergeAll ? 'Mit anderem Event zusammenlegen' : 'Teams verschieben';
+  modal.appendChild(h);
+  const from = document.createElement('p');
+  from.className = 'te-move-k';
+  from.textContent = `AUS: ${ev.name || 'Team Event'} · ${formatEventDateRange(ev.slot_times)}`;
+  modal.appendChild(from);
+
+  const teamsBox = document.createElement('div');
+  teamsBox.className = 'te-move-teams';
+  const slotCounts = {};
+  const sorted = teams.slice().sort((a, b) => new Date(a.slot_time) - new Date(b.slot_time));
+  const checks = sorted.map(t => {
+    const ms = new Date(t.slot_time).getTime();
+    slotCounts[ms] = (slotCounts[ms] || 0) + 1;
+    const l = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = mergeAll;
+    cb.value = t.id;
+    const txt = document.createElement('span');
+    txt.innerHTML = '<b></b> <small></small>';
+    txt.querySelector('b').textContent = t.name || `Team ${slotCounts[ms]}`;
+    txt.querySelector('small').textContent = `· Slot ${formatSlotForPreview(ms)} · ${(t.team_event_members || []).length} Mitglieder · ${(t.team_stints || []).length} Stints`;
+    l.appendChild(cb);
+    l.appendChild(txt);
+    teamsBox.appendChild(l);
+    return { cb, team: t };
+  });
+  const k1 = document.createElement('p');
+  k1.className = 'te-move-k';
+  k1.textContent = '1 · WELCHE TEAMS';
+  modal.appendChild(k1);
+  modal.appendChild(teamsBox);
+
+  const k2 = document.createElement('label');
+  k2.className = 'te-move-k';
+  k2.textContent = '2 · IN WELCHES EVENT';
+  k2.htmlFor = 'te-move-target';
+  modal.appendChild(k2);
+  const targetSel = document.createElement('select');
+  targetSel.id = 'te-move-target';
+  targets.forEach(e => {
+    const o = document.createElement('option');
+    o.value = e.id;
+    const clocks = [...new Set(times(e.slot_times).sort((a, b) => a - b).map(ms => formatClock(ms)))];
+    const n = teamCount[e.id] || 0;
+    o.textContent = `${e.name} · ${formatEventDateRange(e.slot_times)} · ${clocks.slice(0, 3).join(', ')}${clocks.length > 3 ? ' …' : ''} · ${n} Team${n === 1 ? '' : 's'}${e.source === 'auto' ? ' · Schedule' : ''}`;
+    targetSel.appendChild(o);
+  });
+  modal.appendChild(targetSel);
+
+  const k3 = document.createElement('label');
+  k3.className = 'te-move-k';
+  k3.textContent = '3 · SLOT IM ZIEL-EVENT';
+  k3.htmlFor = 'te-move-slot';
+  modal.appendChild(k3);
+  const slotSel = document.createElement('select');
+  slotSel.id = 'te-move-slot';
+  modal.appendChild(slotSel);
+  const customTime = document.createElement('input');
+  customTime.type = 'datetime-local';
+  customTime.setAttribute('aria-label', 'Andere Uhrzeit');
+  customTime.hidden = true;
+  modal.appendChild(customTime);
+
+  const delLabel = document.createElement('label');
+  delLabel.className = 'te-move-check';
+  const delCb = document.createElement('input');
+  delCb.type = 'checkbox';
+  delCb.checked = mergeAll;
+  const delTxt = document.createElement('span');
+  delTxt.innerHTML = '<b>Leeres Event danach löschen</b><small>nur wenn alle Teams verschoben werden (= Events zusammenlegen)</small>';
+  delLabel.appendChild(delCb);
+  delLabel.appendChild(delTxt);
+  modal.appendChild(delLabel);
+
+  const preview = document.createElement('div');
+  preview.className = 'te-move-preview';
+  modal.appendChild(preview);
+  const message = document.createElement('div');
+  message.className = 'form-message';
+  message.hidden = true;
+  modal.appendChild(message);
+
+  const actions = document.createElement('div');
+  actions.className = 'pitwall-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'pitwall-modal-btn';
+  cancel.textContent = 'Abbrechen';
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.className = 'pitwall-modal-btn primary';
+  actions.appendChild(cancel);
+  actions.appendChild(go);
+  modal.appendChild(actions);
+
+  const targetOf = () => targets.find(e => e.id === targetSel.value);
+  const fillSlots = () => {
+    const t = targetOf();
+    slotSel.innerHTML = '';
+    const keep = document.createElement('option');
+    keep.value = '';
+    keep.textContent = 'Gleiche Uhrzeit wie bisher';
+    slotSel.appendChild(keep);
+    times(t && t.slot_times).sort((a, b) => a - b).forEach(ms => {
+      const o = document.createElement('option');
+      o.value = new Date(ms).toISOString();
+      o.textContent = formatSlotForPreview(ms);
+      slotSel.appendChild(o);
+    });
+    const other = document.createElement('option');
+    other.value = 'custom';
+    other.textContent = 'Andere Uhrzeit …';
+    slotSel.appendChild(other);
+  };
+  const chosenSlot = () => {
+    if(slotSel.value === 'custom') return customTime.value ? new Date(customTime.value).toISOString() : null;
+    return slotSel.value || null;
+  };
+  const refresh = () => {
+    const picked = checks.filter(c => c.cb.checked).map(c => c.team);
+    const all = picked.length === teams.length;
+    delCb.disabled = !all;
+    if(!all) delCb.checked = false;
+    customTime.hidden = slotSel.value !== 'custom';
+    const t = targetOf();
+    const lines = [];
+    if(!picked.length) lines.push('Noch kein Team gewählt.');
+    else{
+      const slot = chosenSlot();
+      lines.push(`${picked.length} Team${picked.length === 1 ? '' : 's'} ziehen nach „${t.name}“ – mit Mitgliedern, Stints und Kommentaren.`);
+      if(slotSel.value === 'custom' && !slot) lines.push('Bitte eine Uhrzeit wählen.');
+      const newSlots = [...new Set(picked.map(p => slot ? new Date(slot).getTime() : new Date(p.slot_time).getTime()))];
+      const targetSlots = times(t.slot_times);
+      const missing = newSlots.filter(ms => !targetSlots.includes(ms));
+      lines.push(missing.length ? `Neue Slots im Ziel: ${missing.sort((a, b) => a - b).map(formatSlotForPreview).join(', ')}` : 'Alle Uhrzeiten gibt es im Ziel schon.');
+      const labels = { duration_minutes: 'Renndauer', practice_minutes: 'Training', qualifying_minutes: 'Quali', tyre_sets: 'Reifen' };
+      const diffs = Object.keys(labels).filter(k => String(ev[k] ?? '') !== String(t[k] ?? ''));
+      if(diffs.length) lines.push(`Danach gelten vom Ziel: ${diffs.map(k => `${labels[k]} ${t[k] ?? '–'}`).join(', ')}.`);
+      lines.push(all ? (delCb.checked ? 'Dieses Event wird danach gelöscht.' : 'Dieses Event bleibt leer bestehen.') : `Dieses Event behält ${teams.length - picked.length} Team${teams.length - picked.length === 1 ? '' : 's'}.`);
+    }
+    preview.textContent = lines.join('\n');
+    go.textContent = picked.length ? `${picked.length} Team${picked.length === 1 ? '' : 's'} verschieben` : 'Verschieben';
+    go.disabled = !picked.length || (slotSel.value === 'custom' && !chosenSlot());
+  };
+  checks.forEach(c => c.cb.addEventListener('change', refresh));
+  targetSel.addEventListener('change', () => { fillSlots(); refresh(); });
+  slotSel.addEventListener('change', refresh);
+  customTime.addEventListener('input', refresh);
+  delCb.addEventListener('change', refresh);
+  fillSlots();
+  refresh();
+
+  function close(){ overlay.remove(); document.removeEventListener('keydown', onKey); }
+  function onKey(e){ if(e.key === 'Escape') close(); }
+  cancel.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  go.addEventListener('click', async () => {
+    const ids = checks.filter(c => c.cb.checked).map(c => c.team.id);
+    go.disabled = true;
+    const { data, error: moveError } = await pitwallClient.rpc('admin_move_teams', {
+      p_team_ids: ids, p_target: targetSel.value, p_slot: chosenSlot(), p_delete_empty: delCb.checked,
+    });
+    if(moveError){
+      message.textContent = `Verschieben fehlgeschlagen – es wurde nichts verändert. ${moveError.message.includes('admin_only') ? 'Nur der Admin darf Teams verschieben.' : moveError.message}`;
+      message.hidden = false;
+      go.disabled = false;
+      return;
+    }
+    close();
+    const d = data || {};
+    await pitwallAlert(`Verschoben: ${d.moved_teams || 0} Team${d.moved_teams === 1 ? '' : 's'}` + (d.added_slots ? `, ${d.added_slots} Slot${d.added_slots === 1 ? '' : 's'} ergänzt` : '') + (d.deleted_events ? ', altes Event gelöscht' : '') + '.');
+    teSelectedEventId = targetSel.value;
+    loadTeamEvents();
+  });
+  document.body.appendChild(overlay);
+  targetSel.focus();
+}
+
 function renderEventCard(ev, teams, carData, opts){
   opts = opts || {};
   // Finished events: everything stays visible, nothing editable.
@@ -7662,10 +8034,14 @@ function renderEventCard(ev, teams, carData, opts){
   }
 
   const isCreator = currentProfile && ev.created_by === currentProfile.id;
-  if(mergeControl || isCreator){
+  const isAdmin = !!(currentProfile && currentProfile.is_admin);
+  // Pencil: the creator of a self-made event, or the admin (any event).
+  const canManage = ev.published !== false && !opts.isEditorPreview && (isAdmin || (isCreator && ev.source === 'manual'));
+  if(mergeControl || isCreator || canManage){
     const headerRight = document.createElement('div');
     headerRight.className = 'te-event-header-right';
     if(mergeControl) headerRight.appendChild(mergeControl.toggle);
+    if(canManage) headerRight.appendChild(renderEventManageMenu(ev, teams, isAdmin));
 
     if(isCreator){
       const actions = document.createElement('div');
