@@ -7813,13 +7813,16 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
   const times = list => (list || []).map(iso => new Date(iso).getTime()).filter(Number.isFinite);
   const mine = times(ev.slot_times);
   const myTrack = ev.track ? foldAccents(ev.track) : '';
-  const targets = (events || []).filter(e => e.id !== ev.id && e.published !== false).map(e => {
+  const targets = (events || []).filter(e => e.id !== ev.id && e.published !== false && !isEventOver(e)).map(e => {
     const theirs = times(e.slot_times);
     const gap = mine.length && theirs.length ? Math.min(...mine.flatMap(a => theirs.map(b => Math.abs(a - b)))) : Infinity;
     const sameTrack = !!myTrack && !!e.track && (foldAccents(e.track).includes(myTrack) || myTrack.includes(foldAccents(e.track)));
     return { e, score: (sameTrack ? 0 : 1) * 1e13 + gap };
   }).sort((a, b) => a.score - b.score).map(x => x.e);
-  if(!targets.length){ await pitwallAlert('Es gibt kein anderes veröffentlichtes Event als Ziel.'); return; }
+  // Moving (not merging) may also stay here: that's a slot change for any team.
+  if(!mergeAll) targets.unshift((events || []).find(e => e.id === ev.id) || ev);
+  if(!targets.length){ await pitwallAlert('Es gibt kein laufendes oder kommendes Event als Ziel.'); return; }
+  const sameEvent = () => targetSel.value === ev.id;
 
   const overlay = document.createElement('div');
   overlay.className = 'pitwall-modal-overlay';
@@ -7883,7 +7886,9 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     o.value = e.id;
     const clocks = [...new Set(times(e.slot_times).sort((a, b) => a - b).map(ms => formatClock(ms)))];
     const n = teamCount[e.id] || 0;
-    o.textContent = `${e.name} · ${formatEventDateRange(e.slot_times)} · ${clocks.slice(0, 3).join(', ')}${clocks.length > 3 ? ' …' : ''} · ${n} Team${n === 1 ? '' : 's'}${e.source === 'auto' ? ' · Schedule' : ''}`;
+    o.textContent = e.id === ev.id
+      ? 'Im selben Event bleiben – nur Slot wechseln'
+      : `${e.name} · ${formatEventDateRange(e.slot_times)} · ${clocks.slice(0, 3).join(', ')}${clocks.length > 3 ? ' …' : ''} · ${n} Team${n === 1 ? '' : 's'}${e.source === 'auto' ? ' · Schedule' : ''}`;
     targetSel.appendChild(o);
   });
   modal.appendChild(targetSel);
@@ -7947,10 +7952,13 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
   const fillSlots = () => {
     const t = targetOf();
     slotSel.innerHTML = '';
-    const keep = document.createElement('option');
-    keep.value = '';
-    keep.textContent = 'Gleiche Uhrzeit wie bisher';
-    slotSel.appendChild(keep);
+    k3.textContent = sameEvent() ? '3 · NEUER SLOT' : '3 · SLOT IM ZIEL-EVENT';
+    if(!sameEvent()){
+      const keep = document.createElement('option');
+      keep.value = '';
+      keep.textContent = 'Gleiche Uhrzeit wie bisher';
+      slotSel.appendChild(keep);
+    }
     times(t && t.slot_times).sort((a, b) => a - b).forEach(ms => {
       const o = document.createElement('option');
       o.value = new Date(ms).toISOString();
@@ -7961,6 +7969,12 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     other.value = 'custom';
     other.textContent = 'Andere Uhrzeit …';
     slotSel.appendChild(other);
+    if(sameEvent()) preselectOtherSlot();
+  };
+  const preselectOtherSlot = () => {
+    const current = new Set(checks.filter(c => c.cb.checked).map(c => new Date(c.team.slot_time).getTime()));
+    const opt = [...slotSel.options].find(o => o.value && o.value !== 'custom' && !current.has(new Date(o.value).getTime()));
+    if(opt) slotSel.value = opt.value;
   };
   const chosenSlot = () => {
     if(slotSel.value === 'custom') return customTime.value ? new Date(customTime.value).toISOString() : null;
@@ -7969,8 +7983,9 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
   const refresh = () => {
     const picked = checks.filter(c => c.cb.checked).map(c => c.team);
     const all = picked.length === teams.length;
-    delCb.disabled = !all;
-    if(!all) delCb.checked = false;
+    delLabel.hidden = sameEvent();
+    delCb.disabled = !all || sameEvent();
+    if(!all || sameEvent()) delCb.checked = false;
     customTime.hidden = slotSel.value !== 'custom';
     const t = targetOf();
     const lines = [];
@@ -7978,6 +7993,18 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     else if(!picked.length) lines.push('Noch kein Team gewählt.');
     else{
       const slot = chosenSlot();
+      if(sameEvent()){
+        const stay = slot && picked.every(p => new Date(p.slot_time).getTime() === new Date(slot).getTime());
+        lines.push(slot
+          ? `${picked.length} Team${picked.length === 1 ? '' : 's'} wechseln in den Slot ${formatSlotForPreview(new Date(slot).getTime())} – im selben Event, mit Mitgliedern, Stints und Kommentaren.`
+          : 'Bitte einen neuen Slot wählen.');
+        if(slot && !times(t.slot_times).includes(new Date(slot).getTime())) lines.push('Diese Startzeit wird im Event ergänzt.');
+        if(stay) lines.push('Die gewählten Teams sind schon in diesem Slot.');
+        preview.textContent = lines.join('\n');
+        go.textContent = picked.length === 1 ? 'Slot wechseln' : `${picked.length} Teams: Slot wechseln`;
+        go.disabled = !slot || stay;
+        return;
+      }
       lines.push(`${picked.length} Team${picked.length === 1 ? '' : 's'} ziehen nach „${t.name}“ – mit Mitgliedern, Stints und Kommentaren.`);
       if(slotSel.value === 'custom' && !slot){
         lines.push('Bitte eine Uhrzeit wählen.');
@@ -7999,7 +8026,7 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     go.textContent = mergeAll ? 'Zusammenlegen' : (picked.length ? `${picked.length} Team${picked.length === 1 ? '' : 's'} verschieben` : 'Verschieben');
     go.disabled = mergeAll ? false : (!picked.length || (slotSel.value === 'custom' && !chosenSlot()));
   };
-  checks.forEach(c => c.cb.addEventListener('change', refresh));
+  checks.forEach(c => c.cb.addEventListener('change', () => { if(sameEvent() && slotSel.value !== 'custom') preselectOtherSlot(); refresh(); }));
   targetSel.addEventListener('change', () => { fillSlots(); refresh(); });
   slotSel.addEventListener('change', refresh);
   customTime.addEventListener('input', refresh);
@@ -8031,8 +8058,15 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     }
     close();
     const d = data || {};
-    await pitwallAlert(`${mergeAll ? 'Zusammengelegt' : 'Verschoben'}: ${d.moved_teams || 0} Team${d.moved_teams === 1 ? '' : 's'}` + (d.added_slots ? `, ${d.added_slots} Slot${d.added_slots === 1 ? '' : 's'} ergänzt` : '') + (d.deleted_events ? ', altes Event gelöscht' : '') + '.');
+    await pitwallAlert(`${mergeAll ? 'Zusammengelegt' : sameEvent() ? 'Slot gewechselt' : 'Verschoben'}: ${d.moved_teams || 0} Team${d.moved_teams === 1 ? '' : 's'}` + (d.added_slots ? `, ${d.added_slots} Slot${d.added_slots === 1 ? '' : 's'} ergänzt` : '') + (d.deleted_events ? ', altes Event gelöscht' : '') + '.');
     teSelectedEventId = targetSel.value;
+    const slotIso = chosenSlot();
+    if(slotIso){
+      const picked = new Date(slotIso).getTime();
+      const t = targetOf();
+      teOpenSlot[targetSel.value] = ((t && t.slot_times) || []).find(iso => new Date(iso).getTime() === picked) || slotIso;
+      teSelectedDay[targetSel.value] = localDayKey(new Date(slotIso));
+    }
     loadTeamEvents();
   });
   document.body.appendChild(overlay);
