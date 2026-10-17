@@ -843,9 +843,6 @@ input:disabled, select:disabled{opacity:0.5;cursor:not-allowed;}
   padding:2px 7px;
 }
 .te-draft-note{color:var(--muted);font-size:12.5px;margin-top:8px;}
-.te-merge-toggle{color:var(--amber);font-size:11px;}
-.te-merge-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 14px 0;}
-.te-merge-row select{width:auto;flex:1;min-width:160px;font-size:12px;padding:6px 8px;}
 .te-event-header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .te-event-actions{display:flex;gap:8px;flex-shrink:0;}
 .te-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px;}
@@ -4710,30 +4707,6 @@ async function confirmAndMergeIntoSchedule(manualEventId, targetEventId){
   loadTeamEvents();
   return true;
 }
-// Only schedule events that can plausibly be the same race: same game,
-// not over, within a week of this event's slots, not on another track.
-function mergeCandidatesFor(ev, autoEvents){
-  const times = list => (list || []).map(iso => new Date(iso).getTime()).filter(Number.isFinite);
-  const mine = times(ev.slot_times);
-  const myTrack = ev.track ? foldAccents(ev.track) : '';
-  const WEEK = 7 * 86400000;
-  return (autoEvents || [])
-    .filter(c => c.id !== ev.id && (c.game || 'lmu') === (ev.game || 'lmu') && !isEventOver(c))
-    .map(c => {
-      const theirs = times(c.slot_times);
-      const gap = mine.length && theirs.length ? Math.min(...mine.flatMap(a => theirs.map(b => Math.abs(a - b)))) : Infinity;
-      return { c, gap };
-    })
-    .filter(({ c, gap }) => {
-      if(gap > WEEK) return false;
-      if(!myTrack || !c.track) return true;
-      const theirTrack = foldAccents(c.track);
-      return theirTrack.includes(myTrack) || myTrack.includes(theirTrack);
-    })
-    .sort((a, b) => a.gap - b.gap)
-    .map(({ c }) => c);
-}
-
 // Claims a schedule race's identifiers for a still-manual event so the
 // Schedule auto-sync's own dedupe (unique on race_series_id+week_key)
 // skips creating a second event for it later - prevents the duplicate
@@ -7588,6 +7561,18 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
         actionsGroup.appendChild(delTeamBtn);
       }
 
+      // Team leader (and admin): move the team to another start time of
+      // this event.
+      if((currentProfile.id === t.created_by || currentProfile.is_admin) && !t.dnf && (ev.slot_times || []).length > 1){
+        const slotBtn = document.createElement('button');
+        slotBtn.type = 'button';
+        slotBtn.className = 'te-team-btn';
+        slotBtn.textContent = 'Slot wechseln';
+        slotBtn.title = 'Team in eine andere Startzeit dieses Events verschieben';
+        slotBtn.addEventListener('click', () => openChangeSlotDialog(ev, t));
+        actionsGroup.appendChild(slotBtn);
+      }
+
       // Any team member can mark the team out of the race - and take it
       // back, in case it was pressed by mistake.
       if(iAmIn){
@@ -7661,41 +7646,94 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   return detail;
 }
 
-// Returns the small toggle (sits in the header, left of the ✓/✕ icons) and
-// the expandable picker row (sits below the header, full width, since a
-// select+button doesn't fit inline in the header) separately - the two
-// share only the hidden/shown state via the toggle's click handler.
-function renderScheduleMergeControl(ev, candidates){
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'link-btn-inline te-merge-toggle';
-  toggle.textContent = '⚠ Mögliches Duplikat';
-  toggle.title = 'Alle Teams dieses Events auf ein passendes Schedule-Event übertragen';
-
-  const row = document.createElement('div');
-  row.className = 'te-merge-row';
-  row.hidden = true;
-  toggle.addEventListener('click', () => { row.hidden = !row.hidden; });
-  const select = document.createElement('select');
-  candidates.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = `${c.name} (${formatEventDateRange(c.slot_times)})`;
-    select.appendChild(opt);
+// Team leader / admin: another start time of the same event. The database
+// checks both who may do it and that the time exists in the event.
+async function openChangeSlotDialog(ev, team){
+  const current = new Date(team.slot_time).getTime();
+  const options = (ev.slot_times || []).map(iso => new Date(iso).getTime())
+    .filter(ms => Number.isFinite(ms) && ms !== current).sort((a, b) => a - b);
+  const overlay = document.createElement('div');
+  overlay.className = 'pitwall-modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'pitwall-modal te-move';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'te-slot-title');
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
+  modal.style.gap = '14px';
+  overlay.appendChild(modal);
+  const h = document.createElement('h3');
+  h.className = 'pitwall-modal-title';
+  h.id = 'te-slot-title';
+  h.style.margin = '0';
+  h.textContent = 'Slot wechseln';
+  modal.appendChild(h);
+  const info = document.createElement('p');
+  info.className = 'te-move-k';
+  info.textContent = `${team.name || 'Team'} · jetzt ${formatSlotForPreview(current)}`;
+  modal.appendChild(info);
+  const label = document.createElement('label');
+  label.className = 'te-move-k';
+  label.htmlFor = 'te-slot-select';
+  label.textContent = 'NEUE STARTZEIT';
+  modal.appendChild(label);
+  const sel = document.createElement('select');
+  sel.id = 'te-slot-select';
+  options.forEach(ms => {
+    const o = document.createElement('option');
+    o.value = new Date(ms).toISOString();
+    o.textContent = formatSlotForPreview(ms);
+    sel.appendChild(o);
   });
-  const mergeBtn = document.createElement('button');
-  mergeBtn.type = 'button';
-  mergeBtn.className = 'te-team-btn';
-  mergeBtn.textContent = 'Daten übertragen';
-  mergeBtn.addEventListener('click', async () => {
-    if(!select.value) return;
-    mergeBtn.disabled = true;
-    await confirmAndMergeIntoSchedule(ev.id, select.value);
-    mergeBtn.disabled = false;
+  modal.appendChild(sel);
+  const note = document.createElement('div');
+  note.className = 'te-move-preview';
+  note.textContent = 'Mitglieder, Stintplan und Kommentare bleiben – die Stintzeiten rechnen ab der neuen Startzeit.';
+  modal.appendChild(note);
+  const message = document.createElement('div');
+  message.className = 'form-message';
+  message.hidden = true;
+  modal.appendChild(message);
+  const actions = document.createElement('div');
+  actions.className = 'pitwall-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'pitwall-modal-btn';
+  cancel.textContent = 'Abbrechen';
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.className = 'pitwall-modal-btn primary';
+  go.textContent = 'Slot wechseln';
+  go.disabled = !options.length;
+  actions.appendChild(cancel);
+  actions.appendChild(go);
+  modal.appendChild(actions);
+  function close(){ overlay.remove(); document.removeEventListener('keydown', onKey); }
+  function onKey(e){ if(e.key === 'Escape') close(); }
+  cancel.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    const { error } = await pitwallClient.from('team_event_teams').update({ slot_time: sel.value }).eq('id', team.id);
+    if(error){
+      const m = error.message || '';
+      message.textContent = m.includes('only_team_leader_can_change_slot') ? 'Nur der Teamleiter (oder der Admin) kann den Slot wechseln.'
+        : m.includes('slot_not_in_event') ? 'Diese Startzeit gibt es im Event nicht mehr.'
+        : `Slot wechseln fehlgeschlagen: ${m}`;
+      message.hidden = false;
+      go.disabled = false;
+      return;
+    }
+    close();
+    const picked = new Date(sel.value).getTime();
+    teOpenSlot[ev.id] = (ev.slot_times || []).find(iso => new Date(iso).getTime() === picked) || sel.value;
+    teSelectedDay[ev.id] = localDayKey(new Date(sel.value));
+    loadTeamEvents();
   });
-  row.appendChild(select);
-  row.appendChild(mergeBtn);
-  return { toggle, row };
+  document.body.appendChild(overlay);
+  sel.focus();
 }
 
 function renderEventManageMenu(ev, teams, isAdmin){
@@ -7724,10 +7762,8 @@ function renderEventManageMenu(ev, teams, isAdmin){
     menu.appendChild(b);
   };
   item('Event bearbeiten', 'Name, Zeiten, Dauer, Training/Quali, Reifen', () => openEventEditor(ev.id));
-  if(isAdmin && teams.length){
-    item('Teams verschieben …', 'einzelne Teams in ein anderes Event', () => openMoveTeamsDialog(ev, teams, false));
-    item('Mit anderem Event zusammenlegen …', 'alle Teams rüber, dieses Event danach löschen', () => openMoveTeamsDialog(ev, teams, true));
-  }
+  if(isAdmin && teams.length) item('Teams verschieben …', 'einzelne Teams in ein anderes Event', () => openMoveTeamsDialog(ev, teams, false));
+  item('Mit anderem Event zusammenlegen …', 'alle Teams rüber, dieses Event danach löschen', () => openMoveTeamsDialog(ev, teams, true));
   function onDocClick(e){ if(!wrap.contains(e.target)) close(); }
   function onKey(e){ if(e.key === 'Escape'){ close(); btn.focus(); } }
   function close(){
@@ -7805,6 +7841,7 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = mergeAll;
+    cb.disabled = mergeAll; // merging always takes every team along
     cb.value = t.id;
     const txt = document.createElement('span');
     txt.innerHTML = '<b></b> <small></small>';
@@ -7838,13 +7875,22 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
   });
   modal.appendChild(targetSel);
 
+  if(!teams.length){
+    const none = document.createElement('p');
+    none.style.margin = '0';
+    none.style.fontSize = '13px';
+    none.textContent = 'Dieses Event hat keine Teams.';
+    teamsBox.appendChild(none);
+  }
   const k3 = document.createElement('label');
   k3.className = 'te-move-k';
   k3.textContent = '3 · SLOT IM ZIEL-EVENT';
+  k3.hidden = mergeAll; // merging keeps every team's own start time
   k3.htmlFor = 'te-move-slot';
   modal.appendChild(k3);
   const slotSel = document.createElement('select');
   slotSel.id = 'te-move-slot';
+  slotSel.hidden = mergeAll;
   modal.appendChild(slotSel);
   const customTime = document.createElement('input');
   customTime.type = 'datetime-local';
@@ -7915,7 +7961,8 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
     customTime.hidden = slotSel.value !== 'custom';
     const t = targetOf();
     const lines = [];
-    if(!picked.length) lines.push('Noch kein Team gewählt.');
+    if(mergeAll && !teams.length) lines.push(`Keine Teams zum Übertragen.${delCb.checked ? ' Dieses Event wird gelöscht.' : ''}`);
+    else if(!picked.length) lines.push('Noch kein Team gewählt.');
     else{
       const slot = chosenSlot();
       lines.push(`${picked.length} Team${picked.length === 1 ? '' : 's'} ziehen nach „${t.name}“ – mit Mitgliedern, Stints und Kommentaren.`);
@@ -7930,8 +7977,8 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
       lines.push(all ? (delCb.checked ? 'Dieses Event wird danach gelöscht.' : 'Dieses Event bleibt leer bestehen.') : `Dieses Event behält ${teams.length - picked.length} Team${teams.length - picked.length === 1 ? '' : 's'}.`);
     }
     preview.textContent = lines.join('\n');
-    go.textContent = picked.length ? `${picked.length} Team${picked.length === 1 ? '' : 's'} verschieben` : 'Verschieben';
-    go.disabled = !picked.length || (slotSel.value === 'custom' && !chosenSlot());
+    go.textContent = mergeAll ? 'Zusammenlegen' : (picked.length ? `${picked.length} Team${picked.length === 1 ? '' : 's'} verschieben` : 'Verschieben');
+    go.disabled = mergeAll ? false : (!picked.length || (slotSel.value === 'custom' && !chosenSlot()));
   };
   checks.forEach(c => c.cb.addEventListener('change', refresh));
   targetSel.addEventListener('change', () => { fillSlots(); refresh(); });
@@ -7949,18 +7996,23 @@ async function openMoveTeamsDialog(ev, teams, mergeAll){
   go.addEventListener('click', async () => {
     const ids = checks.filter(c => c.cb.checked).map(c => c.team.id);
     go.disabled = true;
-    const { data, error: moveError } = await pitwallClient.rpc('admin_move_teams', {
-      p_team_ids: ids, p_target: targetSel.value, p_slot: chosenSlot(), p_delete_empty: delCb.checked,
-    });
+    const { data, error: moveError } = mergeAll
+      ? await pitwallClient.rpc('merge_event_into', { p_source: ev.id, p_target: targetSel.value, p_delete: delCb.checked })
+      : await pitwallClient.rpc('admin_move_teams', { p_team_ids: ids, p_target: targetSel.value, p_slot: chosenSlot(), p_delete_empty: delCb.checked });
     if(moveError){
-      message.textContent = `Verschieben fehlgeschlagen – es wurde nichts verändert. ${moveError.message.includes('admin_only') ? 'Nur der Admin darf Teams verschieben.' : moveError.message}`;
+      const m = moveError.message || '';
+      const why = m.includes('admin_only') ? 'Nur der Admin darf Teams in andere Events verschieben.'
+        : m.includes('only_creator_or_admin') ? 'Zusammenlegen dürfen nur der Ersteller des Events und der Admin.'
+        : m.includes('event_not_found') ? 'Eines der Events gibt es nicht mehr.'
+        : m;
+      message.textContent = `${mergeAll ? 'Zusammenlegen' : 'Verschieben'} fehlgeschlagen – es wurde nichts verändert. ${why}`;
       message.hidden = false;
       go.disabled = false;
       return;
     }
     close();
     const d = data || {};
-    await pitwallAlert(`Verschoben: ${d.moved_teams || 0} Team${d.moved_teams === 1 ? '' : 's'}` + (d.added_slots ? `, ${d.added_slots} Slot${d.added_slots === 1 ? '' : 's'} ergänzt` : '') + (d.deleted_events ? ', altes Event gelöscht' : '') + '.');
+    await pitwallAlert(`${mergeAll ? 'Zusammengelegt' : 'Verschoben'}: ${d.moved_teams || 0} Team${d.moved_teams === 1 ? '' : 's'}` + (d.added_slots ? `, ${d.added_slots} Slot${d.added_slots === 1 ? '' : 's'} ergänzt` : '') + (d.deleted_events ? ', altes Event gelöscht' : '') + '.');
     teSelectedEventId = targetSel.value;
     loadTeamEvents();
   });
@@ -8021,26 +8073,13 @@ function renderEventCard(ev, teams, carData, opts){
   }
   header.appendChild(left);
 
-  // A manually-created event whose race also exists as an auto-synced
-  // Schedule event is a likely accidental duplicate - offer to consolidate
-  // onto the Schedule one (see confirmAndMergeIntoSchedule) rather than
-  // leaving people's already-built teams/stint plans stranded on the copy
-  // nobody else will find. Schedule/lmuportal only ever covers LMU, so
-  // this only ever applies to LMU events.
-  let mergeControl = null;
-  if(ev.source === 'manual' && (ev.game || 'lmu') === 'lmu' && ev.published !== false && !opts.isEditorPreview){
-    const candidates = mergeCandidatesFor(ev, opts.autoEventCandidates);
-    if(candidates.length) mergeControl = renderScheduleMergeControl(ev, candidates);
-  }
-
   const isCreator = currentProfile && ev.created_by === currentProfile.id;
   const isAdmin = !!(currentProfile && currentProfile.is_admin);
   // Pencil: the creator of a self-made event, or the admin (any event).
   const canManage = ev.published !== false && !opts.isEditorPreview && (isAdmin || (isCreator && ev.source === 'manual'));
-  if(mergeControl || isCreator || canManage){
+  if(isCreator || canManage){
     const headerRight = document.createElement('div');
     headerRight.className = 'te-event-header-right';
-    if(mergeControl) headerRight.appendChild(mergeControl.toggle);
     if(canManage) headerRight.appendChild(renderEventManageMenu(ev, teams, isAdmin));
 
     if(isCreator){
@@ -8069,7 +8108,6 @@ function renderEventCard(ev, teams, carData, opts){
     header.appendChild(headerRight);
   }
   card.appendChild(header);
-  if(mergeControl) card.appendChild(mergeControl.row);
 
   // Unpublished: only the creator can even see this row (RLS), and only
   // in the main list - the editor's own live preview passes isEditorPreview
@@ -8290,8 +8328,7 @@ async function loadTeamEvents(){
         await getReferenceRows(teGameFilter).catch(() => {});
         const teamsByEvent = {};
         (teams || []).forEach(t => { (teamsByEvent[t.event_id] = teamsByEvent[t.event_id] || []).push(t); });
-        const autoEventCandidates = allEvents.filter(e => e.source === 'auto');
-        view = { events, teamsByEvent, carData, autoEventCandidates, showClosed };
+        view = { events, teamsByEvent, carData, showClosed };
       }
     }
   }
@@ -8322,7 +8359,7 @@ function renderTeamEventsView(){
     return;
   }
 
-  const { events, teamsByEvent, carData, autoEventCandidates, showClosed } = view;
+  const { events, teamsByEvent, carData, showClosed } = view;
   if(!events.some(e => e.id === teSelectedEventId)){
     const mine = events.find(e => isMemberOfAny(teamsByEvent[e.id] || []));
     teSelectedEventId = (mine || events[0]).id;
@@ -8364,7 +8401,7 @@ function renderTeamEventsView(){
   }
 
   container.innerHTML = '';
-  container.appendChild(renderEventCard(selected, teamsByEvent[selected.id] || [], carData, { autoEventCandidates }));
+  container.appendChild(renderEventCard(selected, teamsByEvent[selected.id] || [], carData, {}));
 }
 
 // One list row: name (plus "Entwurf"/"Du fährst" when relevant), date
