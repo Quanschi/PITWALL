@@ -1945,7 +1945,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
           <div id="account-dropdown" class="account-dropdown" hidden>
             <div id="account-leave-requests" hidden></div>
             <label class="account-dropdown-item" for="account-avatar-input">Profilbild ändern</label>
-            <input type="file" id="account-avatar-input" accept="image/*" hidden>
+            <input type="file" id="account-avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
             <div class="form-message" id="account-avatar-message" hidden></div>
             <button type="button" class="account-dropdown-item" id="account-username-toggle">Nutzernamen ändern</button>
             <div id="account-username-form" class="account-username-form" hidden>
@@ -3324,8 +3324,8 @@ document.getElementById('account-avatar-input').addEventListener('change', async
   const file = document.getElementById('account-avatar-input').files[0];
   if(!file) return;
   hideFormMessage('account-avatar-message');
-  if(!file.type.startsWith('image/')){
-    showFormMessage('account-avatar-message', 'Bitte eine Bilddatei wählen.');
+  if(!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)){
+    showFormMessage('account-avatar-message', 'Bitte ein PNG-, JPG-, WebP- oder GIF-Bild wählen.');
     return;
   }
   if(file.size > 3 * 1024 * 1024){
