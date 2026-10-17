@@ -4275,7 +4275,28 @@ async function populateEditorTrackOptions(game, selected){
   updateEditorChecks();
 }
 
-async function saveEditorEvent(){
+// Saves run one after another: two quick clicks used to start two updates
+// at once, and the older one could land last and undo the newer one (e.g.
+// a just-picked start time vanished). A change during a save simply
+// triggers one more save with the then-current form.
+// Callers that await it (publishing) wait until the last save is done.
+let teEditorSaving = null;
+let teEditorSaveAgain = false;
+function saveEditorEvent(){
+  if(teEditorSaving){ teEditorSaveAgain = true; return teEditorSaving; }
+  teEditorSaving = (async () => {
+    try{
+      do{
+        teEditorSaveAgain = false;
+        await saveEditorEventOnce();
+      }while(teEditorSaveAgain);
+    }finally{
+      teEditorSaving = null;
+    }
+  })();
+  return teEditorSaving;
+}
+async function saveEditorEventOnce(){
   if(!teEditorEventId) return;
   hideFormMessage('te-create-message');
   const state = readEditorFormState();
