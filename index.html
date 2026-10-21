@@ -9204,6 +9204,7 @@ const SCHEDULE_SLUG_TO_REF_TRACK = {
   'daytona-international-speedway': { '': 'Daytona', national: 'Daytona' },
   'silverstone-circuit': { gp: 'Silverstone (GP)', national: 'Silverstone (National)', international: 'Silverstone (International)' },
 };
+const REF_TRACK_ALIASES = { 'le mans': 'Circuit de la Sarthe' };
 function findReferenceTrackMatch(rows, card){
   const tracks = [...new Set(rows.map(r => r.track))];
   const bySlug = SCHEDULE_SLUG_TO_REF_TRACK[card.track_slug];
@@ -9217,9 +9218,18 @@ function findReferenceTrackMatch(rows, card){
   // candidate (closer to a bare track name than to a specific alternate
   // layout). Skipped for very short names ("TBA") where a substring match
   // would be meaningless.
-  const target = foldAccents(card.track_name || '');
-  if(!target || target.length < 4) return null;
+  // Discord-post names ("Le Mans", "Bahrain" + layout "Outer") rather than
+  // lmuportal slugs: alias first, then "Name (layout)", then the bare name.
+  let target = foldAccents(card.track_name || '');
+  if(!target) return null;
+  if(REF_TRACK_ALIASES[target]) target = foldAccents(REF_TRACK_ALIASES[target]);
+  const layout = foldAccents((card.track_config || '').trim());
+  if(layout){
+    const withLayout = tracks.find(t => foldAccents(t) === `${target} (${layout})`);
+    if(withLayout) return withLayout;
+  }
   let match = tracks.find(t => foldAccents(t) === target);
+  if(!match && target.length < 4) return null;
   if(!match){
     const candidates = tracks.filter(t => target.includes(foldAccents(t)) || foldAccents(t).includes(target));
     candidates.sort((a, b) => a.length - b.length);
