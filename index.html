@@ -1780,6 +1780,20 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
   white-space:pre-line;
 }
 .pitwall-modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.schedule-admin{display:flex; align-items:center; gap:10px; margin:4px 0 10px;}
+.schedule-admin .te-header-btn{width:auto; padding:0 14px;}
+.schedule-admin-hint{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted);}
+.dc-import{display:flex; flex-direction:column; gap:12px;}
+.dc-import-text{width:100%; box-sizing:border-box; min-height:140px; resize:vertical; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.45;}
+.dc-import-preview{display:flex; flex-direction:column; gap:8px; max-height:44vh; overflow-y:auto;}
+.dc-import-row{border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--panel-2);}
+.dc-import-name{font-weight:600; font-size:13.5px; color:var(--text); display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.dc-import-meta{font-size:12px; color:var(--muted); margin-top:3px; line-height:1.4;}
+.dc-import-team{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:12.5px; color:var(--text); cursor:pointer;}
+.dc-import-warn{margin:0; font-size:12.5px; color:var(--amber);}
+.dc-import-offset{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:12.5px; color:var(--text); flex-wrap:wrap;}
+.dc-import-offset input{width:92px; color-scheme:dark; height:30px; box-sizing:border-box; background:var(--panel); border:1px solid var(--line); border-radius:6px; color:var(--text); padding:0 8px; font-family:'JetBrains Mono',monospace; font-size:13px;}
+.dc-import-offset-note{font-size:11.5px; color:var(--muted);}
 .pitwall-modal-btn{
   font-family:'JetBrains Mono',monospace;
   font-size:12.5px;
@@ -2000,7 +2014,6 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
     <button class="filter-pill" data-type="daily" type="button">Daily Races</button>
     <button class="filter-pill" data-type="weekly" type="button">Weekly Races</button>
     <button class="filter-pill" data-type="special" type="button">Special Event</button>
-    <button class="filter-pill" data-type="championship" type="button">Championship</button>
   </div>
 
   <p class="section-label">Schwierigkeit</p>
@@ -2009,6 +2022,11 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
     <button class="filter-pill" data-difficulty="beginner" type="button">Beginner</button>
     <button class="filter-pill" data-difficulty="intermediate" type="button">Intermediate</button>
     <button class="filter-pill" data-difficulty="advanced" type="button">Advanced</button>
+  </div>
+
+  <div class="schedule-admin" id="schedule-admin" hidden>
+    <button class="te-header-btn" id="schedule-import-btn" type="button">Discord-Post einfügen</button>
+    <span class="schedule-admin-hint">nur für Admin sichtbar</span>
   </div>
 
   <div class="schedule-status">
@@ -2391,12 +2409,36 @@ function toWeekKey(date){
   return date.toISOString().slice(0, 10);
 }
 
-async function supabaseSelect(table, query){
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+// Track/car lists still come from lmuportal while it serves them; the admin's
+// session keeps a copy in our own lmu_catalog, used once lmuportal is gone.
+const CATALOG_TABLES = new Set(['tracks', 'car_class', 'car']);
+const catalogFresh = {};
+const catalogSaved = new Set();
+function saveCatalogSnapshots(){
+  if(!(currentProfile && currentProfile.is_admin)) return;
+  Object.entries(catalogFresh).forEach(([key, rows]) => {
+    if(catalogSaved.has(key) || !rows.length) return;
+    catalogSaved.add(key);
+    pitwallClient.from('lmu_catalog').upsert({ key, data: rows, updated_at: new Date().toISOString() })
+      .then(({ error }) => { if(error){ catalogSaved.delete(key); console.warn('Catalog copy failed:', error.message); } });
   });
-  if(!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+}
+async function supabaseSelect(table, query){
+  const key = `${table}?${query}`;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    if(CATALOG_TABLES.has(table) && Array.isArray(rows)){ catalogFresh[key] = rows; saveCatalogSnapshots(); }
+    return rows;
+  }catch(err){
+    if(!CATALOG_TABLES.has(table)) throw err;
+    const { data } = await pitwallClient.from('lmu_catalog').select('data').eq('key', key).maybeSingle();
+    if(data && Array.isArray(data.data)) return data.data;
+    throw err;
+  }
 }
 
 function timesFromTodayList(hhmmssList){
@@ -2556,16 +2598,22 @@ async function fetchScheduleCards(type, difficulty){
     return cards;
   }
 
-  const cols = 'series_id,tier_name,track_name,track_slug,track_config,series_name,car_classes,race_duration_minutes,todays_start_times_utc,race_days,times_utc,week_key,setup,tyre_warmers,tyre_allowance,fuel_multiplier,driver_swap_enabled,sr_requirement,race_weather,practice_duration_minutes,qualifying_duration_minutes';
-  const tierFilter = difficulty === 'all' ? '' : `&tier_name=eq.${difficulty}`;
+  // Own schedule (from LMU's Discord posts) since lmuportal shut down.
   const currentWeekKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
-  let rows;
+  let q = pitwallClient.from('lmu_schedule').select(OWN_SCHEDULE_COLUMNS).eq('type', type);
+  // Special events have no tier - they stay visible under every filter.
+  if(difficulty !== 'all' && type !== 'special') q = q.eq('tier_name', difficulty);
   if(type === 'special'){
-    rows = await supabaseSelect('race_series',
-      `select=${cols}&type=eq.special${tierFilter}&hidden=eq.false&schedule_status=eq.active&limit=200`);
+    const since = new Date(currentWeekKey + 'T00:00:00Z');
+    since.setUTCDate(since.getUTCDate() - 21);
+    q = q.gte('week_key', toWeekKey(since));
   }else{
-    rows = await supabaseSelect('race_series',
-      `select=${cols}&type=eq.${type}${tierFilter}&hidden=eq.false&schedule_status=eq.active&week_key=lte.${currentWeekKey}&order=week_key.desc&limit=200`);
+    q = q.lte('week_key', currentWeekKey).order('week_key', { ascending: false });
+  }
+  const { data: ownRows, error: ownErr } = await q.limit(300);
+  if(ownErr) throw ownErr;
+  let rows = (ownRows || []).map(ownScheduleRowToSeries);
+  if(type !== 'special'){
     if(rows.length){
       const latestWeek = rows[0].week_key;
       rows = rows.filter(r => r.week_key === latestWeek);
@@ -2576,7 +2624,9 @@ async function fetchScheduleCards(type, difficulty){
   const now = Date.now();
   const cards = rows.map(r => {
     let times;
-    if(type === 'daily'){
+    if(r.starts_utc && r.starts_utc.length){
+      times = r.starts_utc.map(s => new Date(s));
+    }else if(type === 'daily'){
       // Daily races only ever cover "today" - no other day is meaningful here.
       times = timesFromTodayList(r.todays_start_times_utc);
     }else{
@@ -2601,7 +2651,7 @@ async function fetchScheduleCards(type, difficulty){
     // Special events sometimes get announced (track/days) before Studio 397
     // publishes exact start times - show those as "time TBD" instead of
     // hiding them, as long as the event itself isn't already in the past.
-    if(type === 'special' && c.times.length === 0 && (c.race_days || []).length > 0 && c.week_key >= currentWeekKey){
+    if(type === 'special' && c.times.length === 0 && c.week_key >= currentWeekKey){
       c.timesUnknown = true;
       return true;
     }
@@ -2625,7 +2675,6 @@ async function fetchScheduleCards(type, difficulty){
     return timeKeyOf(a) - timeKeyOf(b);
   });
 
-  if(type === 'special') ensureTeamEventsForSpecialCards(cards).catch(() => {});
 
   // lmuportal occasionally publishes a fresh series row for a track before
   // finishing enrichment - unmapped track_slug (so no location) AND no
@@ -2635,11 +2684,505 @@ async function fetchScheduleCards(type, difficulty){
   // the signal (a real race can lack one or the other on its own); only
   // hide it once the "real" version's own data catches up.
   const usable = cards
-    .filter(c => c.track_slug || (c.car_classes && c.car_classes.length))
+    .filter(c => c.track_slug || c.track_name || (c.car_classes && c.car_classes.length))
     .filter(c => !BLOCKED_SERIES_NAMES.includes((c.series_name || '').toLowerCase()));
 
   scheduleCache[cacheKey] = usable;
   return usable;
+}
+
+// ---- Own schedule (lmuportal shut down in October 2026): the admin pastes
+// LMU's Discord posts, Pitwall parses them into lmu_schedule rows shaped
+// like lmuportal's race_series, so every card/strip/editor keeps working.
+// Two kinds of post: the week post ("Daily Race Schedule from: ...", same
+// layout for weekly) and a single special event post with exact <t:...>
+// Discord timestamps. ----
+const DC_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const DC_DAYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+// Discord emoji <:RookieDriver:123> -> "Rookie"; markdown stars/underscores off.
+function dcClean(s){
+  return String(s || '').replace(/<a?:([A-Za-z]+?)(?:Driver)?:\d+>/g, '$1').replace(/\*\*|__/g, '').replace(/\s+/g, ' ').trim();
+}
+function dcNum(re, s){ const m = String(s || '').match(re); return m ? Number(m[1]) : null; }
+function dcSlug(s){ return foldAccents(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60); }
+// "Bahrain (Outer)" -> ['Bahrain', 'Outer']
+function dcTrack(part){
+  const m = String(part || '').match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  return m ? [m[1].trim(), m[2].trim()] : [String(part || '').trim() || null, null];
+}
+function dcClasses(text){
+  const t = String(text || ''), out = [];
+  const add = c => { if(!out.includes(c)) out.push(c); };
+  if(/hypercar/i.test(t)) add('Hypercar');
+  for(const m of t.matchAll(/LMP2(\s*\((ELMS|WEC)\))?/gi)) add(m[2] && m[2].toUpperCase() === 'ELMS' ? 'LMP2_ELMS' : 'LMP2');
+  if(/LMP3/i.test(t)) add('LMP3');
+  if(/LMGT3/i.test(t)) add('LMGT3');
+  if(/\bGTE\b/i.test(t)) add('GTE');
+  return out;
+}
+function dcSetup(text){ return /fixed setup/i.test(text) ? 'Fixed' : /open setup/i.test(text) ? 'Open' : null; }
+function dcWarmers(text){ return /no tyre warmers|tyre warmers disabled/i.test(text) ? false : /tyre warmers enabled/i.test(text) ? true : null; }
+// Start times from text like "Monday every 3h from midnight UTC" or
+// "Fri 23rd @ 1100, Sat 24th @ 1330". Weekdays mean the Mon-Sun week that
+// contains `monday`.
+function dcStarts(spec, monday){
+  const out = [];
+  const dayOf = name => DC_DAYS[name.slice(0, 3).toLowerCase()];
+  const every = String(spec).match(/((?:mon|tue|wed|thu|fri|sat|sun)\w*(?:\s*(?:,|&|and)\s*(?:mon|tue|wed|thu|fri|sat|sun)\w*)*)\s+every\s+(\d+)\s*h/i);
+  if(every){
+    const step = Number(every[2]);
+    for(const d of every[1].match(/(mon|tue|wed|thu|fri|sat|sun)\w*/gi)){
+      const base = new Date(monday);
+      base.setUTCDate(base.getUTCDate() + (dayOf(d) + 6) % 7);
+      for(let h = 0; h < 24; h += step){ const t = new Date(base); t.setUTCHours(h, 0, 0, 0); out.push(t); }
+    }
+    return out;
+  }
+  for(const m of String(spec).matchAll(/(mon|tue|wed|thu|fri|sat|sun)\w*\.?\s*(?:(\d{1,2})(?:st|nd|rd|th)?)?\s*@\s*(\d{1,2}):?(\d{2})/gi)){
+    let day = new Date(monday);
+    day.setUTCDate(day.getUTCDate() + (dayOf(m[1]) + 6) % 7);
+    if(m[2]){
+      // A day-of-month wins over the weekday guess (posts can reach into the next week).
+      for(let off = -7; off <= 13; off++){
+        const c = new Date(monday); c.setUTCDate(c.getUTCDate() + off);
+        if(c.getUTCDate() === Number(m[2]) && c.getUTCDay() === dayOf(m[1])){ day = c; break; }
+      }
+    }
+    day.setUTCHours(Number(m[3]), Number(m[4]), 0, 0);
+    out.push(day);
+  }
+  return out;
+}
+function dcMondayOf(date){
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
+  return d;
+}
+function dcBaseRow(){
+  return {
+    tier_name: null, track_name: null, track_config: null, car_classes: null, race_duration_minutes: null,
+    every_minutes: null, offset_minutes: 0, race_days: null, times_utc: null, starts_utc: null, setup: null, tyre_warmers: null,
+    tyre_allowance: null, quali_tyres: false, driver_swap_enabled: false, sr_requirement: null,
+    requirements: null, qualifying_info: null, race_info: null,
+  };
+}
+function dcRaceFields(body){
+  const parts = body.split(',').map(p => p.trim());
+  const [track_name, track_config] = dcTrack(parts[0]);
+  return {
+    track_name, track_config,
+    car_classes: dcClasses(parts.slice(1).join(',')),
+    race_duration_minutes: dcNum(/(\d+)\s*m races/i, body),
+    setup: dcSetup(body), tyre_warmers: dcWarmers(body),
+    tyre_allowance: dcNum(/tyres:\s*(\d+)/i, body),
+    quali_tyres: /\(q\s*\+\s*r\)/i.test(body),
+  };
+}
+function dcSrFrom(req){ const m = String(req || '').match(/SR\s+([A-D]\d?)\b/i); return m ? m[1].toUpperCase() : null; }
+
+function parseDiscordWeekPost(text){
+  const head = text.match(/(Daily|Weekly)\s+Race\s+Schedule\s+from:?\s*(\d{1,2})\w*\s+([A-Za-z]+)\s+(\d{4})/i);
+  if(!head) return null;
+  const kind = head[1].toLowerCase();
+  const month = DC_MONTHS.indexOf(head[3].toLowerCase());
+  if(month < 0) return null;
+  const from = new Date(Date.UTC(Number(head[4]), month, Number(head[2])));
+  const weekKey = toWeekKey(mostRecentTuesdayUtc(from));
+  const monday = dcMondayOf(from);
+  const rows = [], warnings = [], specials = [];
+  let tier = null, special = null, teamSection = false;
+  for(const raw of text.split(/\r?\n/)){
+    const line = raw.trim();
+    if(!line) continue;
+    const h = line.match(/^#{1,3}\s*\*\*(.+?)\*\*/);
+    if(h){
+      special = null;
+      if(/special/i.test(h[1])){ tier = null; teamSection = /team/i.test(h[1]); specials.push(null); continue; }
+      tier = {
+        name: ((h[1].match(/beginner|intermediate|advanced/i) || [])[0] || '').toLowerCase() || null,
+        sr: (h[1].match(/\[(\w+)\s*SR\]/i) || [])[1] || null,
+        d: {},
+      };
+      continue;
+    }
+    if(tier && /starts every|every\s+\d+\s*min/i.test(line) && !/^__/.test(line)){
+      tier.d = {
+        every: dcNum(/every\s+(\d+)\s*min/i, line), dur: dcNum(/(\d+)\s*m races/i, line),
+        tyres: dcNum(/tyres:\s*(\d+)/i, line), warmers: dcWarmers(line),
+      };
+      continue;
+    }
+    if(specials.length && !tier){
+      const sp = line.match(/^__(.+?)(?:\[(.*)\])?\s*:?\s*__\s*:?\s*(.*)$/);
+      if(sp){
+        const name = dcClean(sp[1]).replace(/:$/, '');
+        const requirements = sp[2] ? dcClean(sp[2]) : null;
+        special = { name, requirements, fields: dcRaceFields(dcClean(sp[3])), slots: [] };
+        specials.push(special);
+        continue;
+      }
+      const slot = special && line.match(/^['‘’"](.+?)['‘’"]\s*[-–]\s*(.+)$/);
+      if(slot){ special.slots.push({ label: dcClean(slot[1]), starts: dcStarts(slot[2], monday) }); continue; }
+      continue;
+    }
+    const race = tier && line.match(/^__(.+?)__\s*:?\s*(.*)$/);
+    if(race){
+      const name = dcClean(race[1]);
+      const body = dcClean(race[2]);
+      const f = dcRaceFields(body);
+      const row = Object.assign(dcBaseRow(), f, {
+        series_id: `dc-${kind}-${dcSlug(name)}`, week_key: weekKey, type: kind, tier_name: tier.name,
+        series_name: name, sr_requirement: tier.sr,
+        race_duration_minutes: f.race_duration_minutes ?? tier.d.dur ?? null,
+        tyre_allowance: f.tyre_allowance ?? tier.d.tyres ?? null,
+        tyre_warmers: f.tyre_warmers ?? tier.d.warmers ?? null,
+      });
+      if(kind === 'daily'){
+        row.every_minutes = tier.d.every || null;
+        if(!row.every_minutes) warnings.push(`„${name}“: kein Startabstand gefunden`);
+      }else{
+        const starts = dcStarts(body, monday);
+        if(starts.length) row.starts_utc = starts.map(d => d.toISOString());
+        else warnings.push(`„${name}“: keine Startzeiten gefunden`);
+      }
+      if(!row.race_duration_minutes) warnings.push(`„${name}“: keine Renndauer gefunden`);
+      rows.push(row);
+    }
+  }
+  specials.filter(Boolean).forEach(s => {
+    const base = Object.assign(dcBaseRow(), s.fields, {
+      week_key: weekKey, type: 'special', series_name: s.name, driver_swap_enabled: teamSection,
+      requirements: s.requirements, sr_requirement: dcSrFrom(s.requirements),
+    });
+    if(s.slots.length){
+      s.slots.forEach(slot => {
+        rows.push(Object.assign({}, base, {
+          series_id: `dc-special-${dcSlug(s.name)}-${dcSlug(slot.label)}`,
+          series_name: `${s.name} – ${slot.label}`,
+          starts_utc: slot.starts.map(d => d.toISOString()),
+        }));
+        if(!slot.starts.length) warnings.push(`„${s.name} – ${slot.label}“: Startzeiten nicht lesbar`);
+      });
+    }else{
+      rows.push(Object.assign({}, base, { series_id: `dc-special-${dcSlug(s.name)}` }));
+      warnings.push(`„${s.name}“: keine Startzeiten im Post – den Einzelpost dazu einfügen`);
+    }
+  });
+  // "starts every 15min" is the tier's rotation: its races take turns, so
+  // each one repeats every 15 x (races in the tier) - Bronze 45, Silver 60,
+  // Gold 90 min (seen in game, 21.10.2026). Which race goes first isn't in
+  // the post (nor in its order): first guess is post order, the preview
+  // swaps in last week's value and the admin types the game's first time.
+  const byTier = {};
+  rows.filter(r => r.type === 'daily' && r.every_minutes).forEach(r => { (byTier[r.tier_name] = byTier[r.tier_name] || []).push(r); });
+  Object.values(byTier).forEach(list => list.forEach((r, i) => {
+    const step = r.every_minutes;
+    r.every_minutes = step * list.length;
+    r.offset_minutes = i * step;
+    r._offsetGuess = true;
+  }));
+  if(!rows.length) warnings.push('Keine Rennen erkannt.');
+  return { kind, weekKey, from, rows, warnings };
+}
+
+function parseDiscordEventPost(text){
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const hm = (lines[0] || '').match(/^#{1,3}\s*(.+)$/);
+  const bodyLine = lines.find(l => /\d+\s*m races/i.test(l));
+  if(!hm || !bodyLine) return null;
+  const name = dcClean(hm[1]);
+  const warnings = [];
+  const reqLine = lines.find(l => /^[*_]*\[/.test(l));
+  const requirements = reqLine ? dcClean(reqLine.replace(/[[\]]/g, '')) : null;
+  let starts = [...text.matchAll(/<t:(\d+)(?::[a-zA-Z])?>/g)].map(m => new Date(Number(m[1]) * 1000));
+  if(!starts.length){
+    const utc = lines.find(l => /UTC\s+Days/i.test(l));
+    if(utc) starts = dcStarts(utc, dcMondayOf(new Date()));
+  }
+  if(!starts.length) warnings.push(`„${name}“: keine Startzeiten gefunden`);
+  const info = re => {
+    const l = lines.find(x => re.test(x));
+    return l ? dcClean(l.replace(re, '')).replace(/^start time in-game:\s*/i, 'Start im Spiel ') : null;
+  };
+  const weekKey = toWeekKey(mostRecentTuesdayUtc(starts[0] || new Date()));
+  const row = Object.assign(dcBaseRow(), dcRaceFields(dcClean(bodyLine)), {
+    series_id: `dc-special-${dcSlug(name)}`, week_key: weekKey, type: 'special', series_name: name,
+    driver_swap_enabled: /lineup|team|driver swap|fair share/i.test(text),
+    requirements, sr_requirement: dcSrFrom(requirements),
+    starts_utc: starts.length ? starts.map(d => d.toISOString()) : null,
+    qualifying_info: info(/^(?:private\s+)?qualifying,?\s*/i),
+    race_info: info(/^race,?\s*/i),
+  });
+  return { kind: 'event', weekKey, rows: [row], warnings };
+}
+
+function parseDiscordPost(text){
+  return parseDiscordWeekPost(text) || parseDiscordEventPost(text);
+}
+
+// race_series-like shape from an lmu_schedule row (what fetchScheduleCards maps).
+function dailyTimesList(everyMin, offset){
+  const out = [];
+  for(let m = (offset || 0) % everyMin; m < 1440; m += everyMin){
+    out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}:00`);
+  }
+  return out;
+}
+function ownScheduleRowToSeries(r){
+  return Object.assign({}, r, {
+    todays_start_times_utc: r.every_minutes ? dailyTimesList(r.every_minutes, r.offset_minutes) : [],
+    race_days: r.race_days || [], times_utc: r.times_utc || [],
+    track_slug: null, fuel_multiplier: null, race_weather: null,
+    practice_duration_minutes: null, qualifying_duration_minutes: null,
+  });
+}
+const OWN_SCHEDULE_COLUMNS = 'series_id,week_key,type,tier_name,series_name,track_name,track_config,car_classes,race_duration_minutes,every_minutes,offset_minutes,race_days,times_utc,starts_utc,setup,tyre_warmers,tyre_allowance,quali_tyres,driver_swap_enabled,sr_requirement,requirements,qualifying_info,race_info';
+
+function resetScheduleCaches(){
+  Object.keys(scheduleCache).forEach(k => delete scheduleCache[k]);
+  nextRaceCache = null;
+}
+
+// Fields a later week post must not wipe out (they come from the single event post).
+const DC_KEEP_IF_EMPTY = ['starts_utc', 'qualifying_info', 'race_info', 'requirements', 'sr_requirement', 'tyre_allowance'];
+
+async function openDiscordImportDialog(){
+  const overlay = document.createElement('div');
+  overlay.className = 'pitwall-modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'pitwall-modal te-move dc-import';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  overlay.appendChild(modal);
+
+  const h = document.createElement('div');
+  h.className = 'pitwall-modal-title';
+  h.textContent = 'Discord-Post einfügen';
+  const hint = document.createElement('p');
+  hint.className = 'te-move-k';
+  hint.textContent = 'Den Wochenplan („Daily Race Schedule from …“) oder den Post zu einem Special Event aus dem LMU-Discord komplett hineinkopieren.';
+  const ta = document.createElement('textarea');
+  ta.className = 'dc-import-text';
+  ta.rows = 8;
+  ta.placeholder = '## Daily Race Schedule from: …';
+  const preview = document.createElement('div');
+  preview.className = 'dc-import-preview';
+  preview.hidden = true;
+
+  const actions = document.createElement('div');
+  actions.className = 'pitwall-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'pitwall-modal-btn';
+  cancel.textContent = 'Abbrechen';
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.className = 'pitwall-modal-btn primary';
+  go.textContent = 'Übernehmen';
+  go.disabled = true;
+  actions.append(cancel, go);
+  modal.append(h, hint, ta, preview, actions);
+
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  function close(){ overlay.remove(); document.removeEventListener('keydown', onKey); }
+  cancel.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(overlay);
+  ta.focus();
+
+  let parsed = null, teamChecks = [];
+  const dcClock = m => `${String(Math.floor((m || 0) / 60) % 24).padStart(2, '0')}:${String((m || 0) % 60).padStart(2, '0')}`;
+  const fmtDay = d => d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const fmtTime = d => d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  function timesSummary(r){
+    if(r.every_minutes) return `täglich alle ${r.every_minutes} Min ab ${dcClock(r.offset_minutes)} UTC`;
+    const starts = (r.starts_utc || []).map(s => new Date(s)).sort((a, b) => a - b);
+    if(!starts.length) return 'Zeiten fehlen';
+    const days = [...new Set(starts.map(fmtDay))];
+    if(starts.length <= 3) return starts.map(d => `${fmtDay(d)} ${fmtTime(d)}`).join(' · ');
+    return `${days.join(', ')} · ${starts.length} Starts ab ${fmtTime(starts[0])}`;
+  }
+
+  async function render(){
+    preview.innerHTML = '';
+    teamChecks = [];
+    parsed = ta.value.trim() ? parseDiscordPost(ta.value) : null;
+    go.disabled = !(parsed && parsed.rows.length);
+    preview.hidden = !ta.value.trim();
+    if(!ta.value.trim()) return;
+    if(!parsed){
+      const p = document.createElement('p');
+      p.className = 'dc-import-warn';
+      p.textContent = 'Das sieht nicht nach einem LMU-Rennplan-Post aus.';
+      preview.appendChild(p);
+      return;
+    }
+    const k = document.createElement('p');
+    k.className = 'te-move-k';
+    const weekLabel = new Date(parsed.weekKey + 'T00:00:00Z').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    k.textContent = parsed.kind === 'event'
+      ? `SPECIAL EVENT · WOCHE AB ${weekLabel}`
+      : `${parsed.kind === 'daily' ? 'DAILY' : 'WEEKLY'}-WOCHENPLAN AB ${weekLabel} · ${parsed.rows.length} RENNEN`;
+    preview.appendChild(k);
+
+    // Existing team events at one of the same start times -> no new event.
+    const allStarts = parsed.rows.flatMap(r => (r.starts_utc || []).map(s => new Date(s).getTime()));
+    let existing = [];
+    if(allStarts.length){
+      const minD = new Date(Math.min(...allStarts) - 86400000).toISOString().slice(0, 10);
+      const maxD = new Date(Math.max(...allStarts) + 86400000).toISOString().slice(0, 10);
+      const { data } = await pitwallClient.from('team_events').select('id,name,slot_times').gte('event_date', minD).lte('event_date', maxD);
+      existing = data || [];
+    }
+
+    // Offsets set in an earlier week win over the even-spread guess.
+    const guessed = parsed.rows.filter(r => r._offsetGuess);
+    if(guessed.length){
+      const { data: prev } = await pitwallClient.from('lmu_schedule').select('series_id,offset_minutes,week_key')
+        .eq('type', 'daily').in('series_id', guessed.map(r => r.series_id)).lt('week_key', parsed.weekKey)
+        .order('week_key', { ascending: false });
+      guessed.forEach(r => {
+        const hit = (prev || []).find(x => x.series_id === r.series_id && x.offset_minutes != null);
+        if(hit){ r.offset_minutes = hit.offset_minutes; r._offsetGuess = false; r._offsetRemembered = true; }
+      });
+    }
+
+    parsed.rows.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'dc-import-row';
+      const top = document.createElement('div');
+      top.className = 'dc-import-name';
+      const badge = document.createElement('span');
+      badge.className = 'schedule-tier-badge tier-' + (r.tier_name || 'other');
+      badge.textContent = r.type === 'special' ? 'special' : (r.tier_name || r.type);
+      top.append(badge, document.createTextNode(' ' + r.series_name));
+      const meta = document.createElement('div');
+      meta.className = 'dc-import-meta';
+      meta.textContent = [
+        [r.track_name, r.track_config].filter(Boolean).join(' · '),
+        (r.car_classes || []).map(c => c.replace(/_ELMS$/, ' (ELMS)')).join(', '),
+        r.race_duration_minutes ? `${r.race_duration_minutes} Min` : null,
+        r.tyre_allowance != null ? `${r.tyre_allowance} Reifen${r.quali_tyres ? ' (inkl. Quali)' : ''}` : null,
+        timesSummary(r),
+      ].filter(Boolean).join(' · ');
+      row.append(top, meta);
+      if(r.every_minutes){
+        const off = document.createElement('label');
+        off.className = 'dc-import-offset';
+        const inp = document.createElement('input');
+        inp.type = 'time';
+        inp.step = '60';
+        inp.value = dcClock(r.offset_minutes);
+        const note = document.createElement('span');
+        note.className = 'dc-import-offset-note';
+        const paint = () => {
+          note.textContent = r._offsetRemembered ? 'wie letzte Woche' : r._offsetGuess ? 'Vorschlag – bitte prüfen' : 'angepasst';
+          meta.textContent = meta.textContent.replace(/ab \d\d:\d\d UTC$/, `ab ${dcClock(r.offset_minutes)} UTC`);
+        };
+        inp.addEventListener('input', () => {
+          const m = (inp.value || '').match(/^(\d{1,2}):(\d{2})/);
+          if(!m) return;
+          r.offset_minutes = (Number(m[1]) * 60 + Number(m[2])) % r.every_minutes;
+          r._offsetGuess = false;
+          r._offsetRemembered = false;
+          paint();
+        });
+        off.append(document.createTextNode('Erste Zeit im Spiel (UTC):'), inp, note);
+        row.appendChild(off);
+        paint();
+      }
+      if(r.type === 'special' && r.driver_swap_enabled && (r.starts_utc || []).length){
+        const set = new Set(r.starts_utc.map(s => new Date(s).getTime()));
+        const dup = existing.find(e => (e.slot_times || []).some(s => set.has(new Date(s).getTime())));
+        const over = r.starts_utc.every(s => new Date(s).getTime() < Date.now());
+        const label = document.createElement('label');
+        label.className = 'dc-import-team';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !dup && !over;
+        label.append(cb, document.createTextNode(
+          dup ? ` Team Event gibt es schon („${dup.name}“) – trotzdem neu anlegen`
+            : over ? ' Schon vorbei – trotzdem Team Event anlegen'
+            : ' Team Event anlegen'));
+        row.appendChild(label);
+        teamChecks.push({ cb, seriesId: r.series_id, weekKey: r.week_key });
+      }
+      preview.appendChild(row);
+    });
+    parsed.warnings.forEach(w => {
+      const p = document.createElement('p');
+      p.className = 'dc-import-warn';
+      p.textContent = '⚠ ' + w;
+      preview.appendChild(p);
+    });
+  }
+  let renderTimer = null;
+  ta.addEventListener('input', () => { clearTimeout(renderTimer); renderTimer = setTimeout(render, 250); });
+
+  go.addEventListener('click', async () => {
+    if(!parsed || !parsed.rows.length) return;
+    go.disabled = true;
+    go.textContent = 'Speichere…';
+    try{
+      const { data: { session } } = await pitwallClient.auth.getSession();
+      const uid = session && session.user.id;
+      // Same week already imported: keep what only the event post knows.
+      const { data: before, error: readErr } = await pitwallClient.from('lmu_schedule')
+        .select(OWN_SCHEDULE_COLUMNS).eq('week_key', parsed.weekKey);
+      if(readErr) throw readErr;
+      const byId = {};
+      (before || []).forEach(r => { byId[r.series_id] = r; });
+      const rows = parsed.rows.map(r => {
+        // An event post names the event without the slot label - match by name.
+        let id = r.series_id;
+        if(!byId[id] && parsed.kind === 'event'){
+          const same = (before || []).find(b => b.type === 'special' && foldAccents(b.series_name) === foldAccents(r.series_name));
+          if(same) id = same.series_id;
+        }
+        const old = byId[id];
+        const merged = Object.assign({}, r, { series_id: id });
+        if(old) DC_KEEP_IF_EMPTY.forEach(c => {
+          const empty = merged[c] == null || (Array.isArray(merged[c]) && !merged[c].length);
+          if(empty) merged[c] = old[c];
+        });
+        delete merged._offsetGuess;
+        delete merged._offsetRemembered;
+        merged.updated_by = uid;
+        merged.updated_at = new Date().toISOString();
+        return merged;
+      });
+      const { error } = await pitwallClient.from('lmu_schedule').upsert(rows, { onConflict: 'series_id,week_key' });
+      if(error) throw error;
+      // A new week post replaces that week's daily/weekly list completely.
+      if(parsed.kind === 'daily' || parsed.kind === 'weekly'){
+        const keep = rows.filter(r => r.type === parsed.kind).map(r => `"${r.series_id}"`).join(',');
+        let del = pitwallClient.from('lmu_schedule').delete().eq('week_key', parsed.weekKey).eq('type', parsed.kind);
+        if(keep) del = del.not('series_id', 'in', `(${keep})`);
+        const { error: delErr } = await del;
+        if(delErr) console.error('Removing old schedule rows failed:', delErr.message);
+      }
+      resetScheduleCaches();
+      const wanted = new Set(teamChecks.filter(t => t.cb.checked).map(t => `${t.seriesId}|${t.weekKey}`));
+      let created = 0;
+      if(wanted.size){
+        const cards = await fetchScheduleCards('special', 'all');
+        const pick = cards.filter(c => wanted.has(`${c.series_id}|${c.week_key}`));
+        await ensureTeamEventsForSpecialCards(pick);
+        created = pick.length;
+      }
+      close();
+      loadScheduleView();
+      loadLiveStrip();
+      loadDashboardNextRace();
+      if(created) loadTeamEvents();
+      await pitwallAlert(`Rennplan übernommen: ${rows.length} Rennen${created ? ` · ${created} Team Event${created === 1 ? '' : 's'} angelegt` : ''}.`);
+    }catch(err){
+      go.disabled = false;
+      go.textContent = 'Übernehmen';
+      await pitwallAlert('Speichern fehlgeschlagen: ' + (err.message || err));
+    }
+  });
 }
 
 // Sky codes aren't officially documented anywhere we could find - this is a
@@ -2717,7 +3260,7 @@ function buildScheduleDetails(card){
     items.push(['Tyre Warmers', card.tyre_warmers ? 'Aktiviert' : 'Deaktiviert']);
   }
   if(card.tyre_allowance !== null && card.tyre_allowance !== undefined){
-    items.push(['Reifen', String(card.tyre_allowance)]);
+    items.push(['Reifen', String(card.tyre_allowance) + (card.quali_tyres ? ' (inkl. Quali)' : '')]);
   }
   if(card.fuel_multiplier !== null && card.fuel_multiplier !== undefined){
     items.push(['Rank Multiplikator', `${card.fuel_multiplier}×`]);
@@ -2726,6 +3269,9 @@ function buildScheduleDetails(card){
     items.push(['Fahrerwechsel', card.driver_swap_enabled ? 'Ja' : 'Nein']);
   }
   if(card.sr_requirement) items.push(['SR-Anforderung', card.sr_requirement]);
+  if(card.requirements) items.push(['Bedingungen', card.requirements]);
+  if(card.qualifying_info) items.push(['Qualifying', card.qualifying_info]);
+  if(card.race_info) items.push(['Rennen', card.race_info]);
 
   const weather = summarizeWeather(card.race_weather);
   if(weather){
@@ -2884,19 +3430,19 @@ function renderScheduleCards(cards, colorByClassName){
     counter.textContent = '';
     const empty = document.createElement('div');
     empty.className = 'schedule-empty';
-    empty.textContent = 'Nichts Passendes gefunden — evtl. eine andere Kombination probieren.';
+    empty.textContent = 'Nichts Passendes gefunden. Der Rennplan kommt aus dem LMU-Discord und wird jede Woche neu eingetragen – evtl. ist die neue Woche noch nicht drin.';
     carousel.appendChild(empty);
     return;
   }
 
-  statusText.textContent = 'Live-Daten · Zeiten in deiner lokalen Zeitzone';
+  statusText.textContent = 'Aus dem LMU-Discord · Zeiten in deiner lokalen Zeitzone';
   counter.textContent = `${cards.length} Termine`;
   const now = Date.now();
 
   if(scheduleFilters.difficulty === 'all'){
     const groups = {};
     cards.forEach(card => {
-      const key = card.tier_name || 'other';
+      const key = card.tier_name || (card.type === 'special' ? 'special' : 'other');
       (groups[key] = groups[key] || []).push(card);
     });
     Object.keys(groups)
@@ -2906,7 +3452,7 @@ function renderScheduleCards(cards, colorByClassName){
         section.className = 'schedule-tier-section';
         const header = document.createElement('div');
         header.className = 'schedule-tier-header tier-' + key;
-        header.textContent = DIFFICULTY_LABELS[key] || key;
+        header.textContent = DIFFICULTY_LABELS[key] || (key === 'special' ? 'Special Events' : key);
         section.appendChild(header);
         const grid = document.createElement('div');
         grid.className = 'schedule-tier-grid';
@@ -2934,7 +3480,7 @@ function buildScheduleCard(card, now, colorByClassName, opts){
     circuit.textContent = circuitTitle(card);
     const badge = document.createElement('span');
     badge.className = 'schedule-tier-badge tier-' + (card.tier_name || 'other');
-    badge.textContent = (card.type === 'championship' ? '\u{1F3C6} ' : '') + (card.tier_name || '');
+    badge.textContent = (card.type === 'championship' ? '\u{1F3C6} ' : '') + (card.tier_name || (card.type === 'special' ? 'special' : ''));
     head.appendChild(circuit);
     head.appendChild(badge);
 
@@ -3052,6 +3598,7 @@ async function loadScheduleView(){
   const isStale = () => requestType !== scheduleFilters.type || requestDifficulty !== scheduleFilters.difficulty;
 
   document.getElementById('schedule-status-text').textContent = 'Lade Rennplan…';
+  document.getElementById('schedule-admin').hidden = !(currentProfile && currentProfile.is_admin);
   try{
     const [cards, { colorByClassName }] = await Promise.all([
       fetchScheduleCards(requestType, requestDifficulty),
@@ -3066,6 +3613,8 @@ async function loadScheduleView(){
     document.getElementById('schedule-carousel').innerHTML = '';
   }
 }
+
+document.getElementById('schedule-import-btn').addEventListener('click', () => openDiscordImportDialog());
 
 document.getElementById('race-type-filter').addEventListener('click', (e) => {
   const btn = e.target.closest('.filter-pill');
@@ -3627,6 +4176,7 @@ pitwallClient.auth.onAuthStateChange(async (event, session) => {
   if(userId && userId === lastAuthUserId && event !== 'USER_UPDATED') return;
   lastAuthUserId = userId;
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
+  saveCatalogSnapshots();
   updateAuthUI(session);
 });
 
