@@ -1780,6 +1780,10 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
   white-space:pre-line;
 }
 .pitwall-modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+#panel-schedule.is-offline > :not(.schedule-offline){display:none !important;}
+.schedule-offline{display:flex; flex-direction:column; gap:6px; margin:8px 0; padding:22px 20px; border:1px solid var(--line); border-radius:14px; background:var(--panel); color:var(--muted); font-size:14px; line-height:1.5;}
+.schedule-offline[hidden]{display:none;}
+.schedule-offline b{font-family:'Rajdhani',sans-serif; font-size:20px; color:var(--text);}
 .schedule-admin{display:flex; align-items:center; gap:10px; margin:4px 0 10px;}
 .schedule-admin .te-header-btn{width:auto; padding:0 14px;}
 .schedule-admin-hint{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted);}
@@ -2008,6 +2012,11 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
 
 <!-- SCHEDULE -->
 <div class="panel" id="panel-schedule">
+
+  <div class="schedule-offline" id="schedule-offline" hidden>
+    <b>Schedule derzeit nicht verfügbar</b>
+    <span>Der Rennplan wird gerade überarbeitet und ist bald wieder da.</span>
+  </div>
 
   <p class="section-label">Rennart</p>
   <div class="filter-row" id="race-type-filter">
@@ -3589,7 +3598,17 @@ function buildScheduleCard(card, now, colorByClassName, opts){
     return el;
 }
 
+// Schedule temporarily offline (27.10.2026): the tab shows a notice, the
+// "next race" strip and dashboard tile stay empty. Data and import stay
+// untouched - set to false to bring everything back.
+const SCHEDULE_OFFLINE = true;
+
 async function loadScheduleView(){
+  if(SCHEDULE_OFFLINE){
+    document.getElementById('panel-schedule').classList.add('is-offline');
+    document.getElementById('schedule-offline').hidden = false;
+    return;
+  }
   // Capture which filters this call is for, so a slow response that arrives
   // after the user already switched filters again doesn't overwrite the
   // (correct) result of a later, faster request.
@@ -9160,6 +9179,11 @@ async function resolveNextRace(){
 
 async function loadDashboardNextRace(){
   const el = document.getElementById('dash-next-race');
+  if(SCHEDULE_OFFLINE){
+    el.innerHTML = '<div class="schedule-empty">Rennplan derzeit nicht verfügbar.</div>';
+    renderDashboardRefTimes(null);
+    return;
+  }
   try{
     const { card, colorByClassName } = await resolveNextRace();
     el.innerHTML = '';
@@ -9519,6 +9543,7 @@ async function loadDashboardTeamStatus(){
 
 async function loadLiveStrip(){
   const strip = document.getElementById('live-strip');
+  if(SCHEDULE_OFFLINE){ strip.hidden = true; return; }
   try{
     const { card, time } = await resolveNextRace();
     if(!card){ strip.hidden = true; return; }
