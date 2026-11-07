@@ -1814,19 +1814,22 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
 .dv-table{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden;}
 .dv-row{display:grid; grid-template-columns:44px minmax(0,1fr) 110px 120px 290px; gap:0 16px; align-items:center; padding:12px 16px;}
 .dv-row + .dv-row{border-top:1px solid var(--line);}
+.dv-headrow{padding:0 17px 8px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.8px; color:var(--muted);}
+
 .dv-avatar{width:40px; height:40px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px;}
 .dv-who{display:flex; flex-direction:column; gap:2px; min-width:0;}
 .dv-name{font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .dv-sub{font-size:12px; color:var(--muted);}
 .dv-cell{font-size:13px; color:#C9CCD2;}
 .dv-cell.dv-today{color:#5FD38A;}
-.dv-actions{display:flex; gap:6px; justify-content:flex-end;}
+.dv-actions{display:flex; gap:6px; justify-content:flex-start;}
 .dv-btn{min-height:40px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; white-space:nowrap;}
 .dv-btn:hover{border-color:var(--muted);}
 .dv-btn.icon{width:40px; padding:0;}
 .dv-btn.danger{border-color:#5A2A24; background:rgba(232,92,74,0.08); color:#F2A497;}
 .dv-btn.accent{border-color:var(--amber); background:rgba(255,176,32,0.10); color:var(--amber);}
 @media (max-width:760px){
+  .dv-headrow{display:none;}
   .dv-row{grid-template-columns:40px minmax(0,1fr) auto; grid-template-areas:"av who active" "act act act"; gap:10px 12px;}
   .dv-row .dv-avatar{grid-area:av;} .dv-row .dv-who{grid-area:who;} .dv-row .dv-cell[title="Registriert"]{display:none;}
   .dv-row .dv-cell[title="Zuletzt aktiv"]{grid-area:active; font-size:12px;}
@@ -3875,6 +3878,16 @@ function renderDriverList(){
   const q = foldAccents(document.getElementById('dv-search').value.trim());
   const box = document.getElementById('dv-drivers');
   box.innerHTML = '';
+  // Column labels like in the design (desktop only - phone rows are cards).
+  const headRow = document.createElement('div');
+  headRow.className = 'dv-row dv-headrow';
+  headRow.setAttribute('aria-hidden', 'true');
+  ['', 'FAHRER', 'SEIT', 'ZULETZT AKTIV', 'AKTIONEN'].forEach(t => {
+    const c = document.createElement('span');
+    c.textContent = t;
+    headRow.appendChild(c);
+  });
+  box.appendChild(headRow);
   let shown = 0;
   groups.forEach(group => {
     if(dvFilter !== 'all' && dvFilter !== group) return;
