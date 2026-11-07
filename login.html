@@ -163,6 +163,11 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
   animation:tire-cross 2s cubic-bezier(.4,0,.2,1) forwards;
 }
 .success-tire svg{display:block;width:100%;height:100%;}
+.success-overlay{flex-direction:column; gap:18px;}
+.success-extra{display:flex; flex-direction:column; align-items:center; gap:10px; animation:message-reveal 2s ease forwards;}
+.success-extra[hidden]{display:none;}
+.success-welcome{font-size:16px; color:#C9CCD2;}
+.success-group{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; letter-spacing:1px; padding:5px 12px; border-radius:6px;}
 @keyframes tire-cross{
   0%{left:-15%;transform:translateY(-50%) rotate(0deg);}
   100%{left:112%;transform:translateY(-50%) rotate(720deg);}
@@ -231,6 +236,7 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
       </svg>
     </div>
   </div>
+  <div class="success-extra" id="success-extra" hidden><span class="success-welcome" id="success-welcome"></span><span class="success-group" id="success-group"></span></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -268,10 +274,20 @@ function translateAuthError(msg){
   if(session) window.location.href = 'index.html';
 })();
 
-function showSuccessAndRedirect(message){
+function showSuccessAndRedirect(message, extra){
   document.getElementById('success-message').textContent = message;
+  const box = document.getElementById('success-extra');
+  if(extra){
+    document.getElementById('success-welcome').textContent = extra.welcome;
+    const g = document.getElementById('success-group');
+    g.textContent = extra.group.toUpperCase();
+    const k = extra.group.toLowerCase();
+    g.style.background = k === 'scc' ? '#FFB020' : k === 'gast' ? '#427BBF' : '#7A5BC9';
+    g.style.color = k === 'scc' ? '#111317' : '#E9E7E1';
+  }
+  box.hidden = !extra;
   document.getElementById('success-overlay').hidden = false;
-  setTimeout(() => { window.location.href = 'index.html'; }, 2100);
+  setTimeout(() => { window.location.href = 'index.html'; }, extra ? 2800 : 2100);
 }
 
 document.querySelectorAll('.auth-tab').forEach(btn => {
@@ -324,7 +340,18 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
       const { error } = await pitwallClient.auth.signInWithPassword({ email, password });
       if(error) throw error;
     }
-    showSuccessAndRedirect(authMode === 'signup' ? 'Registrierung erfolgreich!' : 'Anmeldung erfolgreich!');
+    if(authMode === 'signup'){
+      // The invite code decided the group - show it once.
+      let extra = null;
+      try{
+        const { data: { user } } = await pitwallClient.auth.getUser();
+        const { data: prof } = await pitwallClient.from('profiles').select('username,member_group').eq('id', user.id).maybeSingle();
+        if(prof) extra = { welcome: `Willkommen, ${prof.username}`, group: prof.member_group || 'SCC' };
+      }catch(e){}
+      showSuccessAndRedirect('Konto erstellt', extra);
+    }else{
+      showSuccessAndRedirect('Anmeldung erfolgreich!');
+    }
   }catch(err){
     showFormMessage('auth-message', translateAuthError(err.message));
   }finally{

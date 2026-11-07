@@ -1793,6 +1793,79 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
 .dc-import-team{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:12.5px; color:var(--text); cursor:pointer;}
 .dc-import-warn{margin:0; font-size:12.5px; color:var(--amber);}
 .dc-import-starts{display:flex; flex-direction:column; gap:2px;}
+.account-dropdown-item.admin{color:var(--amber); font-weight:600; display:flex; align-items:center; gap:8px;}
+.account-dropdown-item.admin span{margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.8px; color:#C9A25A;}
+.dv-head{display:flex; align-items:center; gap:14px; margin:4px 0 18px;}
+.dv-back{width:44px; height:44px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer;}
+.dv-kicker{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--muted);}
+.dv-title{margin:0; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:32px; line-height:1;}
+.dv-bar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+.dv-tabs{display:flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--panel);}
+.dv-tab{min-height:40px; padding:0 16px; border:none; border-radius:9px; background:transparent; color:#C9CCD2; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; cursor:pointer;}
+.dv-tab.active{background:var(--amber); color:#111317; font-weight:600;}
+.dv-search{flex:1 1 240px;}
+.dv-search input{width:100%; box-sizing:border-box; height:46px; padding:0 14px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:14px;}
+.dv-primary{min-height:46px; padding:0 18px; border:none; border-radius:10px; background:var(--amber); color:#111317; font-weight:600; font-size:14px; cursor:pointer; margin-left:auto;}
+.dv-filters{margin-bottom:14px;}
+.dv-group{display:flex; flex-direction:column; gap:8px; margin-bottom:20px;}
+.dv-group-head{display:flex; align-items:center; gap:10px;}
+.dv-badge{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11.5px; letter-spacing:1px; padding:4px 10px; border-radius:6px; white-space:nowrap;}
+.dv-count{font-size:13px; color:var(--muted);}
+.dv-table{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden;}
+.dv-row{display:grid; grid-template-columns:44px minmax(0,1fr) 110px 120px 290px; gap:0 16px; align-items:center; padding:12px 16px;}
+.dv-row + .dv-row{border-top:1px solid var(--line);}
+.dv-avatar{width:40px; height:40px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15px;}
+.dv-who{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.dv-name{font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.dv-sub{font-size:12px; color:var(--muted);}
+.dv-cell{font-size:13px; color:#C9CCD2;}
+.dv-cell.dv-today{color:#5FD38A;}
+.dv-actions{display:flex; gap:6px; justify-content:flex-end;}
+.dv-btn{min-height:40px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-size:12.5px; display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; white-space:nowrap;}
+.dv-btn:hover{border-color:var(--muted);}
+.dv-btn.icon{width:40px; padding:0;}
+.dv-btn.danger{border-color:#5A2A24; background:rgba(232,92,74,0.08); color:#F2A497;}
+.dv-btn.accent{border-color:var(--amber); background:rgba(255,176,32,0.10); color:var(--amber);}
+@media (max-width:760px){
+  .dv-row{grid-template-columns:40px minmax(0,1fr) auto; grid-template-areas:"av who active" "act act act"; gap:10px 12px;}
+  .dv-row .dv-avatar{grid-area:av;} .dv-row .dv-who{grid-area:who;} .dv-row .dv-cell[title="Registriert"]{display:none;}
+  .dv-row .dv-cell[title="Zuletzt aktiv"]{grid-area:active; font-size:12px;}
+  .dv-row .dv-actions{grid-area:act; justify-content:stretch;}
+  .dv-row .dv-actions .dv-btn:not(.icon){flex:1; min-height:44px;}
+  .dv-row .dv-actions .dv-btn.icon{width:44px; min-height:44px;}
+  .dv-primary{margin-left:0; flex:1 1 100%;}
+}
+.dv-dialog{display:flex; flex-direction:column; gap:12px;}
+.dv-dialog-body{display:flex; flex-direction:column; gap:12px;}
+.dv-text{margin:0; font-size:14px; line-height:1.55;}
+.dv-text.muted{color:#A9AEB6; max-width:760px; margin-bottom:14px;}
+.dv-hint{margin:0; font-size:12.5px; line-height:1.5; color:var(--muted);}
+.dv-list{margin:0; padding-left:18px; font-size:13px; line-height:1.6; color:#A9AEB6;}
+.dv-label{font-size:12.5px; color:#A9AEB6;}
+.dv-input{height:44px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-size:14px; box-sizing:border-box; min-width:0;}
+.dv-input.mono{font-family:'JetBrains Mono',monospace; letter-spacing:2px; flex:1;}
+.dv-input.small{height:36px; width:150px; color-scheme:dark;}
+.dv-input:disabled{opacity:0.45;}
+.dv-link{display:flex; gap:6px; align-items:center;}
+.dv-link input{flex:1; min-width:0; height:44px; padding:0 12px; border-radius:8px; border:1px dashed #3A404B; background:#15171C; color:#C9CCD2; font-family:'JetBrains Mono',monospace; font-size:12px;}
+.dv-radio-list{display:flex; flex-direction:column; gap:8px;}
+.dv-radio{display:flex; align-items:center; gap:12px; min-height:52px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer;}
+.dv-radio.active{border-color:var(--amber); background:rgba(255,176,32,0.08);}
+.dv-radio input{width:18px; height:18px; accent-color:var(--amber);}
+.dv-group-pick{display:flex; gap:6px; flex-wrap:wrap;}
+.dv-opts{display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:10px; border:1px solid var(--line); background:#15171C;}
+.dv-opt{display:flex; align-items:center; gap:10px; font-size:14px; flex-wrap:wrap;}
+.dv-opt span{flex:1;}
+.dv-opt input[type="checkbox"]{width:18px; height:18px; accent-color:var(--amber);}
+.dv-code-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap:16px;}
+.dv-code-card{border:1px solid var(--line); border-radius:16px; background:var(--panel); padding:18px; display:flex; flex-direction:column; gap:14px;}
+.dv-code-top{display:flex; align-items:center; gap:10px; justify-content:space-between;}
+.dv-state{font-size:12.5px;}
+.dv-state.on{color:#5FD38A;} .dv-state.off{color:var(--muted);}
+.dv-code{flex:1; min-width:0; min-height:52px; border-radius:10px; border:1px dashed #3A404B; background:#15171C; display:flex; align-items:center; padding:0 16px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; letter-spacing:3px; overflow-wrap:anywhere;}
+.dv-stats{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px;}
+.dv-stats div{display:flex; flex-direction:column; gap:3px; font-size:14px;}
+.dv-code-actions{display:flex; gap:8px; border-top:1px solid var(--line); padding-top:12px;}
 .dc-import-preview select{height:42px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:0 10px;}
 .pitwall-modal-btn{
   font-family:'JetBrains Mono',monospace;
@@ -1967,6 +2040,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
               <button type="button" class="te-team-btn" id="account-username-save">Speichern</button>
               <div class="form-message" id="account-username-message" hidden></div>
             </div>
+            <button type="button" class="account-dropdown-item admin" id="account-drivers-btn" hidden>Fahrerverwaltung <span>ADMIN</span></button>
             <button type="button" class="account-dropdown-item" id="account-logout-btn">Abmelden</button>
             <button type="button" class="account-dropdown-item danger" id="account-delete-btn">Konto löschen</button>
             <div class="form-message" id="account-delete-message" hidden></div>
@@ -2033,6 +2107,26 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
   </div>
   <div class="schedule-carousel" id="schedule-carousel"></div>
 
+</div>
+
+<!-- FAHRERVERWALTUNG (nur Admin, über das Profilmenü) -->
+<div class="panel" id="panel-drivers">
+  <div class="dv-head">
+    <button type="button" class="dv-back" id="dv-back" aria-label="Zurück zum Dashboard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><span class="dv-kicker">ADMIN</span><h2 class="dv-title">Fahrerverwaltung</h2></div>
+  </div>
+  <div class="dv-bar">
+    <div class="dv-tabs" role="tablist">
+      <button type="button" role="tab" class="dv-tab active" data-tab="drivers" id="dv-tab-drivers" aria-selected="true">Fahrer</button>
+      <button type="button" role="tab" class="dv-tab" data-tab="codes" id="dv-tab-codes" aria-selected="false">Einladecodes</button>
+    </div>
+    <div class="dv-search" id="dv-search-wrap"><input type="search" id="dv-search" placeholder="Fahrer suchen" aria-label="Fahrer suchen"></div>
+    <button type="button" class="dv-primary" id="dv-new-code" hidden>+ Neuer Code</button>
+  </div>
+  <div class="filter-row dv-filters" id="dv-filters"></div>
+  <div class="form-message" id="dv-message" hidden></div>
+  <div id="dv-drivers"></div>
+  <div id="dv-codes" hidden></div>
 </div>
 
 <!-- LOGBOOK -->
@@ -3611,7 +3705,7 @@ document.getElementById('account-logout-btn').addEventListener('click', () => {
 document.getElementById('account-delete-btn').addEventListener('click', async () => {
   hideFormMessage('account-delete-message');
   const sure = await pitwallConfirm(
-    'Konto wirklich unwiderruflich löschen?\nAlle deine Daten (Profil, Rundenzeiten, Team-Mitgliedschaften) werden entfernt. Das kann nicht rückgängig gemacht werden.',
+    'Konto wirklich unwiderruflich löschen?\nProfil, Rundenzeiten, Kommentare und Team-Mitgliedschaften werden entfernt. In bestehenden Stintplänen bleibt dein Name stehen. Das kann nicht rückgängig gemacht werden.',
     { confirmText: 'Konto löschen', danger: true }
   );
   if(!sure) return;
@@ -3623,6 +3717,571 @@ document.getElementById('account-delete-btn').addEventListener('click', async ()
   await pitwallClient.auth.signOut();
   window.location.href = 'login.html';
 });
+
+// ---- Fahrerverwaltung (admin only): driver list by group, role change,
+// reset link (sent by the admin themselves), account delete, invite codes.
+// The server checks admin rights for every call (admin_* functions, RLS on
+// invite_codes, Edge Function admin-reset-link). No e-mail ever reaches the
+// browser. ----
+let dvTab = 'drivers';
+let dvFilter = 'all';
+let dvDrivers = [];
+let dvCodes = [];
+
+const DV_BASE_GROUPS = ['SCC', 'Gast'];
+function dvGroupStyle(group){
+  const g = String(group || '').toLowerCase();
+  if(g === 'scc') return { fg: '#111317', bg: '#FFB020' };
+  if(g === 'gast') return { fg: '#E9E7E1', bg: '#427BBF' };
+  return { fg: '#E9E7E1', bg: '#7A5BC9' };
+}
+function dvBadge(group){
+  const b = document.createElement('span');
+  b.className = 'dv-badge';
+  const st = dvGroupStyle(group);
+  b.style.color = st.fg;
+  b.style.background = st.bg;
+  b.textContent = String(group || '').toUpperCase();
+  return b;
+}
+function dvAllGroups(){
+  const set = new Set(DV_BASE_GROUPS);
+  dvDrivers.forEach(d => d.member_group && set.add(d.member_group));
+  dvCodes.forEach(c => c.group_name && set.add(c.group_name));
+  const rest = [...set].filter(g => !DV_BASE_GROUPS.includes(g)).sort((a, b) => a.localeCompare(b, 'de'));
+  return [...DV_BASE_GROUPS, ...rest];
+}
+function dvDate(iso){
+  return iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
+}
+function dvAgo(iso){
+  if(!iso) return 'nie';
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(iso).setHours(0, 0, 0, 0)) / 86400000);
+  if(days <= 0) return 'heute';
+  if(days === 1) return 'gestern';
+  if(days < 14) return `vor ${days} Tagen`;
+  if(days < 60) return `vor ${Math.floor(days / 7)} Wochen`;
+  return dvDate(iso);
+}
+function dvInitials(name){
+  const parts = String(name || '?').trim().split(/[\s._-]+/).filter(Boolean);
+  return ((parts[0] || '?')[0] + (parts[1] ? parts[1][0] : (parts[0] || '')[1] || '')).toUpperCase();
+}
+function dvIconBtn(label, svg, cls){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = cls || 'dv-btn';
+  b.innerHTML = svg; // static icon markup only
+  const t = document.createElement('span');
+  t.textContent = label;
+  b.appendChild(t);
+  return b;
+}
+const DV_ICON_LINK = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
+const DV_ICON_CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const DV_ICON_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+const DV_ICON_COPY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>';
+
+// Small dialog frame in the same style as the other Pitwall dialogs.
+function dvDialog(title){
+  const overlay = document.createElement('div');
+  overlay.className = 'pitwall-modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'pitwall-modal te-move dv-dialog';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  const h = document.createElement('div');
+  h.className = 'pitwall-modal-title';
+  h.textContent = title;
+  const body = document.createElement('div');
+  body.className = 'dv-dialog-body';
+  const msg = document.createElement('div');
+  msg.className = 'form-message';
+  msg.hidden = true;
+  const actions = document.createElement('div');
+  actions.className = 'pitwall-modal-actions';
+  modal.append(h, body, msg, actions);
+  overlay.appendChild(modal);
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  function close(){ overlay.remove(); document.removeEventListener('keydown', onKey); }
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(overlay);
+  const button = (text, cls) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pitwall-modal-btn' + (cls ? ' ' + cls : '');
+    b.textContent = text;
+    actions.appendChild(b);
+    return b;
+  };
+  const showError = text => { msg.textContent = text; msg.hidden = !text; };
+  return { body, button, close, showError };
+}
+
+async function loadDriversView(){
+  const box = document.getElementById('dv-drivers');
+  const codesBox = document.getElementById('dv-codes');
+  hideFormMessage('dv-message');
+  if(!(currentProfile && currentProfile.is_admin)){
+    box.innerHTML = '';
+    codesBox.innerHTML = '';
+    showFormMessage('dv-message', 'Nur für Admins.');
+    return;
+  }
+  const [drivers, codes] = await Promise.all([
+    pitwallClient.rpc('admin_list_drivers'),
+    pitwallClient.from('invite_codes').select('*').order('created_at'),
+  ]);
+  if(drivers.error || codes.error){
+    showFormMessage('dv-message', 'Konnte nicht geladen werden: ' + (drivers.error || codes.error).message);
+    return;
+  }
+  dvDrivers = drivers.data || [];
+  dvCodes = codes.data || [];
+  renderDriversView();
+}
+
+function renderDriversView(){
+  document.querySelectorAll('#panel-drivers .dv-tab').forEach(b => {
+    const on = b.dataset.tab === dvTab;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.getElementById('dv-tab-drivers').textContent = `Fahrer · ${dvDrivers.length}`;
+  document.getElementById('dv-tab-codes').textContent = `Einladecodes · ${dvCodes.length}`;
+  document.getElementById('dv-drivers').hidden = dvTab !== 'drivers';
+  document.getElementById('dv-codes').hidden = dvTab !== 'codes';
+  document.getElementById('dv-search-wrap').hidden = dvTab !== 'drivers';
+  document.getElementById('dv-filters').hidden = dvTab !== 'drivers';
+  document.getElementById('dv-new-code').hidden = dvTab !== 'codes';
+  if(dvTab === 'drivers') renderDriverList(); else renderCodeList();
+}
+
+function renderDriverList(){
+  const groups = dvAllGroups();
+  if(dvFilter !== 'all' && !groups.includes(dvFilter)) dvFilter = 'all';
+  const filters = document.getElementById('dv-filters');
+  filters.innerHTML = '';
+  ['all', ...groups.filter(g => dvDrivers.some(d => d.member_group === g))].forEach(g => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'filter-pill' + (dvFilter === g ? ' active' : '');
+    b.textContent = g === 'all' ? 'Alle' : g;
+    b.addEventListener('click', () => { dvFilter = g; renderDriverList(); });
+    filters.appendChild(b);
+  });
+
+  const q = foldAccents(document.getElementById('dv-search').value.trim());
+  const box = document.getElementById('dv-drivers');
+  box.innerHTML = '';
+  let shown = 0;
+  groups.forEach(group => {
+    if(dvFilter !== 'all' && dvFilter !== group) return;
+    const list = dvDrivers.filter(d => d.member_group === group && (!q || foldAccents(d.username || '').includes(q)));
+    if(!list.length) return;
+    shown += list.length;
+    const section = document.createElement('section');
+    section.className = 'dv-group';
+    const head = document.createElement('div');
+    head.className = 'dv-group-head';
+    const count = document.createElement('span');
+    count.className = 'dv-count';
+    count.textContent = `${list.length} Fahrer`;
+    head.append(dvBadge(group), count);
+    const table = document.createElement('div');
+    table.className = 'dv-table';
+    list.forEach(d => table.appendChild(renderDriverRow(d)));
+    section.append(head, table);
+    box.appendChild(section);
+  });
+  if(!shown){
+    const empty = document.createElement('div');
+    empty.className = 'schedule-empty';
+    empty.textContent = q ? 'Kein Fahrer gefunden.' : 'Noch keine Fahrer.';
+    box.appendChild(empty);
+  }
+}
+
+function renderDriverRow(d){
+  const self = currentProfile && d.id === currentProfile.id;
+  const row = document.createElement('div');
+  row.className = 'dv-row';
+  const av = document.createElement('div');
+  av.className = 'dv-avatar';
+  av.textContent = dvInitials(d.username);
+  const who = document.createElement('div');
+  who.className = 'dv-who';
+  const name = document.createElement('span');
+  name.className = 'dv-name';
+  name.textContent = d.username || '–';
+  const sub = document.createElement('span');
+  sub.className = 'dv-sub';
+  sub.textContent = [d.is_admin ? 'Admin' : null, self ? 'du' : null,
+    d.team_count ? `${d.team_count} Team${d.team_count === 1 ? '' : 's'}` : 'kein Team'].filter(Boolean).join(' · ');
+  who.append(name, sub);
+  const since = document.createElement('span');
+  since.className = 'dv-cell';
+  since.textContent = dvDate(d.created_at);
+  since.title = 'Registriert';
+  const active = document.createElement('span');
+  active.className = 'dv-cell' + (dvAgo(d.last_active) === 'heute' ? ' dv-today' : '');
+  active.textContent = dvAgo(d.last_active);
+  active.title = 'Zuletzt aktiv';
+  const actions = document.createElement('div');
+  actions.className = 'dv-actions';
+  const reset = dvIconBtn('Reset-Link', DV_ICON_LINK);
+  reset.addEventListener('click', () => openResetLinkDialog(d));
+  const role = dvIconBtn('Rolle ändern', DV_ICON_CHEVRON);
+  role.addEventListener('click', () => openRoleDialog(d));
+  actions.append(reset, role);
+  if(!self && !d.is_admin){
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'dv-btn danger icon';
+    del.setAttribute('aria-label', `Konto von ${d.username} löschen`);
+    del.innerHTML = DV_ICON_TRASH;
+    del.addEventListener('click', () => openDeleteDriverDialog(d));
+    actions.appendChild(del);
+  }
+  row.append(av, who, since, active, actions);
+  return row;
+}
+
+async function openResetLinkDialog(d){
+  const dlg = dvDialog(`Reset-Link für ${d.username}`);
+  const p = document.createElement('p');
+  p.className = 'dv-text';
+  p.textContent = 'Erzeuge Link …';
+  dlg.body.appendChild(p);
+  const closeBtn = dlg.button('Schließen');
+  closeBtn.addEventListener('click', dlg.close);
+  const redirect = new URL('reset-password.html', window.location.href).href;
+  const { data, error } = await pitwallClient.functions.invoke('admin-reset-link', { body: { user_id: d.id, redirect_to: redirect } });
+  if(error || !data || !data.link){
+    let detail = error ? error.message : 'kein Link erhalten';
+    try{ const j = error && error.context && await error.context.json(); if(j && j.error) detail = j.error; }catch(e){}
+    p.textContent = '';
+    dlg.showError('Link konnte nicht erzeugt werden: ' + detail);
+    return;
+  }
+  p.textContent = 'Schick ihm diesen Link selbst, z. B. per Discord oder WhatsApp. Darüber setzt er ein neues Passwort.';
+  const wrap = document.createElement('div');
+  wrap.className = 'dv-link';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.readOnly = true;
+  input.value = data.link;
+  input.setAttribute('aria-label', 'Reset-Link');
+  const copy = dvIconBtn('Kopieren', DV_ICON_COPY, 'dv-btn accent');
+  copy.addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(data.link); copy.querySelector('span').textContent = 'Kopiert'; }
+    catch(e){ input.select(); copy.querySelector('span').textContent = 'Markiert – Strg+C'; }
+  });
+  wrap.append(input, copy);
+  const ul = document.createElement('ul');
+  ul.className = 'dv-list';
+  ['Gilt 1 Stunde und nur einmal', 'Wer den Link hat, kann das Passwort ändern – nur privat schicken', 'Das alte Passwort gilt weiter, bis ein neues gesetzt ist']
+    .forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+  dlg.body.append(wrap, ul);
+}
+
+function openRoleDialog(d){
+  const dlg = dvDialog('Rolle ändern');
+  const p = document.createElement('p');
+  p.className = 'dv-text';
+  p.textContent = `In welche Gruppe gehört „${d.username}“?`;
+  const list = document.createElement('div');
+  list.className = 'dv-radio-list';
+  let chosen = d.member_group;
+  const radios = [];
+  dvAllGroups().forEach(g => {
+    const lab = document.createElement('label');
+    lab.className = 'dv-radio';
+    const r = document.createElement('input');
+    r.type = 'radio';
+    r.name = 'dv-role';
+    r.checked = g === d.member_group;
+    r.addEventListener('change', () => { chosen = g; paint(); });
+    const n = dvDrivers.filter(x => x.member_group === g).length;
+    const c = document.createElement('span');
+    c.className = 'dv-count';
+    c.textContent = `${n} Fahrer${g === d.member_group ? ' · aktuell' : ''}`;
+    lab.append(r, dvBadge(g), c);
+    list.appendChild(lab);
+    radios.push({ lab, g });
+  });
+  const hint = document.createElement('p');
+  hint.className = 'dv-hint';
+  hint.textContent = 'Gruppen kommen von den Einladecodes. Eine eigene Gruppe legst du beim Erstellen eines Codes an.';
+  dlg.body.append(p, list, hint);
+  function paint(){ radios.forEach(x => x.lab.classList.toggle('active', x.g === chosen)); save.disabled = chosen === d.member_group; }
+  dlg.button('Abbrechen').addEventListener('click', dlg.close);
+  const save = dlg.button('Speichern', 'primary');
+  paint();
+  save.addEventListener('click', async () => {
+    save.disabled = true;
+    const { error } = await pitwallClient.rpc('admin_set_member_group', { p_user: d.id, p_group: chosen });
+    if(error){ dlg.showError('Speichern fehlgeschlagen: ' + error.message); save.disabled = false; return; }
+    d.member_group = chosen;
+    dlg.close();
+    renderDriversView();
+  });
+}
+
+function openDeleteDriverDialog(d){
+  const dlg = dvDialog('Konto löschen?');
+  const p = document.createElement('p');
+  p.className = 'dv-text';
+  p.textContent = `„${d.username}“ wird endgültig gelöscht und kann sich danach nicht mehr anmelden.`;
+  const ul = document.createElement('ul');
+  ul.className = 'dv-list';
+  [d.team_count ? `Wird aus ${d.team_count} Team${d.team_count === 1 ? '' : 's'} entfernt – leitet er ein Team, übernimmt das nächste Mitglied` : 'In keinem Team',
+   'In bestehenden Stints bleibt sein Name als Text stehen – die Stintpläne bleiben vollständig',
+   'Seine Rundenzeiten und Kommentare werden gelöscht']
+    .forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+  const lab = document.createElement('label');
+  lab.className = 'dv-label';
+  lab.textContent = 'Zur Sicherheit den Namen eintippen';
+  lab.htmlFor = 'dv-del-confirm';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'dv-del-confirm';
+  input.className = 'dv-input';
+  input.autocomplete = 'off';
+  dlg.body.append(p, ul, lab, input);
+  dlg.button('Abbrechen').addEventListener('click', dlg.close);
+  const del = dlg.button('Endgültig löschen', 'danger');
+  del.disabled = true;
+  input.addEventListener('input', () => { del.disabled = input.value.trim() !== (d.username || ''); });
+  setTimeout(() => input.focus(), 0);
+  del.addEventListener('click', async () => {
+    del.disabled = true;
+    const { error } = await pitwallClient.rpc('admin_delete_user', { p_user: d.id });
+    if(error){ dlg.showError('Löschen fehlgeschlagen: ' + error.message); del.disabled = false; return; }
+    dlg.close();
+    allProfilesPromise = null;
+    loadDriversView();
+  });
+}
+
+function dvCodeState(c){
+  if(!c.active) return { text: 'deaktiviert', cls: 'off' };
+  if(c.valid_until && c.valid_until < localDayKey(new Date())) return { text: 'abgelaufen', cls: 'off' };
+  if(c.max_uses && c.uses >= c.max_uses) return { text: 'aufgebraucht', cls: 'off' };
+  return { text: 'aktiv', cls: 'on' };
+}
+
+function renderCodeList(){
+  const box = document.getElementById('dv-codes');
+  box.innerHTML = '';
+  const intro = document.createElement('p');
+  intro.className = 'dv-text muted';
+  intro.textContent = 'Wer sich registriert, gibt einen dieser Codes ein. Der Code bestimmt die Gruppe. Ein deaktivierter Code funktioniert nicht mehr – bestehende Konten bleiben.';
+  box.appendChild(intro);
+  if(!dvCodes.length){
+    const empty = document.createElement('div');
+    empty.className = 'schedule-empty';
+    empty.textContent = 'Noch kein Code – ohne Code kann sich niemand registrieren.';
+    box.appendChild(empty);
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'dv-code-grid';
+  dvCodes.forEach(c => {
+    const card = document.createElement('article');
+    card.className = 'dv-code-card';
+    const top = document.createElement('div');
+    top.className = 'dv-code-top';
+    const st = dvCodeState(c);
+    const state = document.createElement('span');
+    state.className = 'dv-state ' + st.cls;
+    state.textContent = st.text;
+    top.append(dvBadge(c.group_name), state);
+    const codeRow = document.createElement('div');
+    codeRow.className = 'dv-link';
+    const code = document.createElement('div');
+    code.className = 'dv-code';
+    code.textContent = c.code;
+    const copy = dvIconBtn('Kopieren', DV_ICON_COPY);
+    copy.addEventListener('click', async () => {
+      try{ await navigator.clipboard.writeText(c.code); copy.querySelector('span').textContent = 'Kopiert'; }catch(e){}
+    });
+    codeRow.append(code, copy);
+    const stats = document.createElement('div');
+    stats.className = 'dv-stats';
+    [['GENUTZT / MAX.', `${c.uses} / ${c.max_uses || 'unbegrenzt'}`], ['ZULETZT', c.last_used_at ? dvDate(c.last_used_at) : '–'],
+     ['GÜLTIG BIS', c.valid_until ? dvDate(c.valid_until + 'T12:00:00') : 'unbegrenzt']].forEach(([k, v]) => {
+      const s = document.createElement('div');
+      const kk = document.createElement('span');
+      kk.className = 'te-move-k';
+      kk.textContent = k;
+      const vv = document.createElement('span');
+      vv.textContent = v;
+      s.append(kk, vv);
+      stats.appendChild(s);
+    });
+    const actions = document.createElement('div');
+    actions.className = 'dv-code-actions';
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'dv-btn';
+    edit.textContent = 'Bearbeiten';
+    edit.addEventListener('click', () => openCodeDialog(c));
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'dv-btn';
+    toggle.textContent = c.active ? 'Deaktivieren' : 'Aktivieren';
+    toggle.addEventListener('click', async () => {
+      const { error } = await pitwallClient.from('invite_codes').update({ active: !c.active }).eq('id', c.id);
+      if(error){ showFormMessage('dv-message', 'Fehlgeschlagen: ' + error.message); return; }
+      loadDriversView();
+    });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'dv-btn danger icon';
+    del.setAttribute('aria-label', 'Code löschen');
+    del.innerHTML = DV_ICON_TRASH;
+    del.addEventListener('click', async () => {
+      if(!(await pitwallConfirm(`Code „${c.code}“ löschen?\n\nMit diesem Code kann sich danach niemand mehr registrieren. Bestehende Konten bleiben.`, { confirmText: 'Löschen', danger: true }))) return;
+      const { error } = await pitwallClient.from('invite_codes').delete().eq('id', c.id);
+      if(error){ showFormMessage('dv-message', 'Löschen fehlgeschlagen: ' + error.message); return; }
+      loadDriversView();
+    });
+    const spacer = document.createElement('span');
+    spacer.style.flex = '1';
+    actions.append(edit, toggle, spacer, del);
+    card.append(top, codeRow, stats, actions);
+    grid.appendChild(card);
+  });
+  box.appendChild(grid);
+}
+
+function dvRandomCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return [...bytes].map(b => chars[b % chars.length]).join('');
+}
+
+function openCodeDialog(existing){
+  const dlg = dvDialog(existing ? 'Code bearbeiten' : 'Neuer Einladecode');
+  let group = existing ? existing.group_name : 'Gast';
+  const k1 = document.createElement('span');
+  k1.className = 'te-move-k';
+  k1.textContent = 'GRUPPE';
+  const groupRow = document.createElement('div');
+  groupRow.className = 'dv-group-pick';
+  const custom = document.createElement('input');
+  custom.type = 'text';
+  custom.className = 'dv-input';
+  custom.placeholder = 'Name der eigenen Gruppe';
+  custom.maxLength = 24;
+  custom.setAttribute('aria-label', 'Eigene Gruppe');
+  const groups = dvAllGroups();
+  let customOn = false;
+  function paintGroups(){
+    groupRow.innerHTML = '';
+    groups.forEach(g => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'filter-pill' + (!customOn && g === group ? ' active' : '');
+      b.setAttribute('aria-pressed', !customOn && g === group ? 'true' : 'false');
+      b.textContent = g;
+      b.addEventListener('click', () => { customOn = false; group = g; paintGroups(); });
+      groupRow.appendChild(b);
+    });
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'filter-pill dv-add' + (customOn ? ' active' : '');
+    add.textContent = '+ Eigene Gruppe';
+    add.addEventListener('click', () => { customOn = true; paintGroups(); custom.focus(); });
+    groupRow.appendChild(add);
+    custom.hidden = !customOn;
+  }
+  paintGroups();
+
+  const k2 = document.createElement('label');
+  k2.className = 'te-move-k';
+  k2.textContent = 'CODE';
+  k2.htmlFor = 'dv-code-input';
+  const codeWrap = document.createElement('div');
+  codeWrap.className = 'dv-link';
+  const code = document.createElement('input');
+  code.type = 'text';
+  code.id = 'dv-code-input';
+  code.className = 'dv-input mono';
+  code.maxLength = 40;
+  code.value = existing ? existing.code : dvRandomCode();
+  const rnd = document.createElement('button');
+  rnd.type = 'button';
+  rnd.className = 'dv-btn';
+  rnd.textContent = 'Zufällig';
+  rnd.addEventListener('click', () => { code.value = dvRandomCode(); });
+  codeWrap.append(code, rnd);
+
+  const opts = document.createElement('div');
+  opts.className = 'dv-opts';
+  const optRow = (label, type, value, attrs) => {
+    const lab = document.createElement('label');
+    lab.className = 'dv-opt';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = value != null;
+    const t = document.createElement('span');
+    t.textContent = label;
+    const inp = document.createElement('input');
+    inp.type = type;
+    inp.className = 'dv-input small';
+    Object.assign(inp, attrs || {});
+    inp.setAttribute('aria-label', label);
+    if(value != null) inp.value = value;
+    inp.disabled = !cb.checked;
+    cb.addEventListener('change', () => { inp.disabled = !cb.checked; if(cb.checked) inp.focus(); });
+    lab.append(cb, t, inp);
+    opts.appendChild(lab);
+    return { cb, inp };
+  };
+  const until = optRow('Gültig bis', 'date', existing ? existing.valid_until : null);
+  const maxUses = optRow('Max. Nutzungen', 'number', existing ? existing.max_uses : null, { min: 1, step: 1 });
+  const note = document.createElement('span');
+  note.className = 'dv-hint';
+  note.textContent = 'Ohne Haken: unbegrenzt.';
+  opts.appendChild(note);
+
+  dlg.body.append(k1, groupRow, custom, k2, codeWrap, opts);
+  dlg.button('Abbrechen').addEventListener('click', dlg.close);
+  const save = dlg.button(existing ? 'Speichern' : 'Code anlegen', 'primary');
+  save.addEventListener('click', async () => {
+    dlg.showError('');
+    const g = (customOn ? custom.value : group).trim();
+    const c = code.value.trim();
+    if(!g || g.length > 24) return dlg.showError('Gruppe: 1–24 Zeichen.');
+    if(c.length < 3 || c.length > 40) return dlg.showError('Code: 3–40 Zeichen.');
+    if(until.cb.checked && !until.inp.value) return dlg.showError('Bitte ein Datum für „Gültig bis“ wählen.');
+    const max = parseInt(maxUses.inp.value, 10);
+    if(maxUses.cb.checked && !(max > 0)) return dlg.showError('Max. Nutzungen: mindestens 1.');
+    const row = { code: c, group_name: g, valid_until: until.cb.checked ? until.inp.value : null, max_uses: maxUses.cb.checked ? max : null };
+    save.disabled = true;
+    const { error } = existing
+      ? await pitwallClient.from('invite_codes').update(row).eq('id', existing.id)
+      : await pitwallClient.from('invite_codes').insert(row);
+    if(error){
+      save.disabled = false;
+      return dlg.showError(error.code === '23505' ? 'Diesen Code gibt es schon.' : 'Speichern fehlgeschlagen: ' + error.message);
+    }
+    dlg.close();
+    loadDriversView();
+  });
+}
+
+document.getElementById('account-drivers-btn').addEventListener('click', () => {
+  document.getElementById('account-dropdown').hidden = true;
+  showPanel('drivers');
+});
+document.getElementById('dv-back').addEventListener('click', () => showPanel('dashboard'));
+document.querySelectorAll('#panel-drivers .dv-tab').forEach(b => b.addEventListener('click', () => { dvTab = b.dataset.tab; renderDriversView(); }));
+document.getElementById('dv-search').addEventListener('input', () => renderDriverList());
+document.getElementById('dv-new-code').addEventListener('click', () => openCodeDialog(null));
 
 document.getElementById('account-username-toggle').addEventListener('click', () => {
   const form = document.getElementById('account-username-form');
@@ -3967,6 +4626,7 @@ pitwallClient.auth.onAuthStateChange(async (event, session) => {
   if(userId && userId === lastAuthUserId && event !== 'USER_UPDATED') return;
   lastAuthUserId = userId;
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
+  document.getElementById('account-drivers-btn').hidden = !(currentProfile && currentProfile.is_admin);
   saveCatalogSnapshots();
   updateAuthUI(session);
 });
@@ -9077,6 +9737,8 @@ function showPanel(name){
   document.getElementById('panel-teamevents').classList.toggle('active', name==='teamevents');
   document.getElementById('tab-teamevents').classList.toggle('active', name==='teamevents');
   document.getElementById('panel-fuelcalc').classList.toggle('active', name==='fuelcalc');
+  document.getElementById('panel-drivers').classList.toggle('active', name==='drivers');
+  if(name === 'drivers') loadDriversView();
   document.getElementById('tab-fuelcalc').classList.toggle('active', name==='fuelcalc');
   document.querySelectorAll('#bottom-nav-mobile .tab').forEach(el => el.classList.toggle('active', el.dataset.panel === name));
   if(name === 'dashboard' && !dashNextRaceLoaded){
