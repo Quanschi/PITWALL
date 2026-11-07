@@ -1795,6 +1795,8 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
 .dc-import-meta{font-size:12px; color:var(--muted); margin-top:3px; line-height:1.4;}
 .dc-import-team{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:12.5px; color:var(--text); cursor:pointer;}
 .dc-import-warn{margin:0; font-size:12.5px; color:var(--amber);}
+.dc-import-starts{display:flex; flex-direction:column; gap:2px;}
+.dc-import-preview select{height:42px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:0 10px;}
 .dc-import-offset{display:flex; align-items:center; gap:6px; margin-top:6px; font-size:12.5px; color:var(--text); flex-wrap:wrap;}
 .dc-import-offset input{width:92px; color-scheme:dark; height:30px; box-sizing:border-box; background:var(--panel); border:1px solid var(--line); border-radius:6px; color:var(--text); padding:0 8px; font-family:'JetBrains Mono',monospace; font-size:13px;}
 .dc-import-offset-note{font-size:11.5px; color:var(--muted);}
@@ -2018,11 +2020,8 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
     <span>Der Rennplan wird gerade überarbeitet und ist bald wieder da.</span>
   </div>
 
-  <p class="section-label">Rennart</p>
-  <div class="filter-row" id="race-type-filter">
+  <div class="filter-row" id="race-type-filter" hidden>
     <button class="filter-pill" data-type="daily" type="button">Daily Races</button>
-    <button class="filter-pill" data-type="weekly" type="button">Weekly Races</button>
-    <button class="filter-pill" data-type="special" type="button">Special Event</button>
   </div>
 
   <p class="section-label">Schwierigkeit</p>
@@ -2033,10 +2032,6 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
     <button class="filter-pill" data-difficulty="advanced" type="button">Advanced</button>
   </div>
 
-  <div class="schedule-admin" id="schedule-admin" hidden>
-    <button class="te-header-btn" id="schedule-import-btn" type="button">Discord-Post einfügen</button>
-    <span class="schedule-admin-hint">nur für Admin sichtbar</span>
-  </div>
 
   <div class="schedule-status">
     <span id="schedule-status-text">Lade Rennplan…</span>
@@ -2126,6 +2121,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
               <button type="button" class="filter-pill active" data-game="lmu">LMU</button>
               <button type="button" class="filter-pill" data-game="acc">ACC</button>
             </div>
+            <button type="button" class="ec-ghost-btn" id="te-discord-btn">Aus Discord-Post</button>
             <button type="button" class="ec-ghost-btn" id="te-editor-close-btn">Später weiter bearbeiten</button>
           </div>
         </header>
@@ -2607,7 +2603,9 @@ async function fetchScheduleCards(type, difficulty){
     return cards;
   }
 
-  // Own schedule (from LMU's Discord posts) since lmuportal shut down.
+  // Own schedule since lmuportal shut down: daily races synced from
+  // racecontrol.gg, special events from LMU's Discord posts.
+  if(type === 'daily') await ensureDailyRacesFresh();
   const currentWeekKey = toWeekKey(mostRecentTuesdayUtc(new Date()));
   let q = pitwallClient.from('lmu_schedule').select(OWN_SCHEDULE_COLUMNS).eq('type', type);
   // Special events have no tier - they stay visible under every filter.
@@ -2947,6 +2945,30 @@ function ownScheduleRowToSeries(r){
 }
 const OWN_SCHEDULE_COLUMNS = 'series_id,week_key,type,tier_name,series_name,track_name,track_config,car_classes,race_duration_minutes,every_minutes,offset_minutes,race_days,times_utc,starts_utc,setup,tyre_warmers,tyre_allowance,quali_tyres,driver_swap_enabled,sr_requirement,requirements,qualifying_info,race_info';
 
+// racecontrol.gg only lists the rest of today, so the sync (a Supabase Edge
+// Function, it may write the schedule) runs whenever our copy is older than
+// an hour - triggered by whoever opens Pitwall, at most once per 10 minutes
+// per browser. If it fails, the stored rows still show.
+let dailySyncPromise = null;
+function ensureDailyRacesFresh(){
+  if(dailySyncPromise) return dailySyncPromise;
+  dailySyncPromise = (async () => {
+    try{
+      const { data } = await pitwallClient.from('lmu_schedule').select('updated_at')
+        .like('series_id', 'rc-%').order('updated_at', { ascending: false }).limit(1);
+      const last = data && data[0] ? new Date(data[0].updated_at).getTime() : 0;
+      if(Date.now() - last < 60 * 60000) return;
+      const { error } = await pitwallClient.functions.invoke('rc-schedule-sync', { body: {} });
+      if(error) console.warn('Daily races not refreshed:', error.message);
+      else Object.keys(scheduleCache).forEach(k => { if(k.startsWith('daily:')) delete scheduleCache[k]; });
+    }catch(err){
+      console.warn('Daily races not refreshed:', err.message || err);
+    }
+  })();
+  setTimeout(() => { dailySyncPromise = null; }, 10 * 60000);
+  return dailySyncPromise;
+}
+
 function resetScheduleCaches(){
   Object.keys(scheduleCache).forEach(k => delete scheduleCache[k]);
   nextRaceCache = null;
@@ -2969,7 +2991,7 @@ async function openDiscordImportDialog(){
   h.textContent = 'Discord-Post einfügen';
   const hint = document.createElement('p');
   hint.className = 'te-move-k';
-  hint.textContent = 'Den Wochenplan („Daily Race Schedule from …“) oder den Post zu einem Special Event aus dem LMU-Discord komplett hineinkopieren.';
+  hint.textContent = 'Den Wochenplan („Daily Race Schedule from …“) oder den Post zu einem Special Event aus dem LMU-Discord komplett hineinkopieren. Übernommen werden die Special Events – Daily-Rennen holt Pitwall automatisch von racecontrol.gg.';
   const ta = document.createElement('textarea');
   ta.className = 'dc-import-text';
   ta.rows = 8;
@@ -3017,6 +3039,12 @@ async function openDiscordImportDialog(){
     preview.innerHTML = '';
     teamChecks = [];
     parsed = ta.value.trim() ? parseDiscordPost(ta.value) : null;
+    // Daily/weekly come from racecontrol.gg now - a week post only adds its special events.
+    if(parsed && parsed.kind !== 'event'){
+      parsed.rows = parsed.rows.filter(r => r.type === 'special');
+      parsed.warnings = parsed.warnings.filter(w => !/Startabstand|Renndauer|keine Startzeiten gefunden/.test(w) || /Einzelpost/.test(w));
+      if(!parsed.rows.length) parsed.warnings.push('Keine Special Events im Post.');
+    }
     go.disabled = !(parsed && parsed.rows.length);
     preview.hidden = !ta.value.trim();
     if(!ta.value.trim()) return;
@@ -3032,7 +3060,7 @@ async function openDiscordImportDialog(){
     const weekLabel = new Date(parsed.weekKey + 'T00:00:00Z').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     k.textContent = parsed.kind === 'event'
       ? `SPECIAL EVENT · WOCHE AB ${weekLabel}`
-      : `${parsed.kind === 'daily' ? 'DAILY' : 'WEEKLY'}-WOCHENPLAN AB ${weekLabel} · ${parsed.rows.length} RENNEN`;
+      : `SPECIAL EVENTS AUS DEM WOCHENPLAN AB ${weekLabel} · ${parsed.rows.length}`;
     preview.appendChild(k);
 
     // Existing team events at one of the same start times -> no new event.
@@ -3163,14 +3191,6 @@ async function openDiscordImportDialog(){
       });
       const { error } = await pitwallClient.from('lmu_schedule').upsert(rows, { onConflict: 'series_id,week_key' });
       if(error) throw error;
-      // A new week post replaces that week's daily/weekly list completely.
-      if(parsed.kind === 'daily' || parsed.kind === 'weekly'){
-        const keep = rows.filter(r => r.type === parsed.kind).map(r => `"${r.series_id}"`).join(',');
-        let del = pitwallClient.from('lmu_schedule').delete().eq('week_key', parsed.weekKey).eq('type', parsed.kind);
-        if(keep) del = del.not('series_id', 'in', `(${keep})`);
-        const { error: delErr } = await del;
-        if(delErr) console.error('Removing old schedule rows failed:', delErr.message);
-      }
       resetScheduleCaches();
       const wanted = new Set(teamChecks.filter(t => t.cb.checked).map(t => `${t.seriesId}|${t.weekKey}`));
       let created = 0;
@@ -3439,12 +3459,14 @@ function renderScheduleCards(cards, colorByClassName){
     counter.textContent = '';
     const empty = document.createElement('div');
     empty.className = 'schedule-empty';
-    empty.textContent = 'Nichts Passendes gefunden. Der Rennplan kommt aus dem LMU-Discord und wird jede Woche neu eingetragen – evtl. ist die neue Woche noch nicht drin.';
+    empty.textContent = scheduleFilters.type === 'daily'
+      ? 'Gerade keine Daily-Rennen gefunden – racecontrol.gg war evtl. nicht erreichbar. Später nochmal versuchen.'
+      : 'Keine anstehenden Special Events eingetragen.';
     carousel.appendChild(empty);
     return;
   }
 
-  statusText.textContent = 'Aus dem LMU-Discord · Zeiten in deiner lokalen Zeitzone';
+  statusText.textContent = (scheduleFilters.type === 'daily' ? 'Live von racecontrol.gg' : 'Aus dem LMU-Discord') + ' · Zeiten in deiner lokalen Zeitzone';
   counter.textContent = `${cards.length} Termine`;
   const now = Date.now();
 
@@ -3601,7 +3623,7 @@ function buildScheduleCard(card, now, colorByClassName, opts){
 // Schedule temporarily offline (27.10.2026): the tab shows a notice, the
 // "next race" strip and dashboard tile stay empty. Data and import stay
 // untouched - set to false to bring everything back.
-const SCHEDULE_OFFLINE = true;
+const SCHEDULE_OFFLINE = false;
 
 async function loadScheduleView(){
   if(SCHEDULE_OFFLINE){
@@ -3617,7 +3639,6 @@ async function loadScheduleView(){
   const isStale = () => requestType !== scheduleFilters.type || requestDifficulty !== scheduleFilters.difficulty;
 
   document.getElementById('schedule-status-text').textContent = 'Lade Rennplan…';
-  document.getElementById('schedule-admin').hidden = !(currentProfile && currentProfile.is_admin);
   try{
     const [cards, { colorByClassName }] = await Promise.all([
       fetchScheduleCards(requestType, requestDifficulty),
@@ -3633,7 +3654,6 @@ async function loadScheduleView(){
   }
 }
 
-document.getElementById('schedule-import-btn').addEventListener('click', () => openDiscordImportDialog());
 
 document.getElementById('race-type-filter').addEventListener('click', (e) => {
   const btn = e.target.closest('.filter-pill');
@@ -5082,6 +5102,7 @@ async function openEventEditor(eventId){
   document.getElementById('te-publish-btn').textContent = teEditorPublished ? 'Fertig' : 'Event veröffentlichen';
   document.getElementById('te-editor-close-btn').textContent = teEditorPublished ? 'Schließen' : 'Später weiter bearbeiten';
   if(teEditorPublished) document.getElementById('te-link-schedule-field').hidden = true;
+  document.getElementById('te-discord-btn').hidden = teEditorPublished;
   // Switching LMU/ACC would scramble tracks and classes of existing teams.
   document.getElementById('te-game-select').hidden = teEditorPublished;
   teEditorLockedTimes = new Set();
@@ -5148,6 +5169,201 @@ document.getElementById('te-open-editor-btn').addEventListener('click', async ()
 });
 
 document.getElementById('te-editor-close-btn').addEventListener('click', closeEventEditor);
+document.getElementById('te-discord-btn').addEventListener('click', () => openDiscordEventImport());
+
+// Paste the Discord post of a special event: name, track, race length,
+// tyres and start times land in the draft. Nothing is published - the
+// creator checks, changes and publishes as usual. The editor's start times
+// apply to every day of the date range, so only starts that fit that
+// pattern (same times each day) can be taken over together.
+async function openDiscordEventImport(){
+  if(!teEditorEventId || teEditorPublished) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'pitwall-modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'pitwall-modal te-move dc-import';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'dc-ev-title');
+  overlay.appendChild(modal);
+  const h = document.createElement('div');
+  h.className = 'pitwall-modal-title';
+  h.id = 'dc-ev-title';
+  h.textContent = 'Event aus Discord-Post';
+  const hint = document.createElement('p');
+  hint.className = 'te-move-k';
+  hint.textContent = 'Den Post des Special Events aus dem LMU-Discord komplett hineinkopieren. Danach kannst du alles prüfen und ändern – veröffentlicht wird erst, wenn du es tust.';
+  const ta = document.createElement('textarea');
+  ta.className = 'dc-import-text';
+  ta.rows = 8;
+  ta.placeholder = '## 24 Hours of Le Mans …';
+  ta.setAttribute('aria-label', 'Discord-Post');
+  const preview = document.createElement('div');
+  preview.className = 'dc-import-preview';
+  preview.hidden = true;
+  const actions = document.createElement('div');
+  actions.className = 'pitwall-modal-actions';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'pitwall-modal-btn';
+  cancel.textContent = 'Abbrechen';
+  const go = document.createElement('button');
+  go.type = 'button';
+  go.className = 'pitwall-modal-btn primary';
+  go.textContent = 'Übernehmen';
+  go.disabled = true;
+  actions.append(cancel, go);
+  modal.append(h, hint, ta, preview, actions);
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  function close(){ overlay.remove(); document.removeEventListener('keydown', onKey); }
+  cancel.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(overlay);
+  ta.focus();
+
+  let events = [], picked = 0, startChecks = [];
+  const fmt = d => `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${formatSlotTime(d.toISOString())}`;
+  // Same set of start times on every day of a gap-free day range = what the editor can hold.
+  function chosenPlan(){
+    const starts = startChecks.filter(c => c.cb.checked).map(c => c.date);
+    if(!starts.length) return { error: 'Mindestens einen Start wählen.' };
+    const days = [...new Set(starts.map(d => localDayKey(d)))].sort();
+    const times = [...new Set(starts.map(d => formatSlotTime(d.toISOString())))].sort();
+    const span = Math.round((new Date(days[days.length - 1] + 'T12:00:00') - new Date(days[0] + 'T12:00:00')) / 86400000) + 1;
+    if(span !== days.length || starts.length !== days.length * times.length){
+      return { error: 'Diese Kombination geht nicht: Im Editor gelten die Startzeiten für jeden Tag. Wähle Starts mit gleicher Uhrzeit oder nur einen Tag.' };
+    }
+    const offGrid = times.find(t => !/:(00|30)$/.test(t));
+    if(offGrid) return { error: `Start um ${offGrid} passt nicht ins Raster (nur :00 und :30).` };
+    return { days, times };
+  }
+  function paintStarts(){
+    const plan = chosenPlan();
+    const err = preview.querySelector('.dc-import-warn.plan');
+    err.textContent = plan.error ? '⚠ ' + plan.error : '';
+    err.hidden = !plan.error;
+    go.disabled = !!plan.error;
+  }
+  function render(){
+    preview.innerHTML = '';
+    startChecks = [];
+    go.disabled = true;
+    const text = ta.value.trim();
+    preview.hidden = !text;
+    if(!text) return;
+    const parsed = parseDiscordPost(text);
+    events = parsed ? parsed.rows.filter(r => r.type === 'special') : [];
+    if(!events.length){
+      const p = document.createElement('p');
+      p.className = 'dc-import-warn';
+      p.textContent = 'Kein Special Event im Post gefunden.';
+      preview.appendChild(p);
+      return;
+    }
+    if(picked >= events.length) picked = 0;
+    if(events.length > 1){
+      const lab = document.createElement('label');
+      lab.className = 'te-move-k';
+      lab.textContent = 'WELCHES EVENT';
+      lab.htmlFor = 'dc-ev-pick';
+      const sel = document.createElement('select');
+      sel.id = 'dc-ev-pick';
+      events.forEach((r, i) => {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = r.series_name;
+        sel.appendChild(o);
+      });
+      sel.value = String(picked);
+      sel.addEventListener('change', () => { picked = Number(sel.value); render(); });
+      preview.append(lab, sel);
+    }
+    const r = events[picked];
+    const row = document.createElement('div');
+    row.className = 'dc-import-row';
+    const name = document.createElement('div');
+    name.className = 'dc-import-name';
+    name.textContent = r.series_name;
+    const meta = document.createElement('div');
+    meta.className = 'dc-import-meta';
+    meta.textContent = [
+      [r.track_name, r.track_config].filter(Boolean).join(' · '),
+      r.race_duration_minutes ? `${r.race_duration_minutes} Min` : 'Dauer fehlt',
+      r.tyre_allowance != null ? `${r.tyre_allowance} Reifen` : 'Reifen fehlen',
+    ].join(' · ');
+    row.append(name, meta);
+    preview.appendChild(row);
+    const starts = (r.starts_utc || []).map(x => new Date(x)).sort((a, b) => a - b);
+    if(starts.length){
+      const k = document.createElement('p');
+      k.className = 'te-move-k';
+      k.textContent = 'STARTS · DEINE ZEIT';
+      preview.appendChild(k);
+      const box = document.createElement('div');
+      box.className = 'dc-import-starts';
+      starts.forEach(d => {
+        const lab = document.createElement('label');
+        lab.className = 'dc-import-team';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = d.getTime() > Date.now();
+        cb.addEventListener('change', paintStarts);
+        lab.append(cb, document.createTextNode(' ' + fmt(d) + (d.getTime() <= Date.now() ? ' · vorbei' : '')));
+        box.appendChild(lab);
+        startChecks.push({ cb, date: d });
+      });
+      preview.appendChild(box);
+      // Pre-pick something the editor can hold: if all future starts don't fit, keep the first one.
+      if(chosenPlan().error){
+        const firstOn = startChecks.find(c => c.cb.checked);
+        startChecks.forEach(c => { c.cb.checked = c === firstOn; });
+      }
+    }else{
+      const p = document.createElement('p');
+      p.className = 'dc-import-warn';
+      p.textContent = '⚠ Keine Startzeiten im Post – trag sie im Editor selbst ein.';
+      preview.appendChild(p);
+    }
+    const err = document.createElement('p');
+    err.className = 'dc-import-warn plan';
+    err.hidden = true;
+    preview.appendChild(err);
+    if(starts.length) paintStarts(); else go.disabled = false;
+  }
+  let t = null;
+  ta.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { picked = 0; render(); }, 250); });
+
+  go.addEventListener('click', async () => {
+    const r = events[picked];
+    if(!r) return;
+    const plan = startChecks.length ? chosenPlan() : { days: [], times: [] };
+    if(plan.error) return;
+    go.disabled = true;
+    const lmuPill = document.querySelector('#te-game-select .filter-pill[data-game="lmu"]');
+    if(lmuPill && !lmuPill.classList.contains('active')){
+      document.querySelectorAll('#te-game-select .filter-pill').forEach(b => b.classList.toggle('active', b === lmuPill));
+      updateScheduleLinkVisibility('lmu');
+    }
+    let track = '';
+    try{ track = findReferenceTrackMatch(await getReferenceRows('lmu'), r) || ''; }catch(e){}
+    document.getElementById('te-name').value = r.series_name || '';
+    await populateEditorTrackOptions('lmu', track);
+    document.getElementById('te-tyre-sets').value = r.tyre_allowance > 0 ? r.tyre_allowance : '';
+    const mins = r.race_duration_minutes || 0;
+    document.getElementById('te-duration-h').value = mins ? Math.floor(mins / 60) || '' : '';
+    document.getElementById('te-duration-m').value = mins ? (mins % 60) || '' : '';
+    if(plan.days.length){
+      document.getElementById('te-date-start').value = plan.days[0];
+      document.getElementById('te-date-end').value = plan.days.length > 1 ? plan.days[plan.days.length - 1] : '';
+      teSelectedTimes = new Set(plan.times);
+      document.querySelectorAll('#te-time-tiles .filter-pill').forEach(b => b.classList.toggle('active', teSelectedTimes.has(b.dataset.time)));
+    }
+    close();
+    updateEditorChecks();
+    await saveEditorEvent();
+  });
+}
 
 document.getElementById('te-publish-btn').addEventListener('click', async () => {
   if(teEditorPublished){
@@ -9159,12 +9375,12 @@ try{ applySidebarCollapsed(localStorage.getItem('pitwall-sidebar-collapsed') ===
 let nextRaceCache = null;
 async function resolveNextRace(){
   if(nextRaceCache && nextRaceCache.time > Date.now()) return nextRaceCache;
-  const [dailyCards, weeklyCards, specialCards, { colorByClassName }] = await Promise.all([
+  // Schedule shows daily races only (racecontrol.gg); special events live in Team Events.
+  const [dailyCards, { colorByClassName }] = await Promise.all([
     fetchScheduleCards('daily', 'all'),
-    fetchScheduleCards('weekly', 'all'),
-    fetchScheduleCards('special', 'all'),
     loadCarsByClass(),
   ]);
+  const weeklyCards = [], specialCards = [];
   const now = Date.now();
   let soonestCard = null, soonestTime = Infinity;
   [...dailyCards, ...weeklyCards, ...specialCards].forEach(card => {
