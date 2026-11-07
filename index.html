@@ -11638,8 +11638,10 @@ if('serviceWorker' in navigator){
     const editor = document.getElementById('te-editor-view');
     return !!(editor && !editor.hidden);
   };
+  // In the background a reload can get swallowed (frozen tab) - wait until
+  // the app is in front again, which is also when it's least disruptive.
   const tryUpdateReload = () => {
-    if(!updateReloadPending || busyForReload()) return;
+    if(!updateReloadPending || document.hidden || busyForReload()) return;
     updateReloadPending = false;
     window.location.reload();
   };
