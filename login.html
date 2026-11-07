@@ -208,12 +208,15 @@ button[type="submit"]:disabled, .primary-btn:disabled{opacity:0.6;cursor:default
   </form>
   <button type="button" class="link-btn" id="forgot-password-btn" style="margin-top:12px;">Passwort vergessen?</button>
   <div id="forgot-password-card" hidden style="margin-top:14px;">
-    <div class="field">
-      <label for="forgot-email">E-Mail</label>
-      <input type="email" id="forgot-email" autocomplete="email">
+    <p class="form-message success" id="forgot-admin-note" hidden>Melde dich bei einem Admin – du bekommst einen Link, mit dem du ein neues Passwort setzt.</p>
+    <div id="forgot-mail-form">
+      <div class="field">
+        <label for="forgot-email">E-Mail</label>
+        <input type="email" id="forgot-email" autocomplete="email">
+      </div>
+      <div class="form-message" id="forgot-message" hidden></div>
+      <button type="button" class="primary-btn" id="forgot-submit">Link senden</button>
     </div>
-    <div class="form-message" id="forgot-message" hidden></div>
-    <button type="button" class="primary-btn" id="forgot-submit">Link senden</button>
   </div>
 </div>
 
@@ -249,11 +252,12 @@ function hideFormMessage(id){
 }
 
 function translateAuthError(msg){
-  if(/already registered|already exists/i.test(msg)) return 'Diese E-Mail ist bereits registriert.';
+  // Neutral on purpose: never reveal whether an address already has an account.
+  if(/already registered|already exists/i.test(msg)) return 'Registrierung nicht möglich – prüfe E-Mail, Benutzername und Einladecode.';
   if(/invalid login credentials/i.test(msg)) return 'E-Mail oder Passwort falsch.';
   if(/email not confirmed/i.test(msg)) return 'Bitte zuerst die E-Mail bestätigen (Link steht in deinem Postfach).';
   if(/password.*(least|characters)/i.test(msg)) return 'Passwort muss mindestens 6 Zeichen haben.';
-  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Einladungscode ungültig oder Benutzername schon vergeben (Groß-/Kleinschreibung zählt dabei nicht).';
+  if(/invalid_invite_code|database error saving new user/i.test(msg)) return 'Registrierung nicht möglich – prüfe E-Mail, Benutzername und Einladecode.';
   return msg;
 }
 
@@ -327,6 +331,13 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     submitBtn.disabled = false;
   }
 });
+
+// Supabase's built-in mailer only reaches our own team, so resets go through
+// an admin (reset link from the driver list). The mail form stays in place:
+// set this to false to bring it back.
+const FORGOT_PASSWORD_VIA_ADMIN = true;
+document.getElementById('forgot-admin-note').hidden = !FORGOT_PASSWORD_VIA_ADMIN;
+document.getElementById('forgot-mail-form').hidden = FORGOT_PASSWORD_VIA_ADMIN;
 
 document.getElementById('forgot-password-btn').addEventListener('click', () => {
   const card = document.getElementById('forgot-password-card');
