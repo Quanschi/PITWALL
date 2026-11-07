@@ -11612,6 +11612,33 @@ fcInitPresetUi();
 showPanel('dashboard');
 
 if('serviceWorker' in navigator){
+  // A new version takes over right away (skipWaiting + clients.claim in
+  // sw.js) - reload once so everyone sees it without reloading twice. Not on
+  // the very first install, and never while someone is typing or has a
+  // dialog or the event editor open: then at the next quiet moment.
+  const hadController = !!navigator.serviceWorker.controller;
+  let updateReloadPending = false;
+  const busyForReload = () => {
+    const a = document.activeElement;
+    if(a && a.matches && a.matches('input, textarea, select, [contenteditable="true"]')) return true;
+    if(document.querySelector('.pitwall-modal-overlay:not([hidden])')) return true;
+    const editor = document.getElementById('te-editor-view');
+    return !!(editor && !editor.hidden);
+  };
+  const tryUpdateReload = () => {
+    if(!updateReloadPending || busyForReload()) return;
+    updateReloadPending = false;
+    window.location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(!hadController) return;
+    updateReloadPending = true;
+    tryUpdateReload();
+  });
+  document.addEventListener('focusout', () => setTimeout(tryUpdateReload, 300));
+  document.addEventListener('visibilitychange', tryUpdateReload);
+  setInterval(tryUpdateReload, 5000);
+
   window.addEventListener('load', () => {
     // updateViaCache:'none' makes the browser always fetch sw.js itself over
     // the network for update checks, bypassing GitHub Pages' 10-minute
@@ -11625,6 +11652,8 @@ if('serviceWorker' in navigator){
       document.addEventListener('visibilitychange', () => {
         if(!document.hidden) reg.update().catch(() => {});
       });
+      // An app left open for hours checks every 30 minutes as well.
+      setInterval(() => reg.update().catch(() => {}), 30 * 60000);
     }).catch(() => {});
   });
 }
