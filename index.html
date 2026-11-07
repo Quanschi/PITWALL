@@ -1841,6 +1841,40 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
   .dv-primary{margin-left:0; flex:1 1 100%;}
 }
 .dv-dialog{display:flex; flex-direction:column; gap:12px;}
+.dv-section{display:flex; flex-direction:column; gap:8px;}
+.dv-admin-row{display:flex; align-items:center; gap:12px; min-height:56px; padding:8px 14px; border-radius:10px; border:1px solid #5A2A24; background:rgba(232,92,74,0.06);}
+.dv-switch{width:46px; height:28px; flex-shrink:0; border-radius:999px; border:none; background:#3A404B; position:relative; cursor:pointer; padding:0;}
+.dv-switch span{position:absolute; top:4px; left:4px; width:20px; height:20px; border-radius:50%; background:#E9E7E1; transition:left .15s var(--ease);}
+.dv-switch.on{background:var(--amber);}
+.dv-switch.on span{left:22px;}
+.dv-switch:disabled{opacity:0.45; cursor:not-allowed;}
+.dv-right-tabs{display:flex; gap:6px; flex-wrap:wrap;}
+.dv-dot{margin-left:6px; color:var(--amber); font-size:9px;}
+.dv-right-list{display:flex; flex-direction:column; gap:6px;}
+.dv-right-head{font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.8px; color:var(--muted); padding:8px 2px 0;}
+.dv-right-row{display:flex; align-items:center; gap:12px; min-height:52px; padding:6px 12px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2);}
+.dv-right-row.own{border-color:rgba(255,176,32,0.5);}
+.dv-right-row.tabrow{background:rgba(255,176,32,0.06);}
+.dv-right-text{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;}
+.dv-right-name{font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.dv-right-name.is-tab{font-weight:700;}
+.dv-right-note{font-size:11.5px; color:var(--muted);}
+.dv-right-tag{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.6px; color:var(--muted); white-space:nowrap;}
+.dv-right-tag.own{color:var(--amber);}
+.dv-ui-only{font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.5px; padding:2px 6px; border-radius:4px; border:1px solid #3A404B; color:var(--muted); font-weight:500;}
+.pitwall-modal-btn.dv-link-btn{border:none; background:transparent; text-decoration:underline; margin-right:auto; text-transform:none; font-family:'Inter',sans-serif;}
+.dv-dialog .pitwall-modal-actions{flex-wrap:wrap;}
+.dv-gr-table{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden; margin-top:14px;}
+.dv-gr-row{display:grid; grid-template-columns:minmax(0,1fr) repeat(var(--dv-gr-cols), 110px); gap:0 12px; align-items:center; padding:10px 16px; border-top:1px solid var(--line);}
+.dv-gr-row.tabrow{background:rgba(255,176,32,0.05);}
+.dv-gr-headrow{border-top:none;}
+.dv-gr-cell{display:flex; justify-content:center;}
+.dv-gr-sub{padding:12px 16px 6px; border-top:1px solid var(--line); background:#181B20;}
+.te-locked-btn{opacity:0.6; cursor:not-allowed; border-style:dashed !important;}
+@media (max-width:760px){
+  .dv-gr-row{grid-template-columns:minmax(0,1fr) repeat(var(--dv-gr-cols), 56px); gap:0 6px; padding:10px;}
+  .dv-gr-row .dv-right-note{display:none;}
+}
 .dv-dialog-body{display:flex; flex-direction:column; gap:12px;}
 .dv-text{margin:0; font-size:14px; line-height:1.55;}
 .dv-text.muted{color:#A9AEB6; max-width:760px; margin-bottom:14px;}
@@ -2123,6 +2157,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
   <div class="dv-bar">
     <div class="dv-tabs" role="tablist">
       <button type="button" role="tab" class="dv-tab active" data-tab="drivers" id="dv-tab-drivers" aria-selected="true">Fahrer</button>
+      <button type="button" role="tab" class="dv-tab" data-tab="groups" id="dv-tab-groups" aria-selected="false">Gruppen &amp; Rechte</button>
       <button type="button" role="tab" class="dv-tab" data-tab="codes" id="dv-tab-codes" aria-selected="false">Einladecodes</button>
     </div>
     <div class="dv-search" id="dv-search-wrap"><input type="search" id="dv-search" placeholder="Fahrer suchen" aria-label="Fahrer suchen"></div>
@@ -2131,6 +2166,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
   <div class="filter-row dv-filters" id="dv-filters"></div>
   <div class="form-message" id="dv-message" hidden></div>
   <div id="dv-drivers"></div>
+  <div id="dv-groups" hidden></div>
   <div id="dv-codes" hidden></div>
 </div>
 
@@ -3646,6 +3682,84 @@ function pitwallPromptText(message, defaultValue){
   });
 }
 
+// ---- Rights per driver (group template + per-driver exceptions, admins
+// can do everything). The database enforces them (has_right, restrictive
+// policies, triggers) - here they only decide what is shown. Before the
+// rights SQL exists, my_rights fails and everything stays as before. ----
+let currentRights = null;
+const PITWALL_RIGHT_TABS = [
+  { id: 'dash', label: 'Dashboard', items: [
+    ['tab_dashboard', 'Tab anzeigen', 'Nächstes Rennen, dein nächstes Event, Referenzzeiten', true],
+  ] },
+  { id: 'sched', label: 'Schedule', items: [
+    ['tab_schedule', 'Tab anzeigen', 'Daily-Rennen und die Leiste „Nächstes Rennen“', false],
+  ] },
+  { id: 'laps', label: 'Rundenzeiten', items: [
+    ['tab_laptimes', 'Tab anzeigen', 'Referenzzeiten (103 %)', true],
+  ] },
+  { id: 'te', label: 'Team Events', items: [
+    ['tab_teamevents', 'Tab anzeigen', 'Ohne: kein Team-Event-Tab, auch nicht fürs eigene Team', false],
+    'Events',
+    ['events_view_others', 'Andere Team Events sehen', 'Ohne: nur Events, in denen er selbst im Team ist', false],
+    ['events_create', 'Team Events erstellen', '„+ Event erstellen“, auch aus Discord-Post', false],
+    ['events_manage_own', 'Eigene Events bearbeiten & löschen', 'Name, Zeiten, Reifen, abschließen, löschen', false],
+    'Teams',
+    ['teams_leave', 'Team selbst verlassen', 'Ohne: nur der Teamleiter kann ihn austragen', false],
+    ['teams_join', 'Teams frei beitreten', 'Ohne: nur über jemanden, der ihn einträgt', false],
+    ['teams_edit', 'Teamdaten ändern', 'Stint-Rechner: Auto, Rundenzeit, Tank, Verbrauch, Boxenzeit', false],
+    ['teams_add_members', 'Fahrer ins Team eintragen', 'Andere (auch Gäste) ins eigene Team aufnehmen', false],
+    ['teams_create', 'Teams gründen', 'Neues Team in einem Slot anlegen', false],
+    'Stintplan',
+    ['stints_share_image', 'Stintplan als Bild teilen', 'Bild-Knopf am Stintplan', true],
+    ['comments_write', 'Kommentare schreiben', 'Kommentare an Stints', false],
+    ['stints_ist', 'Ist-Werte im Rennen eintragen', 'Restzeit nach dem Stint (passt den Plan an)', false],
+    ['stints_edit', 'Stintplan bearbeiten', 'Stints anlegen, ändern, löschen, Fahrer & Reifen', false],
+    ['dnf_set', 'DNF setzen', 'Team als ausgeschieden markieren', false],
+  ] },
+  { id: 'fuel', label: 'Sprit-Rechner', items: [
+    ['tab_fuel', 'Tab anzeigen', 'Der Rechner selbst läuft im Browser', true],
+    ['presets_view_shared', 'Geteilte Presets anderer laden', 'Presets von Teamkollegen sehen und laden', false],
+    ['presets_save', 'Presets speichern', 'Eigene Presets anlegen und ändern', false],
+    ['presets_share', 'Presets teilen', 'Eigene Presets für alle sichtbar machen', false],
+  ] },
+];
+const GUEST_DEFAULT_RIGHTS = ['tab_dashboard', 'tab_schedule', 'tab_laptimes', 'tab_teamevents', 'events_view_others',
+  'teams_leave', 'stints_share_image', 'tab_fuel', 'presets_view_shared'];
+// Same defaults as public.right_default in the database.
+function rightDefault(group, key){
+  return String(group || '').toLowerCase() === 'scc' ? true : GUEST_DEFAULT_RIGHTS.includes(key);
+}
+async function loadMyRights(){
+  const { data, error } = await pitwallClient.rpc('my_rights');
+  return error ? null : (data || {});
+}
+function can(key){
+  if(currentProfile && currentProfile.is_admin) return true;
+  if(!currentRights) return true; // rights not set up (yet): as before
+  return currentRights[key] !== false;
+}
+const PANEL_RIGHT = { dashboard: 'tab_dashboard', schedule: 'tab_schedule', logbook: 'tab_laptimes', teamevents: 'tab_teamevents', fuelcalc: 'tab_fuel' };
+function canPanel(name){
+  const key = PANEL_RIGHT[name];
+  return !key || can(key);
+}
+function applyTabRights(){
+  Object.entries(PANEL_RIGHT).forEach(([panel, key]) => {
+    const ok = can(key);
+    document.querySelectorAll(`.tab[data-panel="${panel}"]`).forEach(el => { el.style.display = ok ? '' : 'none'; });
+  });
+  const createBtn = document.getElementById('te-open-editor-btn');
+  if(createBtn) createBtn.hidden = !can('events_create');
+  const presetSave = document.getElementById('fc-preset-save-btn');
+  if(presetSave) presetSave.hidden = !can('presets_save');
+  const active = document.querySelector('.panel.active');
+  const activeName = active ? active.id.replace('panel-', '') : null;
+  if(activeName && !canPanel(activeName)){
+    const first = Object.keys(PANEL_RIGHT).find(canPanel);
+    if(first) showPanel(first);
+  }
+}
+
 async function loadOwnProfile(userId){
   const { data } = await pitwallClient.from('profiles').select('id,username,avatar_url,is_admin').eq('id', userId).maybeSingle();
   return data;
@@ -3804,10 +3918,13 @@ async function loadDriversView(){
     showFormMessage('dv-message', 'Nur für Admins.');
     return;
   }
-  const [drivers, codes] = await Promise.all([
+  const [drivers, codes, groupRights] = await Promise.all([
     pitwallClient.rpc('admin_list_drivers'),
     pitwallClient.from('invite_codes').select('*').order('created_at'),
+    pitwallClient.from('group_rights').select('group_name,rights'),
   ]);
+  dvGroupRights = {};
+  (groupRights.data || []).forEach(g => { dvGroupRights[String(g.group_name).toLowerCase()] = g.rights || {}; });
   if(drivers.error || codes.error){
     showFormMessage('dv-message', 'Konnte nicht geladen werden: ' + (drivers.error || codes.error).message);
     return;
@@ -3827,10 +3944,11 @@ function renderDriversView(){
   document.getElementById('dv-tab-codes').textContent = `Einladecodes · ${dvCodes.length}`;
   document.getElementById('dv-drivers').hidden = dvTab !== 'drivers';
   document.getElementById('dv-codes').hidden = dvTab !== 'codes';
+  document.getElementById('dv-groups').hidden = dvTab !== 'groups';
   document.getElementById('dv-search-wrap').hidden = dvTab !== 'drivers';
   document.getElementById('dv-filters').hidden = dvTab !== 'drivers';
   document.getElementById('dv-new-code').hidden = dvTab !== 'codes';
-  if(dvTab === 'drivers') renderDriverList(); else renderCodeList();
+  if(dvTab === 'drivers') renderDriverList(); else if(dvTab === 'groups') renderGroupRights(); else renderCodeList();
 }
 
 function renderDriverList(){
@@ -3902,7 +4020,9 @@ function renderDriverRow(d){
   name.textContent = d.username || '–';
   const sub = document.createElement('span');
   sub.className = 'dv-sub';
-  sub.textContent = [d.is_admin ? 'Admin' : null, self ? 'du' : null,
+  const exceptions = Object.keys(d.rights_override || {}).length;
+  sub.textContent = [d.is_owner ? 'Hauptadmin' : d.is_admin ? 'Admin' : null, self ? 'du' : null,
+    exceptions && !d.is_admin ? `${exceptions} Ausnahme${exceptions === 1 ? '' : 'n'}` : null,
     d.team_count ? `${d.team_count} Team${d.team_count === 1 ? '' : 's'}` : 'kein Team'].filter(Boolean).join(' · ');
   who.append(name, sub);
   const since = document.createElement('span');
@@ -3917,8 +4037,8 @@ function renderDriverRow(d){
   actions.className = 'dv-actions';
   const reset = dvIconBtn('Reset-Link', DV_ICON_LINK);
   reset.addEventListener('click', () => openResetLinkDialog(d));
-  const role = dvIconBtn('Rolle ändern', DV_ICON_CHEVRON);
-  role.addEventListener('click', () => openRoleDialog(d));
+  const role = dvIconBtn('Rolle & Rechte', DV_ICON_CHEVRON);
+  role.addEventListener('click', () => openRightsDialog(d));
   actions.append(reset, role);
   if(!self && !d.is_admin){
     const del = document.createElement('button');
@@ -3969,49 +4089,6 @@ async function openResetLinkDialog(d){
   ['Gilt 1 Stunde und nur einmal', 'Wer den Link hat, kann das Passwort ändern – nur privat schicken', 'Das alte Passwort gilt weiter, bis ein neues gesetzt ist']
     .forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
   dlg.body.append(wrap, ul);
-}
-
-function openRoleDialog(d){
-  const dlg = dvDialog('Rolle ändern');
-  const p = document.createElement('p');
-  p.className = 'dv-text';
-  p.textContent = `In welche Gruppe gehört „${d.username}“?`;
-  const list = document.createElement('div');
-  list.className = 'dv-radio-list';
-  let chosen = d.member_group;
-  const radios = [];
-  dvAllGroups().forEach(g => {
-    const lab = document.createElement('label');
-    lab.className = 'dv-radio';
-    const r = document.createElement('input');
-    r.type = 'radio';
-    r.name = 'dv-role';
-    r.checked = g === d.member_group;
-    r.addEventListener('change', () => { chosen = g; paint(); });
-    const n = dvDrivers.filter(x => x.member_group === g).length;
-    const c = document.createElement('span');
-    c.className = 'dv-count';
-    c.textContent = `${n} Fahrer${g === d.member_group ? ' · aktuell' : ''}`;
-    lab.append(r, dvBadge(g), c);
-    list.appendChild(lab);
-    radios.push({ lab, g });
-  });
-  const hint = document.createElement('p');
-  hint.className = 'dv-hint';
-  hint.textContent = 'Gruppen kommen von den Einladecodes. Eine eigene Gruppe legst du beim Erstellen eines Codes an.';
-  dlg.body.append(p, list, hint);
-  function paint(){ radios.forEach(x => x.lab.classList.toggle('active', x.g === chosen)); save.disabled = chosen === d.member_group; }
-  dlg.button('Abbrechen').addEventListener('click', dlg.close);
-  const save = dlg.button('Speichern', 'primary');
-  paint();
-  save.addEventListener('click', async () => {
-    save.disabled = true;
-    const { error } = await pitwallClient.rpc('admin_set_member_group', { p_user: d.id, p_group: chosen });
-    if(error){ dlg.showError('Speichern fehlgeschlagen: ' + error.message); save.disabled = false; return; }
-    d.member_group = chosen;
-    dlg.close();
-    renderDriversView();
-  });
 }
 
 function openDeleteDriverDialog(d){
@@ -4257,6 +4334,252 @@ function openCodeDialog(existing){
     dlg.close();
     loadDriversView();
   });
+}
+
+// ---- Fahrerverwaltung: rights per driver and group templates ----
+let dvGroupRights = {}; // lower(group) -> { key: bool } as stored
+let dvRightsTab = 'te';
+function dvGroupRight(group, key){
+  const stored = dvGroupRights[String(group || '').toLowerCase()];
+  return stored && typeof stored[key] === 'boolean' ? stored[key] : rightDefault(group, key);
+}
+function dvSwitch(on, disabled, label){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'dv-switch' + (on ? ' on' : '');
+  b.setAttribute('role', 'switch');
+  b.setAttribute('aria-checked', on ? 'true' : 'false');
+  if(label) b.setAttribute('aria-label', label);
+  b.disabled = !!disabled;
+  b.appendChild(document.createElement('span'));
+  return b;
+}
+function dvRightTabPills(current, onPick, dotFor){
+  const row = document.createElement('div');
+  row.className = 'dv-right-tabs';
+  row.setAttribute('role', 'tablist');
+  PITWALL_RIGHT_TABS.forEach(t => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.className = 'filter-pill' + (t.id === current ? ' active' : '');
+    b.setAttribute('aria-selected', t.id === current ? 'true' : 'false');
+    b.textContent = t.label;
+    if(dotFor && dotFor(t)){
+      const dot = document.createElement('span');
+      dot.className = 'dv-dot';
+      dot.textContent = '●';
+      b.appendChild(dot);
+    }
+    b.addEventListener('click', () => onPick(t.id));
+    row.appendChild(b);
+  });
+  return row;
+}
+function dvRightRows(tab){
+  return (PITWALL_RIGHT_TABS.find(t => t.id === tab) || PITWALL_RIGHT_TABS[0]).items;
+}
+function dvRightLabel(item){
+  const wrap = document.createElement('span');
+  wrap.className = 'dv-right-text';
+  const name = document.createElement('span');
+  name.className = 'dv-right-name' + (item[1] === 'Tab anzeigen' ? ' is-tab' : '');
+  name.textContent = item[1];
+  if(item[3]){
+    const ui = document.createElement('span');
+    ui.className = 'dv-ui-only';
+    ui.textContent = 'NUR AUSGEBLENDET';
+    ui.title = 'Pitwall blendet es aus; die Daten sind öffentlich bzw. entstehen im Browser und lassen sich nicht hart sperren.';
+    name.appendChild(ui);
+  }
+  const note = document.createElement('span');
+  note.className = 'dv-right-note';
+  note.textContent = item[2];
+  wrap.append(name, note);
+  return wrap;
+}
+
+function openRightsDialog(d){
+  const me = dvDrivers.find(x => currentProfile && x.id === currentProfile.id);
+  const iAmOwner = !!(me && me.is_owner);
+  const dlg = dvDialog(`Rolle & Rechte · ${d.username}`);
+  let group = d.member_group;
+  let admin = !!d.is_admin;
+  let overrides = Object.assign({}, d.rights_override || {});
+  let tab = dvRightsTab;
+
+  const adminBox = document.createElement('div');
+  const groupBox = document.createElement('div');
+  const rightsBox = document.createElement('div');
+  dlg.body.append(adminBox, groupBox, rightsBox);
+
+  function paint(){
+    adminBox.innerHTML = '';
+    adminBox.className = 'dv-section';
+    const k0 = document.createElement('span');
+    k0.className = 'te-move-k';
+    k0.textContent = 'ADMIN';
+    const adminRow = document.createElement('div');
+    adminRow.className = 'dv-admin-row';
+    const at = document.createElement('span');
+    at.className = 'dv-right-text';
+    const an = document.createElement('span');
+    an.className = 'dv-right-name';
+    an.textContent = d.is_owner ? 'Hauptadmin' : 'Admin-Rechte';
+    const ano = document.createElement('span');
+    ano.className = 'dv-right-note';
+    ano.textContent = d.is_owner ? 'Hat immer alle Rechte und vergibt Admin-Rechte.'
+      : iAmOwner ? 'Darf alles: Fahrerverwaltung, Rechte, Codes, alle Events bearbeiten und löschen.'
+      : 'Admin-Rechte vergibt nur der Hauptadmin.';
+    at.append(an, ano);
+    const sw = dvSwitch(admin || d.is_owner, !iAmOwner || d.is_owner, 'Admin-Rechte');
+    sw.addEventListener('click', async () => {
+      if(!admin && !(await pitwallConfirm(`„${d.username}“ zum Admin machen?\n\nAdmins dürfen alles: Fahrer verwalten und löschen, Rechte und Codes ändern, alle Events bearbeiten.`, { confirmText: 'Zum Admin machen' }))) return;
+      admin = !admin;
+      paint();
+    });
+    adminRow.append(at, sw);
+    adminBox.append(k0, adminRow);
+
+    groupBox.innerHTML = '';
+    groupBox.className = 'dv-section';
+    const k1 = document.createElement('span');
+    k1.className = 'te-move-k';
+    k1.textContent = 'GRUPPE';
+    const pills = document.createElement('div');
+    pills.className = 'dv-group-pick';
+    dvAllGroups().forEach(g => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'filter-pill' + (g === group ? ' active' : '');
+      b.setAttribute('aria-pressed', g === group ? 'true' : 'false');
+      b.textContent = g;
+      b.addEventListener('click', () => { group = g; paint(); });
+      pills.appendChild(b);
+    });
+    groupBox.append(k1, pills);
+
+    rightsBox.innerHTML = '';
+    rightsBox.className = 'dv-section';
+    const k2 = document.createElement('span');
+    k2.className = 'te-move-k';
+    k2.textContent = 'RECHTE PRO TAB';
+    const tabs = dvRightTabPills(tab, id => { tab = dvRightsTab = id; paint(); },
+      t => t.items.some(it => typeof it !== 'string' && typeof overrides[it[0]] === 'boolean'));
+    rightsBox.append(k2, tabs);
+    if(admin || d.is_owner){
+      const p = document.createElement('p');
+      p.className = 'dv-hint';
+      p.textContent = 'Admins dürfen immer alles – die Schalter gelten erst wieder ohne Admin-Rechte.';
+      rightsBox.appendChild(p);
+    }
+    const list = document.createElement('div');
+    list.className = 'dv-right-list';
+    dvRightRows(tab).forEach(item => {
+      if(typeof item === 'string'){
+        const h = document.createElement('div');
+        h.className = 'dv-right-head';
+        h.textContent = item.toUpperCase();
+        list.appendChild(h);
+        return;
+      }
+      const key = item[0];
+      const own = typeof overrides[key] === 'boolean';
+      const value = own ? overrides[key] : dvGroupRight(group, key);
+      const row = document.createElement('div');
+      row.className = 'dv-right-row' + (own ? ' own' : '') + (item[1] === 'Tab anzeigen' ? ' tabrow' : '');
+      const tag = document.createElement('span');
+      tag.className = 'dv-right-tag' + (own ? ' own' : '');
+      tag.textContent = own ? 'ABWEICHEND' : 'WIE GRUPPE';
+      const sw2 = dvSwitch(value, admin || d.is_owner, item[1]);
+      sw2.addEventListener('click', () => {
+        const next = !value;
+        if(next === dvGroupRight(group, key)) delete overrides[key]; else overrides[key] = next;
+        paint();
+      });
+      row.append(dvRightLabel(item), tag, sw2);
+      list.appendChild(row);
+    });
+    rightsBox.appendChild(list);
+  }
+  paint();
+
+  const reset = dlg.button('Alle auf Gruppe zurücksetzen', 'dv-link-btn');
+  reset.addEventListener('click', () => { overrides = {}; paint(); });
+  dlg.button('Abbrechen').addEventListener('click', dlg.close);
+  const save = dlg.button('Speichern', 'primary');
+  save.addEventListener('click', async () => {
+    save.disabled = true;
+    dlg.showError('');
+    const steps = [];
+    if(group !== d.member_group) steps.push(['admin_set_member_group', { p_user: d.id, p_group: group }]);
+    if(JSON.stringify(overrides) !== JSON.stringify(d.rights_override || {})) steps.push(['admin_set_rights', { p_user: d.id, p_rights: overrides }]);
+    if(iAmOwner && !d.is_owner && admin !== !!d.is_admin) steps.push(['admin_set_admin', { p_user: d.id, p_admin: admin }]);
+    for(const [fn, args] of steps){
+      const { error } = await pitwallClient.rpc(fn, args);
+      if(error){ dlg.showError('Speichern fehlgeschlagen: ' + error.message); save.disabled = false; return; }
+    }
+    dlg.close();
+    loadDriversView();
+  });
+}
+
+function renderGroupRights(){
+  const box = document.getElementById('dv-groups');
+  box.innerHTML = '';
+  const intro = document.createElement('p');
+  intro.className = 'dv-text muted';
+  intro.textContent = 'Ein Reiter pro Pitwall-Tab: oben, ob der Tab angezeigt wird, darunter seine Funktionen. Fahrer einer Gruppe bekommen diese Rechte – außer du hast bei einem Fahrer etwas abweichend eingestellt. Admins dürfen immer alles. Eine Änderung gilt sofort.';
+  box.appendChild(intro);
+  box.appendChild(dvRightTabPills(dvRightsTab, id => { dvRightsTab = id; renderGroupRights(); }));
+  const groups = dvAllGroups();
+  const table = document.createElement('div');
+  table.className = 'dv-gr-table';
+  table.style.setProperty('--dv-gr-cols', String(groups.length));
+  const head = document.createElement('div');
+  head.className = 'dv-gr-row dv-gr-headrow';
+  const hl = document.createElement('span');
+  hl.className = 'dv-col-label';
+  hl.textContent = 'RECHT';
+  head.appendChild(hl);
+  groups.forEach(g => {
+    const c = document.createElement('span');
+    c.className = 'dv-gr-cell';
+    c.appendChild(dvBadge(g));
+    head.appendChild(c);
+  });
+  table.appendChild(head);
+  dvRightRows(dvRightsTab).forEach(item => {
+    if(typeof item === 'string'){
+      const h = document.createElement('div');
+      h.className = 'dv-right-head dv-gr-sub';
+      h.textContent = item.toUpperCase();
+      table.appendChild(h);
+      return;
+    }
+    const key = item[0];
+    const row = document.createElement('div');
+    row.className = 'dv-gr-row' + (item[1] === 'Tab anzeigen' ? ' tabrow' : '');
+    row.appendChild(dvRightLabel(item));
+    groups.forEach(g => {
+      const c = document.createElement('span');
+      c.className = 'dv-gr-cell';
+      const value = dvGroupRight(g, key);
+      const sw = dvSwitch(value, false, `${item[1]} für ${g}`);
+      sw.addEventListener('click', async () => {
+        sw.disabled = true;
+        const next = Object.assign({}, dvGroupRights[g.toLowerCase()] || {}, { [key]: !value });
+        const { error } = await pitwallClient.rpc('admin_set_group_rights', { p_group: g, p_rights: next });
+        if(error){ showFormMessage('dv-message', 'Speichern fehlgeschlagen: ' + error.message); sw.disabled = false; return; }
+        dvGroupRights[g.toLowerCase()] = next;
+        renderGroupRights();
+      });
+      c.appendChild(sw);
+      row.appendChild(c);
+    });
+    table.appendChild(row);
+  });
+  box.appendChild(table);
 }
 
 document.getElementById('account-drivers-btn').addEventListener('click', () => {
@@ -4612,6 +4935,8 @@ pitwallClient.auth.onAuthStateChange(async (event, session) => {
   lastAuthUserId = userId;
   currentProfile = session ? await loadOwnProfile(session.user.id) : null;
   document.getElementById('account-drivers-btn').hidden = !(currentProfile && currentProfile.is_admin);
+  currentRights = currentProfile ? await loadMyRights() : null;
+  applyTabRights();
   saveCatalogSnapshots();
   updateAuthUI(session);
 });
@@ -6985,7 +7310,7 @@ function formatCommentTime(iso){
 
 function openStintComments(stint, team, number){
   const iAmIn = !!currentProfile && (team.team_event_members || []).some(m => m.user_id === currentProfile.id);
-  const canWrite = iAmIn && !team.dnf && !team._eventDone;
+  const canWrite = iAmIn && !team.dnf && !team._eventDone && can('comments_write');
   const colorOf = teamColorMap(team);
   let comments = (stint.team_stint_comments || []).slice();
   let editingId = null;
@@ -7295,7 +7620,9 @@ function renderStintPlan(team, ev){
   const stints = team.team_stints || [];
   const iAmIn = currentProfile && members.some(m => m.user_id === currentProfile.id);
   // DNF, or locked until the start: look, don't touch.
-  const canEdit = iAmIn && !isTeamReadOnly(team);
+  const canEdit = iAmIn && !isTeamReadOnly(team) && can('stints_edit');
+  // Ist values (time left after a stint) may have their own right.
+  const canIst = iAmIn && !isTeamReadOnly(team) && (can('stints_ist') || can('stints_edit'));
   // Same per-person colours as the overview (you: --mine) - names only.
   const colorOf = teamColorMap(team);
   const startMs = new Date(team.slot_time).getTime() + preRaceMinutes(ev) * 60000; // race start, after Training + Quali
@@ -7338,7 +7665,7 @@ function renderStintPlan(team, ev){
     doneNote.className = 'stint-locked-sub';
     doneNote.textContent = 'Event abgeschlossen - der Plan ist nur noch zum Ansehen.';
     wrap.appendChild(doneNote);
-  }else if(iAmIn){
+  }else if(iAmIn && can('teams_edit')){
     wrap.appendChild(renderStintCalculator(team, ev, stints));
   }
 
@@ -7774,7 +8101,7 @@ function renderStintPlan(team, ev){
       restInput.value = formatRestTime(stint.remaining_minutes);
       // Only once the race is on - before that there's nothing to enter.
       const raceStarted = Date.now() >= startMs;
-      restInput.disabled = !canEdit || !raceStarted;
+      restInput.disabled = !canIst || !raceStarted;
       if(!raceStarted) restInput.placeholder = 'ab Start';
       restInput.setAttribute('aria-label', `Ist-Zeit: Rest-Renndauer nach Stint ${stintIdx + 1}`);
       restInput.title = raceStarted
@@ -8449,7 +8776,7 @@ function renderStintOverview(team, startMs, raceMinutes, shareMeta){
       const mineOnlyNow = !!teMyStintsOnly[team.id] && (myDriverCount + mySpotterCount) > 0;
       shareStintPlanImage(team, startMs, raceMinutes, { ...shareMeta, mineOnly: mineOnlyNow }, shareBtn);
     });
-    tools.appendChild(shareBtn);
+    if(can('stints_share_image')) tools.appendChild(shareBtn);
   }
   // Same filter (and same remembered state) as the editor's own "Nur meine
   // Stints" - offered to anyone who drives or spots in this plan.
@@ -8739,7 +9066,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
       // (the only way to get someone onto a team while the event is still
       // an unpublished draft, since nobody else can even see it to join).
       // Both go through the same modal so several can be queued up at once.
-      if(iAmIn && !t.dnf){
+      if(iAmIn && !t.dnf && can('teams_add_members')){
         const addDriversBtn = document.createElement('button');
         addDriversBtn.type = 'button';
         addDriversBtn.className = 'te-team-btn';
@@ -8760,6 +9087,14 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
           actionBtn.title = 'Stintplan ist gesperrt - nur der Team-Ersteller kann dich jetzt noch entfernen';
           actionBtn.addEventListener('click', () => requestLeaveTeam(t.id));
         }
+      }else if(!iAmIn && !can('teams_join')){
+        actionBtn.textContent = 'Beitritt nur über den Teamleiter';
+        actionBtn.disabled = true;
+        actionBtn.classList.add('te-locked-btn');
+      }else if(iAmIn && !iAmCreator && !can('teams_leave')){
+        actionBtn.textContent = 'Austritt nur über den Teamleiter';
+        actionBtn.disabled = true;
+        actionBtn.classList.add('te-locked-btn');
       }else{
         actionBtn.textContent = iAmIn ? 'Verlassen' : 'Beitreten';
         actionBtn.addEventListener('click', () => iAmIn ? leaveTeam(t.id) : joinTeam(t.id, noteInput.value.trim()));
@@ -8793,7 +9128,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
 
       // Any team member can mark the team out of the race - and take it
       // back, in case it was pressed by mistake.
-      if(iAmIn){
+      if(iAmIn && can('dnf_set')){
         const dnfBtn = document.createElement('button');
         dnfBtn.type = 'button';
         dnfBtn.className = 'te-team-btn te-dnf-btn' + (t.dnf ? '' : ' stint-dnf-btn');
@@ -8852,7 +9187,7 @@ function renderSlotDetail(ev, slotIso, teamsHere, carData){
   const key = `${ev.id}::${slotIso}`;
   if(teNewTeamOpen === key){
     detail.appendChild(renderNewTeamForm(ev.id, slotIso, carData, ev.game));
-  }else{
+  }else if(can('teams_create')){
     const newTeamBtn = document.createElement('button');
     newTeamBtn.type = 'button';
     newTeamBtn.className = 'te-new-team-btn';
@@ -9334,7 +9669,7 @@ function renderEventCard(ev, teams, carData, opts){
   const isCreator = currentProfile && ev.created_by === currentProfile.id;
   const isAdmin = !!(currentProfile && currentProfile.is_admin);
   // Pencil: the creator of a self-made event, or the admin (any event).
-  const canManage = ev.published !== false && !opts.isEditorPreview && (isAdmin || (isCreator && ev.source === 'manual'));
+  const canManage = ev.published !== false && !opts.isEditorPreview && (isAdmin || (isCreator && ev.source === 'manual' && can('events_manage_own')));
   if(isCreator || canManage || isAdmin){
     const headerRight = document.createElement('div');
     headerRight.className = 'te-event-header-right';
@@ -9342,7 +9677,7 @@ function renderEventCard(ev, teams, carData, opts){
 
     // Close/reopen and delete: the creator, and the admin for every event
     // (finished and closed ones included).
-    if(isCreator || isAdmin){
+    if((isCreator && can('events_manage_own')) || isAdmin){
       const actions = document.createElement('div');
       actions.className = 'te-event-actions';
 
@@ -9714,6 +10049,12 @@ function renderMasterItem(ev, teams){
 let scheduleFirstLoadDone = false;
 let dashNextRaceLoaded = false;
 function showPanel(name){
+  // A tab its right hides: go to the first one this driver may see.
+  if(!canPanel(name)){
+    const first = Object.keys(PANEL_RIGHT).find(canPanel);
+    if(!first) return;
+    name = first;
+  }
   document.getElementById('panel-dashboard').classList.toggle('active', name==='dashboard');
   document.getElementById('tab-dashboard').classList.toggle('active', name==='dashboard');
   document.getElementById('panel-schedule').classList.toggle('active', name==='schedule');
@@ -10159,7 +10500,7 @@ async function loadDashboardTeamStatus(){
 
 async function loadLiveStrip(){
   const strip = document.getElementById('live-strip');
-  if(SCHEDULE_OFFLINE){ strip.hidden = true; return; }
+  if(SCHEDULE_OFFLINE || !can('tab_schedule')){ strip.hidden = true; return; }
   try{
     const { card, time } = await resolveNextRace();
     if(!card){ strip.hidden = true; return; }
@@ -11486,7 +11827,7 @@ function fcPresetCard(p){
   load.textContent = 'Laden';
   load.addEventListener('click', () => { fcLoadPreset(p); fcCloseLibrary(); });
   actions.appendChild(load);
-  if(fcIsMine(p)){
+  if(fcIsMine(p) && can('presets_share')){
     const share = document.createElement('button');
     share.type = 'button';
     share.className = 'fc-btn small ' + (p.shared ? 'share-on' : 'ghost');
