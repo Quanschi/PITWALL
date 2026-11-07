@@ -1904,7 +1904,7 @@ select.fc-missing, select.fc-missing:focus{outline:none;border-color:var(--red);
 .dv-code{flex:1; min-width:0; min-height:52px; border-radius:10px; border:1px dashed #3A404B; background:#15171C; display:flex; align-items:center; padding:0 16px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; letter-spacing:3px; overflow-wrap:anywhere;}
 .dv-stats{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px;}
 .dv-stats div{display:flex; flex-direction:column; gap:3px; font-size:14px;}
-.dv-code-actions{display:flex; gap:8px; border-top:1px solid var(--line); padding-top:12px;}
+.dv-code-actions{display:flex; flex-wrap:wrap; gap:8px; border-top:1px solid var(--line); padding-top:12px;}
 .dc-import-preview select{height:42px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:0 10px;}
 .pitwall-modal-btn{
   font-family:'JetBrains Mono',monospace;
@@ -4022,8 +4022,8 @@ function renderDriverRow(d){
   sub.className = 'dv-sub';
   const exceptions = Object.keys(d.rights_override || {}).length;
   sub.textContent = [d.is_owner ? 'Hauptadmin' : d.is_admin ? 'Admin' : null, self ? 'du' : null,
-    exceptions && !d.is_admin ? `${exceptions} Ausnahme${exceptions === 1 ? '' : 'n'}` : null,
-    d.team_count ? `${d.team_count} Team${d.team_count === 1 ? '' : 's'}` : 'kein Team'].filter(Boolean).join(' · ');
+    exceptions && !d.is_admin ? `${exceptions} Ausnahme${exceptions === 1 ? '' : 'n'}` : null].filter(Boolean).join(' · ');
+  sub.hidden = !sub.textContent;
   who.append(name, sub);
   const since = document.createElement('span');
   since.className = 'dv-cell';
@@ -4139,7 +4139,7 @@ function renderCodeList(){
   box.innerHTML = '';
   const intro = document.createElement('p');
   intro.className = 'dv-text muted';
-  intro.textContent = 'Wer sich registriert, gibt einen dieser Codes ein. Der Code bestimmt die Gruppe. Ein deaktivierter Code funktioniert nicht mehr – bestehende Konten bleiben.';
+  intro.textContent = 'Wer sich registriert, gibt einen dieser Codes ein. Der Code bestimmt die Gruppe. Ein deaktivierter Code funktioniert nicht mehr – bestehende Konten bleiben. „Reaktivieren“ schaltet ihn wieder frei und setzt den Zähler auf 0.';
   box.appendChild(intro);
   if(!dvCodes.length){
     const empty = document.createElement('div');
@@ -4190,12 +4190,34 @@ function renderCodeList(){
     edit.className = 'dv-btn';
     edit.textContent = 'Bearbeiten';
     edit.addEventListener('click', () => openCodeDialog(c));
+    // Usable code: deactivate. Deactivated, used up or expired: reactivate,
+    // which also puts the counter back to 0 (and drops a past end date).
+    const usable = st.cls === 'on';
+    const expired = !!(c.valid_until && c.valid_until < localDayKey(new Date()));
     const toggle = document.createElement('button');
     toggle.type = 'button';
-    toggle.className = 'dv-btn';
-    toggle.textContent = c.active ? 'Deaktivieren' : 'Aktivieren';
+    toggle.className = 'dv-btn' + (usable ? '' : ' accent');
+    toggle.textContent = usable ? 'Deaktivieren' : 'Reaktivieren';
     toggle.addEventListener('click', async () => {
-      const { error } = await pitwallClient.from('invite_codes').update({ active: !c.active }).eq('id', c.id);
+      if(!usable && !(await pitwallConfirm(`Code „${c.code}“ reaktivieren?
+
+Der Zähler geht auf 0${c.max_uses ? ` – danach wieder ${c.max_uses} Nutzung${c.max_uses === 1 ? '' : 'en'} frei` : ''}${expired ? ', das abgelaufene „Gültig bis“ wird entfernt' : ''}.`, { confirmText: 'Reaktivieren' }))) return;
+      const change = usable ? { active: false }
+        : Object.assign({ active: true, uses: 0, last_used_at: null }, expired ? { valid_until: null } : {});
+      const { error } = await pitwallClient.from('invite_codes').update(change).eq('id', c.id);
+      if(error){ showFormMessage('dv-message', 'Fehlgeschlagen: ' + error.message); return; }
+      loadDriversView();
+    });
+    const resetCount = document.createElement('button');
+    resetCount.type = 'button';
+    resetCount.className = 'dv-btn';
+    resetCount.textContent = 'Zähler auf 0';
+    resetCount.hidden = !usable || !c.uses;
+    resetCount.addEventListener('click', async () => {
+      if(!(await pitwallConfirm(`Zähler von „${c.code}“ auf 0 setzen?
+
+Bestehende Konten bleiben.`, { confirmText: 'Auf 0 setzen' }))) return;
+      const { error } = await pitwallClient.from('invite_codes').update({ uses: 0, last_used_at: null }).eq('id', c.id);
       if(error){ showFormMessage('dv-message', 'Fehlgeschlagen: ' + error.message); return; }
       loadDriversView();
     });
@@ -4212,7 +4234,7 @@ function renderCodeList(){
     });
     const spacer = document.createElement('span');
     spacer.style.flex = '1';
-    actions.append(edit, toggle, spacer, del);
+    actions.append(edit, toggle, resetCount, spacer, del);
     card.append(top, codeRow, stats, actions);
     grid.appendChild(card);
   });
