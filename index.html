@@ -2794,12 +2794,9 @@ async function fetchScheduleCards(type, difficulty){
   return usable;
 }
 
-// ---- Own schedule (lmuportal shut down in October 2026): the admin pastes
-// LMU's Discord posts, Pitwall parses them into lmu_schedule rows shaped
-// like lmuportal's race_series, so every card/strip/editor keeps working.
-// Two kinds of post: the week post ("Daily Race Schedule from: ...", same
-// layout for weekly) and a single special event post with exact <t:...>
-// Discord timestamps. ----
+// ---- LMU Discord posts -> special events (Team Event editor, "Aus
+// Discord-Post"), plus the lmu_schedule row shape the Schedule tab reads
+// (daily races come from racecontrol.gg via the rc-schedule-sync function). ----
 const DC_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 const DC_DAYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
 // Discord emoji <:RookieDriver:123> -> "Rookie"; markdown stars/underscores off.
@@ -2825,34 +2822,61 @@ function dcClasses(text){
 }
 function dcSetup(text){ return /fixed setup/i.test(text) ? 'Fixed' : /open setup/i.test(text) ? 'Open' : null; }
 function dcWarmers(text){ return /no tyre warmers|tyre warmers disabled/i.test(text) ? false : /tyre warmers enabled/i.test(text) ? true : null; }
-// Start times from text like "Monday every 3h from midnight UTC" or
-// "Fri 23rd @ 1100, Sat 24th @ 1330". Weekdays mean the Mon-Sun week that
-// contains `monday`.
+// Start times of a special event, in any of the forms LMU posts them:
+//   "Fri, Sat, Sun @ 0200 0900 1200 1700 2200"  (every day at every time)
+//   "Fri 23rd @ 1100, Sat 24th @ 1330"           (each day its own time)
+//   "Monday every 3h from midnight UTC", "Tue Wed @ every 2h from 0100 UTC"
+// Weekdays mean the Mon-Sun week that contains `monday`.
 function dcStarts(spec, monday){
-  const out = [];
+  const str = String(spec || '');
   const dayOf = name => DC_DAYS[name.slice(0, 3).toLowerCase()];
-  const every = String(spec).match(/((?:mon|tue|wed|thu|fri|sat|sun)\w*(?:\s*(?:,|&|and)\s*(?:mon|tue|wed|thu|fri|sat|sun)\w*)*)\s+every\s+(\d+)\s*h/i);
+  const dateFor = name => {
+    const d = new Date(monday);
+    d.setUTCDate(d.getUTCDate() + (dayOf(name) + 6) % 7);
+    return d;
+  };
+  const dayNames = s => s.match(/\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?/gi) || [];
+  const out = [];
+  const every = str.match(/^(.*?)every\s+(\d+)\s*h[a-z]*(?:\s+from\s+(midnight|\d{1,2}:?\d{2}))?/i);
   if(every){
-    const step = Number(every[2]);
-    for(const d of every[1].match(/(mon|tue|wed|thu|fri|sat|sun)\w*/gi)){
-      const base = new Date(monday);
-      base.setUTCDate(base.getUTCDate() + (dayOf(d) + 6) % 7);
-      for(let h = 0; h < 24; h += step){ const t = new Date(base); t.setUTCHours(h, 0, 0, 0); out.push(t); }
+    const step = Number(every[2]) * 60;
+    let first = 0;
+    if(every[3] && !/midnight/i.test(every[3])){
+      const t = every[3].replace(':', '').padStart(4, '0');
+      first = Number(t.slice(0, 2)) * 60 + Number(t.slice(2));
     }
+    dayNames(every[1]).forEach(n => {
+      for(let m = first; m < 1440 && step > 0; m += step){
+        const d = dateFor(n);
+        d.setUTCMinutes(m);
+        out.push(d);
+      }
+    });
     return out;
   }
-  for(const m of String(spec).matchAll(/(mon|tue|wed|thu|fri|sat|sun)\w*\.?\s*(?:(\d{1,2})(?:st|nd|rd|th)?)?\s*@\s*(\d{1,2}):?(\d{2})/gi)){
-    let day = new Date(monday);
-    day.setUTCDate(day.getUTCDate() + (dayOf(m[1]) + 6) % 7);
-    if(m[2]){
-      // A day-of-month wins over the weekday guess (posts can reach into the next week).
+  const pairs = [...str.matchAll(/\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?\s*(\d{1,2})(?:st|nd|rd|th)\s*@\s*(\d{1,2}):?(\d{2})/gi)];
+  if(pairs.length){
+    pairs.forEach(m => {
+      let day = dateFor(m[1]);
+      // The day of month wins over the weekday guess (posts can reach into the next week).
       for(let off = -7; off <= 13; off++){
-        const c = new Date(monday); c.setUTCDate(c.getUTCDate() + off);
+        const c = new Date(monday);
+        c.setUTCDate(c.getUTCDate() + off);
         if(c.getUTCDate() === Number(m[2]) && c.getUTCDay() === dayOf(m[1])){ day = c; break; }
       }
-    }
-    day.setUTCHours(Number(m[3]), Number(m[4]), 0, 0);
-    out.push(day);
+      day.setUTCHours(Number(m[3]), Number(m[4]), 0, 0);
+      out.push(day);
+    });
+    return out;
+  }
+  const at = str.split('@');
+  if(at.length === 2){
+    const times = [...at[1].matchAll(/\b(\d{1,2}):?(\d{2})\b/g)].filter(t => Number(t[1]) < 24 && Number(t[2]) < 60);
+    dayNames(at[0]).forEach(n => times.forEach(t => {
+      const d = dateFor(n);
+      d.setUTCHours(Number(t[1]), Number(t[2]), 0, 0);
+      out.push(d);
+    }));
   }
   return out;
 }
@@ -2883,144 +2907,90 @@ function dcRaceFields(body){
 }
 function dcSrFrom(req){ const m = String(req || '').match(/SR\s+([A-D]\d?)\b/i); return m ? m[1].toUpperCase() : null; }
 
-function parseDiscordWeekPost(text){
-  const head = text.match(/(Daily|Weekly)\s+Race\s+Schedule\s+from:?\s*(\d{1,2})\w*\s+([A-Za-z]+)\s+(\d{4})/i);
-  if(!head) return null;
-  const kind = head[1].toLowerCase();
-  const month = DC_MONTHS.indexOf(head[3].toLowerCase());
-  if(month < 0) return null;
-  const from = new Date(Date.UTC(Number(head[4]), month, Number(head[2])));
-  const weekKey = toWeekKey(mostRecentTuesdayUtc(from));
-  const monday = dcMondayOf(from);
-  const rows = [], warnings = [], specials = [];
-  let tier = null, special = null, teamSection = false;
-  for(const raw of text.split(/\r?\n/)){
-    const line = raw.trim();
-    if(!line) continue;
-    const h = line.match(/^#{1,3}\s*\*\*(.+?)\*\*/);
-    if(h){
-      special = null;
-      if(/special/i.test(h[1])){ tier = null; teamSection = /team/i.test(h[1]); specials.push(null); continue; }
-      tier = {
-        name: ((h[1].match(/beginner|intermediate|advanced/i) || [])[0] || '').toLowerCase() || null,
-        sr: (h[1].match(/\[(\w+)\s*SR\]/i) || [])[1] || null,
-        d: {},
-      };
-      continue;
-    }
-    if(tier && /starts every|every\s+\d+\s*min/i.test(line) && !/^__/.test(line)){
-      tier.d = {
-        every: dcNum(/every\s+(\d+)\s*min/i, line), dur: dcNum(/(\d+)\s*m races/i, line),
-        tyres: dcNum(/tyres:\s*(\d+)/i, line), warmers: dcWarmers(line),
-      };
-      continue;
-    }
-    if(specials.length && !tier){
-      const sp = line.match(/^__(.+?)(?:\[(.*)\])?\s*:?\s*__\s*:?\s*(.*)$/);
-      if(sp){
-        const name = dcClean(sp[1]).replace(/:$/, '');
-        const requirements = sp[2] ? dcClean(sp[2]) : null;
-        special = { name, requirements, fields: dcRaceFields(dcClean(sp[3])), slots: [] };
-        specials.push(special);
-        continue;
-      }
-      const slot = special && line.match(/^['‘’"](.+?)['‘’"]\s*[-–]\s*(.+)$/);
-      if(slot){ special.slots.push({ label: dcClean(slot[1]), starts: dcStarts(slot[2], monday) }); continue; }
-      continue;
-    }
-    const race = tier && line.match(/^__(.+?)__\s*:?\s*(.*)$/);
-    if(race){
-      const name = dcClean(race[1]);
-      const body = dcClean(race[2]);
-      const f = dcRaceFields(body);
-      const row = Object.assign(dcBaseRow(), f, {
-        series_id: `dc-${kind}-${dcSlug(name)}`, week_key: weekKey, type: kind, tier_name: tier.name,
-        series_name: name, sr_requirement: tier.sr,
-        race_duration_minutes: f.race_duration_minutes ?? tier.d.dur ?? null,
-        tyre_allowance: f.tyre_allowance ?? tier.d.tyres ?? null,
-        tyre_warmers: f.tyre_warmers ?? tier.d.warmers ?? null,
-      });
-      if(kind === 'daily'){
-        row.every_minutes = tier.d.every || null;
-        if(!row.every_minutes) warnings.push(`„${name}“: kein Startabstand gefunden`);
-      }else{
-        const starts = dcStarts(body, monday);
-        if(starts.length) row.starts_utc = starts.map(d => d.toISOString());
-        else warnings.push(`„${name}“: keine Startzeiten gefunden`);
-      }
-      if(!row.race_duration_minutes) warnings.push(`„${name}“: keine Renndauer gefunden`);
-      rows.push(row);
-    }
-  }
-  specials.filter(Boolean).forEach(s => {
-    const base = Object.assign(dcBaseRow(), s.fields, {
-      week_key: weekKey, type: 'special', series_name: s.name, driver_swap_enabled: teamSection,
-      requirements: s.requirements, sr_requirement: dcSrFrom(s.requirements),
-    });
-    if(s.slots.length){
-      s.slots.forEach(slot => {
-        rows.push(Object.assign({}, base, {
-          series_id: `dc-special-${dcSlug(s.name)}-${dcSlug(slot.label)}`,
-          series_name: `${s.name} – ${slot.label}`,
-          starts_utc: slot.starts.map(d => d.toISOString()),
-        }));
-        if(!slot.starts.length) warnings.push(`„${s.name} – ${slot.label}“: Startzeiten nicht lesbar`);
-      });
-    }else{
-      rows.push(Object.assign({}, base, { series_id: `dc-special-${dcSlug(s.name)}` }));
-      warnings.push(`„${s.name}“: keine Startzeiten im Post – den Einzelpost dazu einfügen`);
-    }
-  });
-  // "starts every 15min" is the tier's rotation: its races take turns, so
-  // each one repeats every 15 x (races in the tier) - Bronze 45, Silver 60,
-  // Gold 90 min (seen in game, 21.10.2026). Which race goes first isn't in
-  // the post (nor in its order): first guess is post order, the preview
-  // swaps in last week's value and the admin types the game's first time.
-  const byTier = {};
-  rows.filter(r => r.type === 'daily' && r.every_minutes).forEach(r => { (byTier[r.tier_name] = byTier[r.tier_name] || []).push(r); });
-  Object.values(byTier).forEach(list => list.forEach((r, i) => {
-    const step = r.every_minutes;
-    r.every_minutes = step * list.length;
-    r.offset_minutes = i * step;
-    r._offsetGuess = true;
-  }));
-  if(!rows.length) warnings.push('Keine Rennen erkannt.');
-  return { kind, weekKey, from, rows, warnings };
-}
-
-function parseDiscordEventPost(text){
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const hm = (lines[0] || '').match(/^#{1,3}\s*(.+)$/);
-  const bodyLine = lines.find(l => /\d+\s*m races/i.test(l));
-  if(!hm || !bodyLine) return null;
-  const name = dcClean(hm[1]);
-  const warnings = [];
-  const reqLine = lines.find(l => /^[*_]*\[/.test(l));
-  const requirements = reqLine ? dcClean(reqLine.replace(/[[\]]/g, '')) : null;
-  let starts = [...text.matchAll(/<t:(\d+)(?::[a-zA-Z])?>/g)].map(m => new Date(Number(m[1]) * 1000));
-  if(!starts.length){
-    const utc = lines.find(l => /UTC\s+Days/i.test(l));
-    if(utc) starts = dcStarts(utc, dcMondayOf(new Date()));
-  }
-  if(!starts.length) warnings.push(`„${name}“: keine Startzeiten gefunden`);
-  const info = re => {
-    const l = lines.find(x => re.test(x));
-    return l ? dcClean(l.replace(re, '')).replace(/^start time in-game:\s*/i, 'Start im Spiel ') : null;
-  };
-  const weekKey = toWeekKey(mostRecentTuesdayUtc(starts[0] || new Date()));
-  const row = Object.assign(dcBaseRow(), dcRaceFields(dcClean(bodyLine)), {
-    series_id: `dc-special-${dcSlug(name)}`, week_key: weekKey, type: 'special', series_name: name,
-    driver_swap_enabled: /lineup|team|driver swap|fair share/i.test(text),
-    requirements, sr_requirement: dcSrFrom(requirements),
-    starts_utc: starts.length ? starts.map(d => d.toISOString()) : null,
-    qualifying_info: info(/^(?:private\s+)?qualifying,?\s*/i),
-    race_info: info(/^race,?\s*/i),
-  });
-  return { kind: 'event', weekKey, rows: [row], warnings };
-}
-
+// Special events out of whatever was pasted from LMU's Discord: one or more
+// week posts ("Daily Race Schedule from: 10th November 2026" ... "Special
+// Events (Team)" ...) and/or a single event post ("24 Hours of Le Mans",
+// "[requirements]", body line, times). Works with and without the Discord
+// markdown (## ** __); daily and weekly races are skipped.
 function parseDiscordPost(text){
-  return parseDiscordWeekPost(text) || parseDiscordEventPost(text);
+  const rows = [];
+  const warnings = [];
+  let monday = dcMondayOf(new Date());
+  let section = 'none';
+  let ev = null;
+  let pendingTitle = null, pendingReq = null;
+
+  const finish = () => {
+    if(!ev) return;
+    const base = Object.assign(dcBaseRow(), ev.fields, {
+      type: 'special', driver_swap_enabled: true, series_name: ev.name,
+      requirements: ev.requirements, sr_requirement: dcSrFrom(ev.requirements),
+      qualifying_info: ev.quali, race_info: ev.race,
+    });
+    const iso = list => list.slice().sort((a, b) => a - b).map(d => d.toISOString());
+    if(ev.variants.length){
+      ev.variants.forEach(v => rows.push(Object.assign({}, base, {
+        series_id: `dc-special-${dcSlug(ev.name)}-${dcSlug(v.label)}`,
+        series_name: `${ev.name} – ${v.label}`,
+        starts_utc: iso(v.starts),
+      })));
+    }else{
+      const starts = ev.stamps.length ? ev.stamps : ev.starts;
+      rows.push(Object.assign({}, base, { series_id: `dc-special-${dcSlug(ev.name)}`, starts_utc: starts.length ? iso(starts) : null }));
+      if(!starts.length) warnings.push(`„${ev.name}“: keine Startzeiten gefunden`);
+    }
+    ev = null;
+  };
+  const startEvent = (name, requirements, body) => {
+    finish();
+    ev = { name: dcClean(name).replace(/:$/, ''), requirements: requirements ? dcClean(requirements) : null,
+      fields: dcRaceFields(dcClean(body)), starts: [], stamps: [], variants: [], quali: null, race: null, monday };
+    pendingTitle = pendingReq = null;
+  };
+
+  for(const raw of String(text || '').split(/\r?\n/)){
+    const line = dcClean(raw.replace(/^\s*#{1,3}\s*/, ''));
+    if(!line) continue;
+    const from = line.match(/Schedule from:?\s*(\d{1,2})[a-z]*\s+([A-Za-z]+)\s+(\d{4})/i);
+    if(from){
+      finish();
+      const month = DC_MONTHS.indexOf(from[2].toLowerCase());
+      if(month >= 0) monday = dcMondayOf(new Date(Date.UTC(Number(from[3]), month, Number(from[1]))));
+      section = 'daily';
+      continue;
+    }
+    if(/^special events?\b/i.test(line)){ finish(); section = 'special'; continue; }
+    if(/^weekly races?\b/i.test(line)){ finish(); section = 'weekly'; continue; }
+    if(/^(beginner|intermediate|advanced)\b/i.test(line)){ finish(); section = 'daily'; continue; }
+    // Discord's author line between pasted posts ("Name … — 05.11.2026 18:20")
+    if(/\s[—-]\s\d{1,2}\.\d{1,2}\.\d{2,4}\s+\d{1,2}:\d{2}\s*$/.test(line)){ finish(); section = 'none'; continue; }
+
+    const named = line.match(/^(.+?)\s*(?:\[(.*)\])?\s*:\s*(.*\b\d+\s*m races\b.*)$/i);
+    if(named && section === 'special'){ startEvent(named[1], named[2], named[3]); continue; }
+    if(section === 'special' || section === 'none'){
+      if(ev){
+        const times = line.match(/^UTC\s+Days(?:\s*&\s*Times)?\s*:?\s*(.*)$/i);
+        if(times){ ev.starts = dcStarts(times[1], ev.monday); continue; }
+        const stamps = [...raw.matchAll(/<t:(\d+)(?::[a-zA-Z])?>/g)].map(m => new Date(Number(m[1]) * 1000));
+        if(stamps.length){ ev.stamps = stamps; continue; }
+        const slot = line.match(/^['‘’"](.+?)['‘’"]\s*[-–]\s*(.+)$/);
+        if(slot){ ev.variants.push({ label: dcClean(slot[1]), starts: dcStarts(slot[2], ev.monday) }); continue; }
+        const q = line.match(/^(?:private\s+)?qualifying\b,?\s*(.*)$/i);
+        if(q){ ev.quali = q[1].replace(/^start time in-game:\s*/i, 'Start im Spiel ') || null; continue; }
+        const r = line.match(/^race\b,?\s*(.*)$/i);
+        if(r){ ev.race = r[1].replace(/^start time in-game:\s*/i, 'Start im Spiel ') || null; continue; }
+      }
+      if(section === 'none'){
+        // Single event post: title line, "[requirements]" line, then the body.
+        if(/^\[.*\]$/.test(line)){ pendingReq = line.slice(1, -1); continue; }
+        if(/\b\d+\s*m races\b/i.test(line) && pendingTitle){ startEvent(pendingTitle, pendingReq, line); continue; }
+        if(!ev && !/\b\d+\s*m races\b/i.test(line)) pendingTitle = line;
+      }
+    }
+  }
+  finish();
+  if(!rows.length) return null;
+  return { kind: 'event', rows, warnings };
 }
 
 // race_series-like shape from an lmu_schedule row (what fetchScheduleCards maps).
@@ -5699,7 +5669,8 @@ async function openDiscordEventImport(){
       events.forEach((r, i) => {
         const o = document.createElement('option');
         o.value = String(i);
-        o.textContent = r.series_name;
+        const first = (r.starts_utc || [])[0];
+        o.textContent = r.series_name + (first ? ` · ab ${new Date(first).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}` : '');
         sel.appendChild(o);
       });
       sel.value = String(picked);
