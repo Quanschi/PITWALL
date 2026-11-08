@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="44" fill="#111317"/>
+  <g transform="translate(0.0 0.0) scale(1.0)">
+    <g transform="translate(0 -8)" fill="none" stroke="#FFB020" stroke-width="11" stroke-linejoin="round" stroke-linecap="round">
+    <!-- P drawn as one racing line: slanted stem, bowl, entry bend into the counter -->
+    <path stroke="#E9E7E1" d="M42 42H112A46 46 0 0 1 112 134H95L82 172H55L69 128Q74 110 92 110H110A22 22 0 0 0 110 66H80C64 66 54 56 42 42Z"/>
+    <!-- stopwatch crown -->
+    <path d="M146 54L154 46M148 40L160 52"/>
+    <!-- stopwatch ticks -->
+    <path d="M112 52V58M137.5 62.5L133.2 66.8M148 88H142" stroke-width="6"/>
+  </g>
+  </g>
+</svg>

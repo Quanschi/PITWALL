@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pitwall-shell-v225';
+const CACHE_NAME = 'pitwall-shell-v226';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -6,7 +6,9 @@ const SHELL_FILES = [
   './reset-password.html',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon.svg',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
